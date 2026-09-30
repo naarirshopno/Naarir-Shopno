@@ -72,6 +72,7 @@ export const AdminPanel: React.FC = () => {
     deleteProduct, 
     orders, 
     updateOrderStatus, 
+    deleteOrder,
     settings, 
     updateSettings, 
     messages, 
@@ -83,6 +84,8 @@ export const AdminPanel: React.FC = () => {
 
   const [isSyncingAll, setIsSyncingAll] = useState(false);
   const [cloudSyncedToast, setCloudSyncedToast] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [orderDeleteToast, setOrderDeleteToast] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'delivery' | 'social' | 'messages'>('dashboard');
   
@@ -1341,6 +1344,13 @@ export const AdminPanel: React.FC = () => {
                               <option value="delivered">ডেলিভারি সম্পন্ন (Delivered)</option>
                               <option value="cancelled">বাতিল (Cancelled)</option>
                             </select>
+                            <button
+                              onClick={() => setOrderToDelete(ord)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 hover:border-red-200 transition"
+                              title="অর্ডারটি মুছুন"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
 
@@ -1459,7 +1469,7 @@ export const AdminPanel: React.FC = () => {
                             )}
                           </div>
 
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <button
                               onClick={() => {
                                 setSelectedOrderForCourier(ord);
@@ -1478,6 +1488,15 @@ export const AdminPanel: React.FC = () => {
                             >
                               <Printer className="w-3.5 h-3.5" />
                               <span>ইনভয়েস</span>
+                            </button>
+
+                            <button
+                              onClick={() => setOrderToDelete(ord)}
+                              className="bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 font-bold px-3 py-1.5 rounded-lg border border-red-200 flex items-center gap-1 transition"
+                              title="অর্ডারটি সম্পূর্ণ মুছে ফেলুন"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>অর্ডার মুছুন</span>
                             </button>
                           </div>
                         </div>
@@ -2721,6 +2740,65 @@ export const AdminPanel: React.FC = () => {
             <div>
               <p className="font-bold">ক্লাউড ডেটাবেজে সফলভাবে সিঙ্ক হয়েছে!</p>
               <p className="text-[11px] text-slate-300">এখন বিশ্বের যেকোনো ডিভাইস ও কাস্টমার সকল প্রোডাক্ট ও আপডেট দেখতে পাবে।</p>
+            </div>
+          </div>
+        )}
+
+        {/* Confirm Delete Order Modal */}
+        {orderToDelete && (
+          <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+            <div 
+              className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-red-100 space-y-4 animate-scaleUp"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              
+              <div className="text-center space-y-1">
+                <h4 className="text-lg font-bold text-slate-900 font-['Hind_Siliguri']">
+                  অর্ডারটি মুছে ফেলতে চান?
+                </h4>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  অর্ডার আইডি: <strong className="font-mono text-rose-700">#{orderToDelete.id}</strong> ({orderToDelete.customerName})<br />
+                  মুছে ফেলার পর এটি লোকাল স্টোরেজ এবং ফায়ারবেস ক্লাউড ডেটাবেজ উভয় থেকেই স্থায়ীভাবে ডিলিট হয়ে যাবে।
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setOrderToDelete(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition"
+                >
+                  না, বাতিল
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = orderToDelete.id;
+                    deleteOrder(id);
+                    setOrderToDelete(null);
+                    setOrderDeleteToast(`অর্ডার #${id} সফলভাবে মুছে ফেলা হয়েছে!`);
+                    setTimeout(() => setOrderDeleteToast(null), 3500);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-md flex items-center justify-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>হ্যাঁ, মুছে ফেলুন</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Order Deleted Toast Notification */}
+        {orderDeleteToast && (
+          <div className="fixed bottom-6 left-6 z-60 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-red-500/50 flex items-center gap-2.5 text-xs animate-slideUp">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <p className="font-bold">{orderDeleteToast}</p>
+              <p className="text-[11px] text-slate-300">ডেটাবেজ ও লাইভ সিস্টেম থেকে অর্ডারটি মুছে গেছে।</p>
             </div>
           </div>
         )}

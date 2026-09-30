@@ -81,6 +81,7 @@ interface ShopContextType {
   // Checkout & Orders
   createOrder: (order: Omit<Order, 'id' | 'createdAt'>) => Order;
   updateOrderStatus: (orderId: string, status: OrderStatus, courier?: Order['courier']) => void;
+  deleteOrder: (orderId: string) => void;
   
   // Products Management
   addProduct: (product: Omit<Product, 'id'>) => void;
@@ -555,6 +556,12 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
+  const deleteOrder = (orderId: string) => {
+    setOrders(prev => prev.filter(o => o.id !== orderId));
+    deleteDoc(doc(db, 'orders', orderId))
+      .catch(err => handleFirestoreError(err, OperationType.DELETE, `orders/${orderId}`));
+  };
+
   // Products
   const addProduct = (prodData: Omit<Product, 'id'>) => {
     const newId = `ns-${Date.now().toString().slice(-4)}`;
@@ -678,6 +685,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getCartCount,
         createOrder,
         updateOrderStatus,
+        deleteOrder,
         addProduct,
         updateProduct,
         deleteProduct,
