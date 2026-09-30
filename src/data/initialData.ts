@@ -1,4 +1,4 @@
-import { Product, StoreSettings, Order } from '../types';
+import { Product, StoreSettings, Order, CustomerMessage } from '../types';
 
 export const INITIAL_SETTINGS: StoreSettings = {
   storeName: "নারীর স্বপ্ন",
@@ -22,7 +22,7 @@ export const INITIAL_SETTINGS: StoreSettings = {
   officeEmail: "NaarirShopno@Gmail.com",
 };
 
-export const INITIAL_PRODUCTS: Product[] = [
+export const DEMO_SAMPLE_PRODUCTS: Product[] = [
   {
     id: "ns-01",
     name: "Luxury Embroidered Georgette Three Piece",
@@ -304,7 +304,11 @@ export const INITIAL_PRODUCTS: Product[] = [
   },
 ];
 
-export const INITIAL_ORDERS: Order[] = [
+export const INITIAL_PRODUCTS: Product[] = [];
+export const INITIAL_ORDERS: Order[] = [];
+export const INITIAL_MESSAGES: CustomerMessage[] = [];
+
+export const DEMO_ORDERS: Order[] = [
   {
     id: "NS-1045",
     createdAt: "2026-09-21 14:30",
@@ -318,7 +322,7 @@ export const INITIAL_ORDERS: Order[] = [
     paymentMethod: "cod",
     items: [
       {
-        product: INITIAL_PRODUCTS[0],
+        product: DEMO_SAMPLE_PRODUCTS[0],
         selectedSize: "L (৪০)",
         selectedColor: "রোজ পিঙ্ক",
         quantity: 1,
@@ -354,7 +358,7 @@ export const INITIAL_ORDERS: Order[] = [
     },
     items: [
       {
-        product: INITIAL_PRODUCTS[1],
+        product: DEMO_SAMPLE_PRODUCTS[1],
         selectedSize: "ফ্রি সাইজ (১২ হাত)",
         selectedColor: "রানি গোলাপি",
         quantity: 1,
@@ -384,7 +388,7 @@ export const INITIAL_ORDERS: Order[] = [
     paymentMethod: "cod",
     items: [
       {
-        product: INITIAL_PRODUCTS[2],
+        product: DEMO_SAMPLE_PRODUCTS[2],
         selectedSize: "M (৩৮)",
         selectedColor: "পিচ পিঙ্ক",
         quantity: 2,
@@ -397,7 +401,7 @@ export const INITIAL_ORDERS: Order[] = [
   },
 ];
 
-export const INITIAL_MESSAGES = [
+export const DEMO_MESSAGES = [
   {
     id: "msg-01",
     name: "রোকসানা পারভীন",

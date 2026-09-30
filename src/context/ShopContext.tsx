@@ -107,10 +107,20 @@ interface ShopContextType {
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Local storage initialized states
+  // Local storage initialized states (defaulting to empty arrays, filtering out demo IDs)
   const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('ns_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    try {
+      const saved = localStorage.getItem('ns_products');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((p: Product) => !p.id.startsWith('ns-0') && p.id !== 'ns-10');
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return [];
   });
 
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -119,8 +129,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('ns_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    try {
+      const saved = localStorage.getItem('ns_orders');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((o: Order) => !['NS-1045', 'NS-1046', 'NS-1047'].includes(o.id));
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return [];
   });
 
   const [settings, setSettings] = useState<StoreSettings>(() => {
@@ -258,14 +278,12 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubOrders = onSnapshot(
       ordersCol,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const remoteOrders: Order[] = [];
-          snapshot.forEach((docSnap) => {
-            remoteOrders.push(docSnap.data() as Order);
-          });
-          remoteOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          setOrders(remoteOrders);
-        }
+        const remoteOrders: Order[] = [];
+        snapshot.forEach((docSnap) => {
+          remoteOrders.push(docSnap.data() as Order);
+        });
+        remoteOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setOrders(remoteOrders);
       },
       (error) => {
         handleFirestoreError(error, OperationType.LIST, 'orders');
@@ -295,14 +313,12 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubMessages = onSnapshot(
       messagesCol,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const remoteMsgs: CustomerMessage[] = [];
-          snapshot.forEach((docSnap) => {
-            remoteMsgs.push(docSnap.data() as CustomerMessage);
-          });
-          remoteMsgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          setMessages(remoteMsgs);
-        }
+        const remoteMsgs: CustomerMessage[] = [];
+        snapshot.forEach((docSnap) => {
+          remoteMsgs.push(docSnap.data() as CustomerMessage);
+        });
+        remoteMsgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setMessages(remoteMsgs);
       },
       (error) => {
         handleFirestoreError(error, OperationType.LIST, 'messages');

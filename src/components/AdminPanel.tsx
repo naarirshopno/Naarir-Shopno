@@ -915,7 +915,14 @@ export const AdminPanel: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {orders.slice(0, 5).map((ord) => {
+                          {orders.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="p-6 text-center text-slate-400 font-medium">
+                                বর্তমানে কোনো নতুন অর্ডার জমা পড়েনি
+                              </td>
+                            </tr>
+                          ) : (
+                            orders.slice(0, 5).map((ord) => {
                             const firstItem = ord.items[0];
                             const itemImg = firstItem?.selectedImage || (firstItem?.product.images && firstItem.product.images[0]) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=150&q=80';
                             const colorHex = firstItem?.product.colors?.find(c => c.name === firstItem?.selectedColor)?.hex;
@@ -978,7 +985,8 @@ export const AdminPanel: React.FC = () => {
                                 </td>
                               </tr>
                             );
-                          })}
+                          })
+                        )}
                         </tbody>
                       </table>
                     </div>
@@ -1328,7 +1336,22 @@ export const AdminPanel: React.FC = () => {
                   </div>
 
                   <div className="space-y-3">
-                    {orders.map((ord) => (
+                    {orders.length === 0 ? (
+                      <div className="bg-white rounded-2xl p-8 sm:p-12 text-center border border-rose-100 shadow-sm space-y-3">
+                        <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+                          <Package className="w-7 h-7" />
+                        </div>
+                        <div className="space-y-1">
+                          <h5 className="font-bold text-slate-900 text-base font-['Hind_Siliguri']">
+                            বর্তমানে কোনো সক্রিয় অর্ডার নেই
+                          </h5>
+                          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                            কাস্টমাররা ওয়েবসাইট থেকে কেনাকাটা সম্পন্ন করলে সরাসরি এখানে এবং ক্লাউড ডেটাবেজে লাইভ অর্ডারটি প্রদর্শিত হবে।
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      orders.map((ord) => (
                       <div key={ord.id} className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm space-y-3">
                         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 pb-3 border-b border-rose-50">
                           <div>
@@ -1517,7 +1540,8 @@ export const AdminPanel: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                    ))}
+                    ))
+                  )}
                   </div>
                 </div>
               )}

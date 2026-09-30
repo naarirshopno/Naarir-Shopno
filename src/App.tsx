@@ -317,21 +317,40 @@ const StorefrontContent: React.FC = () => {
             <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto">
               <SearchX className="w-8 h-8" />
             </div>
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold text-slate-900 font-['Hind_Siliguri']">
-                কোনো পোশাক খুঁজে পাওয়া যায়নি
-              </h3>
-              <p className="text-xs text-slate-500">
-                আপনার দেওয়া ফিল্টার বা সার্চ কিওয়ার্ডের সাথে মেলে এমন কোনো পণ্য পাওয়া যায়নি।
-              </p>
-            </div>
-            <button
-              onClick={resetFilters}
-              className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow transition inline-flex items-center gap-1.5"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>ফিল্টার রিসেট করুন</span>
-            </button>
+            {products.length === 0 ? (
+              <div className="space-y-3">
+                <h3 className="text-lg font-bold text-slate-900 font-['Hind_Siliguri']">
+                  নতুন কালেকশন শীঘ্রই আসছে!
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  স্টোরে বর্তমানে কোনো ডেমো বা স্যাম্পল পণ্য রাখা হয়নি। অ্যাডমিন প্যানেল থেকে আপনার নিজস্ব সুন্দর পোশাক ও পণ্যগুলো যুক্ত করুন।
+                </p>
+                <button
+                  onClick={() => setIsAdminOpen(true)}
+                  className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow transition inline-flex items-center gap-1.5"
+                >
+                  <span>অ্যাডমিন প্যানেলে পণ্য যোগ করুন</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-slate-900 font-['Hind_Siliguri']">
+                    কোনো পোশাক খুঁজে পাওয়া যায়নি
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    আপনার দেওয়া ফিল্টার বা সার্চ কিওয়ার্ডের সাথে মেলে এমন কোনো পণ্য পাওয়া যায়নি।
+                  </p>
+                </div>
+                <button
+                  onClick={resetFilters}
+                  className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow transition inline-flex items-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>ফিল্টার রিসেট করুন</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
