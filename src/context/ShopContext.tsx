@@ -87,6 +87,9 @@ interface ShopContextType {
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (product: Product) => void;
   deleteProduct: (productId: string) => void;
+  deleteDemoProducts: () => Promise<void>;
+  clearAllProducts: () => Promise<void>;
+  restoreDemoProducts: () => Promise<void>;
   
   // Settings & Messages
   updateSettings: (newSettings: StoreSettings) => void;
@@ -237,20 +240,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubProducts = onSnapshot(
       productsCol,
       (snapshot) => {
-        if (snapshot.empty) {
-          const batch = writeBatch(db);
-          const initialList = products.length > 0 ? products : INITIAL_PRODUCTS;
-          initialList.forEach((prod) => {
-            batch.set(doc(db, 'products', prod.id), sanitizeForFirestore(prod));
-          });
-          batch.commit().catch((err) => handleFirestoreError(err, OperationType.WRITE, 'products'));
-        } else {
-          const remoteList: Product[] = [];
-          snapshot.forEach((docSnap) => {
-            remoteList.push(docSnap.data() as Product);
-          });
-          setProducts(remoteList);
-        }
+        const remoteList: Product[] = [];
+        snapshot.forEach((docSnap) => {
+          remoteList.push(docSnap.data() as Product);
+        });
+        setProducts(remoteList);
         setCloudSyncStatus('synced');
       },
       (error) => {
@@ -586,6 +580,48 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .catch(err => handleFirestoreError(err, OperationType.DELETE, `products/${id}`));
   };
 
+  const deleteDemoProducts = async () => {
+    const demoIds = ['ns-01', 'ns-02', 'ns-03', 'ns-04', 'ns-05', 'ns-06', 'ns-07', 'ns-08', 'ns-09', 'ns-10', 'ns-11', 'ns-12'];
+    try {
+      const batch = writeBatch(db);
+      products.forEach((p) => {
+        if (demoIds.includes(p.id) || p.id.startsWith('ns-0')) {
+          batch.delete(doc(db, 'products', p.id));
+        }
+      });
+      await batch.commit();
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, 'products');
+    }
+    setProducts((prev) => prev.filter((p) => !demoIds.includes(p.id) && !p.id.startsWith('ns-0')));
+  };
+
+  const clearAllProducts = async () => {
+    try {
+      const batch = writeBatch(db);
+      products.forEach((p) => {
+        batch.delete(doc(db, 'products', p.id));
+      });
+      await batch.commit();
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, 'products');
+    }
+    setProducts([]);
+  };
+
+  const restoreDemoProducts = async () => {
+    try {
+      const batch = writeBatch(db);
+      INITIAL_PRODUCTS.forEach((p) => {
+        batch.set(doc(db, 'products', p.id), sanitizeForFirestore(p));
+      });
+      await batch.commit();
+      setProducts(INITIAL_PRODUCTS);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'products');
+    }
+  };
+
   // Settings
   const updateSettings = (newSettings: StoreSettings) => {
     setSettings(newSettings);
@@ -689,6 +725,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addProduct,
         updateProduct,
         deleteProduct,
+        deleteDemoProducts,
+        clearAllProducts,
+        restoreDemoProducts,
         updateSettings,
         sendCustomerMessage,
         markMessageAsRead,

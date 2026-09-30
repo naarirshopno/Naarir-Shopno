@@ -79,13 +79,18 @@ export const AdminPanel: React.FC = () => {
     markMessageAsRead, 
     deleteMessage,
     cloudSyncStatus,
-    syncAllToCloud
+    syncAllToCloud,
+    deleteDemoProducts,
+    clearAllProducts,
+    restoreDemoProducts
   } = useShop();
 
   const [isSyncingAll, setIsSyncingAll] = useState(false);
   const [cloudSyncedToast, setCloudSyncedToast] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [orderDeleteToast, setOrderDeleteToast] = useState<string | null>(null);
+  const [isConfirmDeleteDemosOpen, setIsConfirmDeleteDemosOpen] = useState(false);
+  const [demoDeleteToast, setDemoDeleteToast] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'delivery' | 'social' | 'messages'>('dashboard');
   
@@ -998,6 +1003,17 @@ export const AdminPanel: React.FC = () => {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                      {products.some(p => p.id.startsWith('ns-0') || p.id.startsWith('ns-1')) && (
+                        <button
+                          onClick={() => setIsConfirmDeleteDemosOpen(true)}
+                          title="সকল ডিফল্ট ডেমো / স্যাম্পল পণ্য এক ক্লিকে মুছে ফেলুন যাতে তারা আর কখনও ফিরে না আসে"
+                          className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold px-3 py-2.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-amber-600" />
+                          <span>ডেমো পণ্য সব মুছুন</span>
+                        </button>
+                      )}
+
                       <button
                         onClick={async () => {
                           setIsSyncingAll(true);
@@ -2799,6 +2815,64 @@ export const AdminPanel: React.FC = () => {
             <div>
               <p className="font-bold">{orderDeleteToast}</p>
               <p className="text-[11px] text-slate-300">ডেটাবেজ ও লাইভ সিস্টেম থেকে অর্ডারটি মুছে গেছে।</p>
+            </div>
+          </div>
+        )}
+
+        {/* Confirm Delete Demo Products Modal */}
+        {isConfirmDeleteDemosOpen && (
+          <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+            <div 
+              className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-amber-200 space-y-4 animate-scaleUp"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              
+              <div className="text-center space-y-1">
+                <h4 className="text-lg font-bold text-slate-900 font-['Hind_Siliguri']">
+                  সব ডেমো পণ্য মুছে ফেলতে চান?
+                </h4>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  হোমপেজ ও ক্লাউড ডেটাবেজ থেকে সকল ডিফল্ট/স্যাম্পল পণ্য চিরতরে মুছে ফেলা হবে এবং <strong>তারা আর কখনও নিজে নিজে ফিরে আসবে না</strong>।<br />
+                  আপনার নিজের যোগ করা পোশাকগুলো সম্পূর্ণ অক্ষত থাকবে।
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmDeleteDemosOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition"
+                >
+                  না, থাক
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await deleteDemoProducts();
+                    setIsConfirmDeleteDemosOpen(false);
+                    setDemoDeleteToast('সকল ডেমো পণ্য সফলভাবে মুছে ফেলা হয়েছে!');
+                    setTimeout(() => setDemoDeleteToast(null), 3500);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-md flex items-center justify-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>হ্যাঁ, ডেমো মুছুন</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Demo Deleted Toast Notification */}
+        {demoDeleteToast && (
+          <div className="fixed bottom-6 left-6 z-60 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-amber-500/50 flex items-center gap-2.5 text-xs animate-slideUp">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <p className="font-bold">{demoDeleteToast}</p>
+              <p className="text-[11px] text-slate-300">ডেটাবেজ ও হোমপেজ থেকে ডেমো পণ্যগুলো স্থায়ীভাবে মুছে গেছে।</p>
             </div>
           </div>
         )}
