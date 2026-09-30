@@ -1,0 +1,129 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Store products for catalog display and order placement",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "bengaliName": { "type": "string" },
+        "category": { "type": "string" },
+        "categoryBengali": { "type": "string" },
+        "price": { "type": "number" },
+        "regularPrice": { "type": "number" },
+        "images": { "type": "array" },
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "number" },
+        "isNew": { "type": "boolean" },
+        "isTrending": { "type": "boolean" },
+        "featured": { "type": "boolean" },
+        "stockCount": { "type": "number" },
+        "description": { "type": "string" },
+        "colors": { "type": "array" },
+        "sizes": { "type": "array" },
+        "fabric": { "type": "string" },
+        "length": { "type": "string" },
+        "discount": { "type": "number" },
+        "inStock": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "price"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase orders",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "deliveryAddress": { "type": "string" },
+        "deliveryDistrict": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "items": { "type": "array" },
+        "deliveryCharge": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string" },
+        "notes": { "type": "string" },
+        "courier": { "type": "string" },
+        "trackingId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "customerName", "customerPhone", "deliveryAddress", "totalAmount"]
+    },
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "Configuration settings for store contact, delivery charges, and banners",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string" },
+        "slogan": { "type": "string" },
+        "hotline1": { "type": "string" },
+        "hotline2": { "type": "string" },
+        "whatsappNumber": { "type": "string" },
+        "facebookUrl": { "type": "string" },
+        "tiktokUrl": { "type": "string" },
+        "youtubeUrl": { "type": "string" },
+        "bkashMerchantNumber": { "type": "string" },
+        "nagadMerchantNumber": { "type": "string" },
+        "announcementText": { "type": "string" },
+        "officeAddress": { "type": "string" },
+        "officeEmail": { "type": "string" }
+      }
+    },
+    "CustomerMessage": {
+      "title": "CustomerMessage",
+      "description": "Customer helpdesk and support messages",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "read": { "type": "boolean" }
+      },
+      "required": ["id", "name", "phone", "message"]
+    },
+    "ProductReview": {
+      "title": "ProductReview",
+      "description": "Customer reviews and ratings for products",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "productId": { "type": "string" },
+        "author": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "date": { "type": "string" },
+        "verifiedPurchase": { "type": "boolean" }
+      },
+      "required": ["id", "productId", "author", "rating", "comment"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of all e-commerce products"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer placed orders"
+    },
+    "/settings/{settingId}": {
+      "schema": "StoreSettings",
+      "description": "Store settings and contact configurations"
+    },
+    "/messages/{messageId}": {
+      "schema": "CustomerMessage",
+      "description": "Customer inquiries and helpdesk messages"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "ProductReview",
+      "description": "Customer reviews for products"
+    }
+  }
+}
