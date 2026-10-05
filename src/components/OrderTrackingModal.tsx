@@ -12,7 +12,9 @@ import {
   Phone, 
   AlertCircle,
   ExternalLink,
-  Calendar
+  Calendar,
+  Copy,
+  Check
 } from 'lucide-react';
 
 export const OrderTrackingModal: React.FC = () => {
@@ -28,6 +30,7 @@ export const OrderTrackingModal: React.FC = () => {
   const [searchInput, setSearchInput] = useState('');
   const [matchedOrder, setMatchedOrder] = useState<Order | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     if (trackingOrderId) {
@@ -197,20 +200,72 @@ export const OrderTrackingModal: React.FC = () => {
                     </p>
                   </div>
 
-                  {matchedOrder.courier && (
-                    <div className="text-right sm:text-right bg-white p-3 rounded-xl border border-rose-100 text-xs">
-                      <p className="text-slate-500 font-medium">কুরিয়ার পার্টনার:</p>
-                      <p className="font-bold text-slate-900">{matchedOrder.courier.name}</p>
-                      <p className="text-[11px] font-mono text-rose-600 font-semibold">
-                        ট্র্যাকিং কোড: {matchedOrder.courier.trackingId}
-                      </p>
-                      {matchedOrder.courier.estimatedDelivery && (
-                        <p className="text-[11px] text-emerald-700 font-medium mt-0.5">
-                          সম্ভাব্য ডেলিভারি: {matchedOrder.courier.estimatedDelivery}
+                  {matchedOrder.courier && (() => {
+                    const cName = matchedOrder.courier.name || '';
+                    const trkId = matchedOrder.courier.trackingId || '';
+                    const lower = cName.toLowerCase();
+                    let liveTrackUrl: string | null = null;
+                    if (lower.includes('steadfast')) {
+                      liveTrackUrl = `https://steadfast.com.bd/t/${encodeURIComponent(trkId)}`;
+                    } else if (lower.includes('pathao')) {
+                      liveTrackUrl = `https://merchant.pathao.com/tracking?consignment_id=${encodeURIComponent(trkId)}`;
+                    } else if (lower.includes('redx')) {
+                      liveTrackUrl = `https://redx.com.bd/track?trackingId=${encodeURIComponent(trkId)}`;
+                    } else if (lower.includes('paperfly')) {
+                      liveTrackUrl = `https://paperfly.com.bd/tracking?tracking_id=${encodeURIComponent(trkId)}`;
+                    } else if (lower.includes('ecourier')) {
+                      liveTrackUrl = `https://ecourier.com.bd/tracking?tracking_id=${encodeURIComponent(trkId)}`;
+                    }
+
+                    const handleCopyTrk = () => {
+                      if (navigator.clipboard) {
+                        navigator.clipboard.writeText(trkId);
+                        setIsCopied(true);
+                        setTimeout(() => setIsCopied(false), 2000);
+                      }
+                    };
+
+                    return (
+                      <div className="text-left sm:text-right bg-white p-3 rounded-xl border border-rose-100 text-xs space-y-1">
+                        <p className="text-slate-500 font-medium">কুরিয়ার পার্টনার:</p>
+                        <p className="font-bold text-slate-900 flex items-center sm:justify-end gap-1">
+                          <Truck className="w-3.5 h-3.5 text-rose-600" />
+                          <span>{cName}</span>
                         </p>
-                      )}
-                    </div>
-                  )}
+                        <div className="flex items-center sm:justify-end gap-1.5 pt-0.5">
+                          <span className="text-[11px] font-mono text-rose-700 font-bold bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                            {trkId}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleCopyTrk}
+                            title="ট্র্যাকিং কোড কপি করুন"
+                            className="p-1 rounded bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-rose-700 transition cursor-pointer"
+                          >
+                            {isCopied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                          </button>
+                        </div>
+                        {liveTrackUrl && (
+                          <div className="pt-1">
+                            <a
+                              href={liveTrackUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              <span>কুরিয়ার ওয়েবসাইটে ট্র্যাক করুন</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        )}
+                        {matchedOrder.courier.estimatedDelivery && (
+                          <p className="text-[11px] text-emerald-700 font-medium">
+                            সম্ভাব্য ডেলিভারি: {matchedOrder.courier.estimatedDelivery}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Visual Stepper */}

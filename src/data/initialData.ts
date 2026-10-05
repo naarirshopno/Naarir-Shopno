@@ -1,11 +1,57 @@
-import { Product, StoreSettings, Order, CustomerMessage } from '../types';
+import { Product, StoreSettings, Order, CustomerMessage, CustomCategoryItem } from '../types';
+
+export const DEFAULT_CATEGORIES: CustomCategoryItem[] = [
+  {
+    id: 'three_piece',
+    title: 'থ্রি-পিস কালেকশন',
+    subtitle: 'জর্জেট, সুতি ও সিল্ক',
+    image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'saree',
+    title: 'শাড়ির মেলা',
+    subtitle: 'জামদানি ও কাঞ্জিভরম',
+    image: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'kurti',
+    title: 'রেডিমেড কুর্তি',
+    subtitle: 'ক্যাজুয়াল ও পার্টি ওয়্যার',
+    image: 'https://images.unsplash.com/photo-1596783074918-c84cb06531ca?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'gown',
+    title: 'পার্টি গাউন',
+    subtitle: 'লং ফ্লেয়ার্ড সিকোয়েন্স',
+    image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'hijab_abaya',
+    title: 'হিজাব ও আবায়া',
+    subtitle: 'দুবাই চেরি ফেব্রিক',
+    image: 'https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'lehenga',
+    title: 'লেহেঙ্গা',
+    subtitle: 'ব্রাইডাল ও এক্সক্লুসিভ',
+    image: 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'jewellery_bags',
+    title: 'জুয়েলারি ও ব্যাগ',
+    subtitle: 'ম্যাচিং অ্যাক্সেসরিজ',
+    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=400&q=80',
+  },
+];
 
 export const INITIAL_SETTINGS: StoreSettings = {
   storeName: "নারীর স্বপ্ন",
   slogan: "Dress Your Dreams",
   hotline1: "09649-541717",
   hotline2: "09617-541717",
-  whatsappNumber: "+8801712345678",
+  whatsappNumber: "01911-541717",
+  whatsappShortLink: "https://wa.me/8801911541717",
   facebookUrl: "https://www.facebook.com/NaarirShopno",
   tiktokUrl: "https://www.tiktok.com/@naarir.shopno",
   youtubeUrl: "https://youtube.com/@naarirshopno",
@@ -20,6 +66,23 @@ export const INITIAL_SETTINGS: StoreSettings = {
   announcementText: "🌸 নারীর স্বপ্ন - উইমেন্স ফ্যাশনে আপনাকে স্বাগতম! সারাদেশে ক্যাশ অন ডেলিভারি এবং ৩,৫০০ টাকার অর্ডারে ফ্রি ডেলিভারি! 🌸",
   officeAddress: "হাউজ# ফকিরবাড়ি, ৮নং কোড়ালতলী, ভেদরগঞ্জ, শরিয়তপুর-৮০৩০, বাংলাদেশ",
   officeEmail: "NaarirShopno@Gmail.com",
+  categories: DEFAULT_CATEGORIES,
+  categoryImages: {
+    three_piece: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80",
+    saree: "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=400&q=80",
+    kurti: "https://images.unsplash.com/photo-1596783074918-c84cb06531ca?auto=format&fit=crop&w=400&q=80",
+    gown: "https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=400&q=80",
+    hijab_abaya: "https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&w=400&q=80",
+    lehenga: "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=400&q=80",
+    jewellery_bags: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=400&q=80",
+  },
+  backgroundMusic: {
+    enabled: true,
+    audioUrl: "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3",
+    title: "শান্ত অ্যাকোস্টিক মেলোডি",
+    defaultVolume: 0.35,
+    autoplayOnFirstClick: false,
+  },
 };
 
 export const DEMO_SAMPLE_PRODUCTS: Product[] = [

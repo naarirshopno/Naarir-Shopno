@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { Product, CartItem, Order, StoreSettings, CustomerMessage, CategoryType, OrderStatus, ProductReview } from '../types';
-import { INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_SETTINGS, INITIAL_MESSAGES } from '../data/initialData';
+import { Product, CartItem, Order, StoreSettings, CustomerMessage, CategoryType, OrderStatus, ProductReview, CustomCategoryItem } from '../types';
+import { INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_SETTINGS, INITIAL_MESSAGES, DEFAULT_CATEGORIES } from '../data/initialData';
 import { INITIAL_PRODUCT_REVIEWS, getDefaultReviewsForProduct } from '../data/initialReviews';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { 
@@ -97,6 +97,21 @@ interface ShopContextType {
   markMessageAsRead: (msgId: string) => void;
   deleteMessage: (msgId: string) => void;
 
+  // Category Management
+  deleteCategory: (categoryId: string) => Promise<void>;
+  addCategory: (category: CustomCategoryItem) => Promise<void>;
+  updateCategory: (category: CustomCategoryItem) => Promise<void>;
+
+  // Compare Products
+  compareList: Product[];
+  addToCompare: (product: Product) => { success: boolean; message: string };
+  removeFromCompare: (productId: string) => void;
+  clearCompare: () => void;
+  toggleCompare: (product: Product) => { success: boolean; message: string };
+  isInCompare: (productId: string) => boolean;
+  isCompareModalOpen: boolean;
+  setIsCompareModalOpen: (open: boolean) => void;
+
   // Reviews
   reviews: Record<string, ProductReview[]>;
   getProductReviews: (productId: string) => ProductReview[];
@@ -160,6 +175,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const nagadMerchantNumber = (!parsed.nagadMerchantNumber || parsed.nagadMerchantNumber.includes('01912'))
           ? INITIAL_SETTINGS.nagadMerchantNumber
           : parsed.nagadMerchantNumber;
+        const whatsappShortLink = parsed.whatsappShortLink || INITIAL_SETTINGS.whatsappShortLink || 'https://wa.me/8801911541717';
+        const whatsappNumber = parsed.whatsappNumber || INITIAL_SETTINGS.whatsappNumber || '01911-541717';
 
         return {
           ...INITIAL_SETTINGS,
@@ -168,6 +185,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           officeEmail,
           bkashMerchantNumber,
           nagadMerchantNumber,
+          whatsappShortLink,
+          whatsappNumber,
+          categories: parsed.categories !== undefined ? parsed.categories : INITIAL_SETTINGS.categories,
+          categoryImages: parsed.categoryImages !== undefined ? parsed.categoryImages : INITIAL_SETTINGS.categoryImages,
         };
       } catch {
         return INITIAL_SETTINGS;
@@ -221,6 +242,25 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem('ns_wishlist');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Compare Products state initialized from localStorage (up to 3 items)
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+  const [compareList, setCompareList] = useState<Product[]>(() => {
+    try {
+      const saved = localStorage.getItem('ns_compare_list');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ns_compare_list', JSON.stringify(compareList));
+    } catch {
+      // ignore
+    }
+  }, [compareList]);
 
   // Local storage synchronization
   useEffect(() => {
@@ -297,9 +337,41 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (docSnap) => {
         if (docSnap.exists()) {
           const remoteSettings = docSnap.data() as StoreSettings;
-          setSettings((prev) => ({ ...prev, ...remoteSettings }));
+          setSettings((prev) => {
+            const categories = Array.isArray(remoteSettings.categories)
+              ? remoteSettings.categories
+              : (Array.isArray(prev.categories) ? prev.categories : DEFAULT_CATEGORIES);
+            const categoryImages = remoteSettings.categoryImages !== undefined
+              ? remoteSettings.categoryImages
+              : (prev.categoryImages || {});
+
+            const merged: StoreSettings = {
+              ...INITIAL_SETTINGS,
+              ...prev,
+              ...remoteSettings,
+              categories,
+              categoryImages,
+            };
+
+            try {
+              localStorage.setItem('ns_settings', JSON.stringify(merged));
+            } catch {
+              // ignore
+            }
+
+            return merged;
+          });
         } else {
-          setDoc(settingsDoc, sanitizeForFirestore(INITIAL_SETTINGS))
+          const savedLocal = localStorage.getItem('ns_settings');
+          let initialToUse = INITIAL_SETTINGS;
+          if (savedLocal) {
+            try {
+              initialToUse = JSON.parse(savedLocal);
+            } catch {
+              initialToUse = INITIAL_SETTINGS;
+            }
+          }
+          setDoc(settingsDoc, sanitizeForFirestore(initialToUse))
             .catch((err) => handleFirestoreError(err, OperationType.WRITE, 'settings/general'));
         }
       },
@@ -641,8 +713,123 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Settings
   const updateSettings = (newSettings: StoreSettings) => {
     setSettings(newSettings);
-    setDoc(doc(db, 'settings', 'general'), sanitizeForFirestore(newSettings), { merge: true })
+    try {
+      localStorage.setItem('ns_settings', JSON.stringify(newSettings));
+    } catch {
+      // ignore
+    }
+    setDoc(doc(db, 'settings', 'general'), sanitizeForFirestore(newSettings))
       .catch(err => handleFirestoreError(err, OperationType.UPDATE, 'settings/general'));
+  };
+
+  // Category Management
+  const deleteCategory = async (categoryId: string) => {
+    const currentList = Array.isArray(settings.categories) ? settings.categories : DEFAULT_CATEGORIES;
+    const updatedCategories = currentList.filter(c => c.id !== categoryId);
+    const updatedImages = { ...(settings.categoryImages || {}) };
+    delete updatedImages[categoryId];
+
+    const newSettings: StoreSettings = {
+      ...settings,
+      categories: updatedCategories,
+      categoryImages: updatedImages,
+    };
+
+    setSettings(newSettings);
+    try {
+      localStorage.setItem('ns_settings', JSON.stringify(newSettings));
+    } catch {
+      // ignore
+    }
+
+    try {
+      await setDoc(doc(db, 'settings', 'general'), sanitizeForFirestore(newSettings));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, 'settings/general');
+    }
+  };
+
+  const addCategory = async (newCat: CustomCategoryItem) => {
+    const currentList = Array.isArray(settings.categories) ? settings.categories : DEFAULT_CATEGORIES;
+    const updatedCategories = [...currentList, newCat];
+    const updatedImages = { ...(settings.categoryImages || {}), [newCat.id]: newCat.image };
+
+    const newSettings: StoreSettings = {
+      ...settings,
+      categories: updatedCategories,
+      categoryImages: updatedImages,
+    };
+
+    setSettings(newSettings);
+    try {
+      localStorage.setItem('ns_settings', JSON.stringify(newSettings));
+    } catch {
+      // ignore
+    }
+
+    try {
+      await setDoc(doc(db, 'settings', 'general'), sanitizeForFirestore(newSettings));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, 'settings/general');
+    }
+  };
+
+  const updateCategory = async (updatedCat: CustomCategoryItem) => {
+    const currentList = Array.isArray(settings.categories) ? settings.categories : DEFAULT_CATEGORIES;
+    const updatedCategories = currentList.map(c => c.id === updatedCat.id ? updatedCat : c);
+    const updatedImages = { ...(settings.categoryImages || {}), [updatedCat.id]: updatedCat.image };
+
+    const newSettings: StoreSettings = {
+      ...settings,
+      categories: updatedCategories,
+      categoryImages: updatedImages,
+    };
+
+    setSettings(newSettings);
+    try {
+      localStorage.setItem('ns_settings', JSON.stringify(newSettings));
+    } catch {
+      // ignore
+    }
+
+    try {
+      await setDoc(doc(db, 'settings', 'general'), sanitizeForFirestore(newSettings));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, 'settings/general');
+    }
+  };
+
+  // Compare Products Management (up to 3 products)
+  const addToCompare = (product: Product): { success: boolean; message: string } => {
+    if (compareList.some(p => p.id === product.id)) {
+      return { success: false, message: 'পোশাকটি ইতিমধ্যে তুলনা তালিকায় যুক্ত আছে।' };
+    }
+    if (compareList.length >= 3) {
+      return { success: false, message: 'একসাথে সর্বোচ্চ ৩টি পোশাক তুলনা করা যাবে।' };
+    }
+    const updated = [...compareList, product];
+    setCompareList(updated);
+    return { success: true, message: `"${product.bengaliName || product.name}" তুলনা তালিকায় যোগ করা হয়েছে!` };
+  };
+
+  const removeFromCompare = (productId: string) => {
+    setCompareList(prev => prev.filter(p => p.id !== productId));
+  };
+
+  const clearCompare = () => {
+    setCompareList([]);
+  };
+
+  const toggleCompare = (product: Product): { success: boolean; message: string } => {
+    if (compareList.some(p => p.id === product.id)) {
+      removeFromCompare(product.id);
+      return { success: true, message: 'তুলনা তালিকা থেকে সরানো হয়েছে।' };
+    }
+    return addToCompare(product);
+  };
+
+  const isInCompare = (productId: string): boolean => {
+    return compareList.some(p => p.id === productId);
   };
 
   // Customer Messages
@@ -745,6 +932,17 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearAllProducts,
         restoreDemoProducts,
         updateSettings,
+        deleteCategory,
+        addCategory,
+        updateCategory,
+        compareList,
+        addToCompare,
+        removeFromCompare,
+        clearCompare,
+        toggleCompare,
+        isInCompare,
+        isCompareModalOpen,
+        setIsCompareModalOpen,
         sendCustomerMessage,
         markMessageAsRead,
         deleteMessage,

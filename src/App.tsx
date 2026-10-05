@@ -3,6 +3,7 @@ import { ShopProvider, useShop } from './context/ShopContext';
 import { SeasonalOffersBanner } from './components/SeasonalOffersBanner';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
+import { WelcomeStorySection } from './components/WelcomeStorySection';
 import { CategoryShowcase } from './components/CategoryShowcase';
 import { ProductToolbar } from './components/ProductToolbar';
 import { ProductCard } from './components/ProductCard';
@@ -15,7 +16,10 @@ import { CustomerChatDrawer } from './components/CustomerChatDrawer';
 import { DeliveryInfoModal } from './components/DeliveryInfoModal';
 import { AdminPanel } from './components/AdminPanel';
 import { WishlistModal } from './components/WishlistModal';
+import { ProductCompareModal } from './components/ProductCompareModal';
+import { CompareFloatingBar } from './components/CompareFloatingBar';
 import { FloatingActions } from './components/FloatingActions';
+import { BackgroundMusicPlayer } from './components/BackgroundMusicPlayer';
 import { Footer } from './components/Footer';
 import { 
   Sparkles, 
@@ -100,14 +104,24 @@ const StorefrontContent: React.FC = () => {
     result = result.filter((p) => p.price >= priceRange[0] && p.price <= priceRange[1]);
 
     // Sorting
-    if (sortBy === 'price_asc') {
+    if (sortBy === 'price_asc' || sortBy === 'price-asc') {
       result.sort((a, b) => a.price - b.price);
-    } else if (sortBy === 'price_desc') {
+    } else if (sortBy === 'price_desc' || sortBy === 'price-desc') {
       result.sort((a, b) => b.price - a.price);
-    } else if (sortBy === 'popular') {
-      result.sort((a, b) => b.rating - a.rating);
+    } else if (sortBy === 'rating') {
+      result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     } else if (sortBy === 'newest') {
       result.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
+    } else if (sortBy === 'default' || sortBy === 'popular' || sortBy === 'featured') {
+      // জনপ্রিয় / ফিচারড sort:
+      // ১. ফিচারড প্রোডাক্টগুলো সবার আগে (featured === true)
+      // ২. ট্রেন্ডিং পোশাকগুলো পরবর্তীতে (isTrending === true)
+      // ৩. এরপর সর্বোচ্চ রেটিং এবং রিভিউয়ের ভিত্তিতে
+      result.sort((a, b) => {
+        const scoreA = (a.featured ? 100 : 0) + (a.isTrending ? 50 : 0) + ((a.rating || 4.5) * 10) + (a.reviewsCount || 0);
+        const scoreB = (b.featured ? 100 : 0) + (b.isTrending ? 50 : 0) + ((b.rating || 4.5) * 10) + (b.reviewsCount || 0);
+        return scoreB - scoreA;
+      });
     }
 
     return result;
@@ -154,6 +168,9 @@ const StorefrontContent: React.FC = () => {
       {/* 2. Hero Banner Showcase with live CTAs */}
       <HeroBanner />
 
+      {/* 2.5. Official Brand Welcome & Introduction */}
+      <WelcomeStorySection />
+
       {/* 3. Category Filter Showcase Bar */}
       <CategoryShowcase />
 
@@ -188,69 +205,6 @@ const StorefrontContent: React.FC = () => {
 
       {/* 5. Main Product Catalog Section */}
       <main id="products-section" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
-        
-        {/* Section Heading & Breadcrumbs */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-rose-100 pb-4">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-rose-600 mb-1">
-              <Sparkles className="w-4 h-4" />
-              <span>এক্সক্লুসিভ কালেকশন ২০২৬</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-['Hind_Siliguri']">
-              {searchQuery ? `"${searchQuery}" এর ফলাফল` : 
-               activeCategory === 'all' ? 'আমাদের সকল পোশাকের সংগ্রহ' : 
-               products.find(p => p.category === activeCategory)?.categoryBengali || 'পণ্য তালিকা'}
-            </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              মোট <strong>{filteredProducts.length}</strong> টি চমৎকার ডিজাইনের পোশাক পাওয়া গেছে
-            </p>
-          </div>
-
-          {/* Quick Category Badges */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-            <button
-              onClick={() => setActiveCategory('all')}
-              className={`px-3 py-1 rounded-full font-semibold transition ${
-                activeCategory === 'all' ? 'bg-rose-600 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-rose-300'
-              }`}
-            >
-              সব
-            </button>
-            <button
-              onClick={() => setActiveCategory('three_piece')}
-              className={`px-3 py-1 rounded-full font-semibold transition ${
-                activeCategory === 'three_piece' ? 'bg-rose-600 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-rose-300'
-              }`}
-            >
-              থ্রি-পিস
-            </button>
-            <button
-              onClick={() => setActiveCategory('saree')}
-              className={`px-3 py-1 rounded-full font-semibold transition ${
-                activeCategory === 'saree' ? 'bg-rose-600 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-rose-300'
-              }`}
-            >
-              শাড়ি
-            </button>
-            <button
-              onClick={() => setActiveCategory('kurti')}
-              className={`px-3 py-1 rounded-full font-semibold transition ${
-                activeCategory === 'kurti' ? 'bg-rose-600 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-rose-300'
-              }`}
-            >
-              কুর্তি
-            </button>
-            <button
-              onClick={() => setActiveCategory('gown')}
-              className={`px-3 py-1 rounded-full font-semibold transition ${
-                activeCategory === 'gown' ? 'bg-rose-600 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-rose-300'
-              }`}
-            >
-              গাউন
-            </button>
-          </div>
-        </div>
-
         {/* Product Toolbar: Search Bar, Category Dropdown, Price Sorting, Price Slider */}
         <ProductToolbar totalCount={filteredProducts.length} />
 
@@ -319,18 +273,15 @@ const StorefrontContent: React.FC = () => {
             </div>
             {products.length === 0 ? (
               <div className="space-y-3">
-                <h3 className="text-lg font-bold text-slate-900 font-['Hind_Siliguri']">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-600 text-xs font-semibold">
+                  <span>🌸 নারীর স্বপ্ন এক্সক্লুসিভ কালেকশন</span>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 font-['Hind_Siliguri']">
                   নতুন কালেকশন শীঘ্রই আসছে!
                 </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  স্টোরে বর্তমানে কোনো ডেমো বা স্যাম্পল পণ্য রাখা হয়নি। অ্যাডমিন প্যানেল থেকে আপনার নিজস্ব সুন্দর পোশাক ও পণ্যগুলো যুক্ত করুন।
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-sm mx-auto">
+                  আমাদের প্রিমিয়াম ডিজাইনার পোশাকগুলোর নতুন কালেকশন খুব শীঘ্রই যুক্ত করা হচ্ছে। আকর্ষণীয় সব অফার ও আপডেটের জন্য আমাদের সাথে থাকুন।
                 </p>
-                <button
-                  onClick={() => setIsAdminOpen(true)}
-                  className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow transition inline-flex items-center gap-1.5"
-                >
-                  <span>অ্যাডমিন প্যানেলে পণ্য যোগ করুন</span>
-                </button>
               </div>
             ) : (
               <div className="space-y-2">
@@ -401,6 +352,7 @@ const StorefrontContent: React.FC = () => {
 
       {/* 7. Floating Action Icons (Facebook Modal Button, Order Tracking, Chat, Scroll Top) */}
       <FloatingActions />
+      <BackgroundMusicPlayer />
 
       {/* 8. Modals & Overlays */}
       <ProductDetailModal />
@@ -412,6 +364,8 @@ const StorefrontContent: React.FC = () => {
       <DeliveryInfoModal />
       <AdminPanel />
       <WishlistModal />
+      <ProductCompareModal />
+      <CompareFloatingBar />
     </div>
   );
 };

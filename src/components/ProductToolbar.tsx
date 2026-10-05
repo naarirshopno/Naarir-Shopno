@@ -1,7 +1,8 @@
 import React from 'react';
 import { useShop } from '../context/ShopContext';
-import { SlidersHorizontal, ArrowUpDown, X, Tag } from 'lucide-react';
+import { ArrowUpDown, X, Tag, Sparkles } from 'lucide-react';
 import { CategoryType } from '../types';
+import { DEFAULT_CATEGORIES } from '../data/initialData';
 
 interface ProductToolbarProps {
   totalCount: number;
@@ -14,45 +15,57 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({ totalCount }) =>
     sortBy, 
     setSortBy, 
     searchQuery, 
-    setSearchQuery 
+    setSearchQuery,
+    settings,
+    products
   } = useShop();
+
+  const customCategories = Array.isArray(settings.categories)
+    ? settings.categories
+    : DEFAULT_CATEGORIES;
 
   const categories: { id: CategoryType; label: string }[] = [
     { id: 'all', label: 'সবগুলো' },
-    { id: 'three_piece', label: 'থ্রি-পিস' },
-    { id: 'saree', label: 'শাড়ি' },
-    { id: 'kurti', label: 'কুর্তি' },
-    { id: 'gown', label: 'গাউন' },
-    { id: 'hijab_abaya', label: 'হিজাব ও আবায়া' },
-    { id: 'lehenga', label: 'লেহেঙ্গা' },
-    { id: 'jewellery_bags', label: 'জুয়েলারি ও ব্যাগ' },
+    ...customCategories.map((c) => ({
+      id: c.id,
+      label: c.title.replace(/ কালেকশন| মেলা| রেডিমেড/, '').trim(),
+    })),
   ];
 
+  const currentCategoryLabel = activeCategory === 'all'
+    ? 'আমাদের সকল পোশাকের সংগ্রহ'
+    : products.find(p => p.category === activeCategory)?.categoryBengali || categories.find(c => c.id === activeCategory)?.label || 'পণ্য তালিকা';
+
   return (
-    <div className="bg-white rounded-2xl p-4 border border-rose-100 shadow-sm mb-6 space-y-3">
-      {/* Top row: Counter & Sort */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Tag className="w-4 h-4 text-rose-600" />
-          <h3 className="text-base sm:text-lg font-bold text-slate-800">
-            {activeCategory === 'all' ? 'সব পণ্য' : categories.find(c => c.id === activeCategory)?.label}
-          </h3>
-          <span className="bg-rose-100 text-rose-700 text-xs font-bold px-2 py-0.5 rounded-full">
-            {totalCount} টি পোশাক
-          </span>
+    <div className="bg-white rounded-3xl p-4 sm:p-6 border border-rose-100 shadow-sm mb-6 space-y-4">
+      {/* Top Header Row: Title, Badge, Count & Sort */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-rose-50 pb-3.5">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-rose-600 mb-0.5">
+            <Sparkles className="w-3.5 h-3.5 text-rose-600" />
+            <span>এক্সক্লুসিভ কালেকশন ২০২৬</span>
+          </div>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-['Hind_Siliguri']">
+              {searchQuery ? `"${searchQuery}" এর ফলাফল` : currentCategoryLabel}
+            </h2>
+            <span className="bg-rose-100 text-rose-700 text-xs font-bold px-2.5 py-0.5 rounded-full">
+              মোট {totalCount} টি চমৎকার ডিজাইনের পোশাক
+            </span>
+          </div>
 
           {searchQuery && (
-            <span className="flex items-center gap-1 bg-amber-50 text-amber-800 text-xs px-2.5 py-0.5 rounded-full border border-amber-200">
-              অনুসন্ধান: "{searchQuery}"
-              <button onClick={() => setSearchQuery('')} className="hover:text-amber-950">
+            <div className="mt-1.5 inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 text-xs px-2.5 py-0.5 rounded-full border border-amber-200">
+              <span>অনুসন্ধান: "{searchQuery}"</span>
+              <button onClick={() => setSearchQuery('')} className="hover:text-amber-950 cursor-pointer">
                 <X className="w-3 h-3" />
               </button>
-            </span>
+            </div>
           )}
         </div>
 
         {/* Sorting Dropdown */}
-        <div className="flex items-center gap-2 self-end sm:self-auto">
+        <div className="flex items-center gap-2 shrink-0">
           <label htmlFor="select-sort" className="text-xs font-semibold text-slate-500 flex items-center gap-1">
             <ArrowUpDown className="w-3.5 h-3.5 text-rose-500" />
             <span>সাজান:</span>
@@ -61,7 +74,7 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({ totalCount }) =>
             id="select-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="text-xs font-medium bg-rose-50/50 border border-rose-200 rounded-lg px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500"
+            className="text-xs font-medium bg-rose-50/50 border border-rose-200 rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
           >
             <option value="default">জনপ্রিয় / ফিচারড</option>
             <option value="price-asc">দাম: কম থেকে বেশি ৳</option>
@@ -73,16 +86,16 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({ totalCount }) =>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-1">
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-0.5 pb-1">
         {categories.map((c) => (
           <button
             key={c.id}
             id={`filter-pill-${c.id}`}
             onClick={() => setActiveCategory(c.id)}
-            className={`text-xs px-3 py-1 rounded-lg font-medium whitespace-nowrap transition-colors ${
+            className={`text-xs px-3.5 py-1.5 rounded-xl font-medium whitespace-nowrap transition cursor-pointer active:scale-95 ${
               activeCategory === c.id
                 ? 'bg-rose-600 text-white font-bold shadow-sm'
-                : 'bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700'
+                : 'bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 border border-slate-200/60'
             }`}
           >
             {c.label}

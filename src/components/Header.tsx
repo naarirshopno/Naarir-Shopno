@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useShop } from '../context/ShopContext';
 import { CategoryType } from '../types';
+import { DEFAULT_CATEGORIES } from '../data/initialData';
 import { 
   Phone, 
   Search, 
@@ -89,15 +90,18 @@ export const Header: React.FC = () => {
 
   const dayName = useBengaliDigits ? dayNameBn : dayNameEn;
 
-  const categories: { id: CategoryType; label: string }[] = [
+  // Dynamic categories synced directly from Admin Panel (settings.categories)
+  const categoryItems = Array.isArray(settings.categories) && settings.categories.length > 0
+    ? settings.categories
+    : DEFAULT_CATEGORIES;
+
+  const categories: { id: CategoryType; label: string; image?: string }[] = [
     { id: 'all', label: 'সব কালেকশন' },
-    { id: 'three_piece', label: 'থ্রি-পিস' },
-    { id: 'saree', label: 'শাড়ি' },
-    { id: 'kurti', label: 'কুর্তি' },
-    { id: 'gown', label: 'পার্টি গাউন' },
-    { id: 'hijab_abaya', label: 'হিজাব ও আবায়া' },
-    { id: 'lehenga', label: 'লেহেঙ্গা' },
-    { id: 'jewellery_bags', label: 'জুয়েলারি ও ব্যাগ' },
+    ...categoryItems.map((cat) => ({
+      id: cat.id as CategoryType,
+      label: cat.title,
+      image: settings.categoryImages?.[cat.id] || cat.image,
+    })),
   ];
 
   return (
@@ -357,14 +361,28 @@ export const Header: React.FC = () => {
                   onClick={() => {
                     setActiveCategory(cat.id);
                     setMobileMenuOpen(false);
+                    const el = document.getElementById('products-section');
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth' });
+                    }
                   }}
-                  className={`flex items-center justify-center px-3 py-2.5 rounded-xl text-xs font-bold transition-all text-center ${
+                  className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all text-center cursor-pointer ${
                     activeCategory === cat.id
                       ? 'bg-rose-600 text-white shadow-md shadow-rose-200 scale-102 ring-2 ring-rose-400'
                       : 'bg-rose-50/60 text-slate-700 hover:bg-rose-100 hover:text-rose-800 border border-rose-100'
                   }`}
                 >
-                  {cat.label}
+                  {cat.image && (
+                    <img 
+                      src={cat.image} 
+                      alt="" 
+                      className="w-4 h-4 rounded-full object-cover shrink-0 border border-rose-200" 
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <span className="truncate">{cat.label}</span>
                 </button>
               ))}
             </div>

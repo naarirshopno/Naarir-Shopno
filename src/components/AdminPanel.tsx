@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useShop } from '../context/ShopContext';
-import { Product, Order, OrderStatus, CategoryType, StoreSettings } from '../types';
+import { Product, Order, OrderStatus, CategoryType, StoreSettings, CustomCategoryItem } from '../types';
+import { DEFAULT_CATEGORIES } from '../data/initialData';
 import { 
   X, 
   LayoutDashboard, 
@@ -40,7 +41,14 @@ import {
   Layers,
   Tag,
   Cloud,
-  RefreshCw
+  RefreshCw,
+  Camera,
+  Upload,
+  RotateCcw,
+  Link as LinkIcon,
+  MapPin,
+  ExternalLink,
+  Globe
 } from 'lucide-react';
 
 const PRESET_COLORS: { name: string; hex: string }[] = [
@@ -75,6 +83,9 @@ export const AdminPanel: React.FC = () => {
     deleteOrder,
     settings, 
     updateSettings, 
+    deleteCategory,
+    addCategory,
+    updateCategory,
     messages, 
     markMessageAsRead, 
     deleteMessage,
@@ -92,7 +103,16 @@ export const AdminPanel: React.FC = () => {
   const [isConfirmDeleteDemosOpen, setIsConfirmDeleteDemosOpen] = useState(false);
   const [demoDeleteToast, setDemoDeleteToast] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'delivery' | 'social' | 'messages'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'delivery' | 'social' | 'messages' | 'categories'>('dashboard');
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategoryItem, setEditingCategoryItem] = useState<CustomCategoryItem | null>(null);
+  const [categoryFormTitle, setCategoryFormTitle] = useState('');
+  const [categoryFormSubtitle, setCategoryFormSubtitle] = useState('');
+  const [categoryFormImage, setCategoryFormImage] = useState('');
+  const [isCategoryFormUploading, setIsCategoryFormUploading] = useState(false);
+  const [categoryToast, setCategoryToast] = useState<string | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<CustomCategoryItem | null>(null);
+  const categoryFormFileInputRef = useRef<HTMLInputElement>(null);
   
   // Secure Auth state (Session-based, prevents unauthorized customer access)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -179,24 +199,51 @@ export const AdminPanel: React.FC = () => {
   });
   const [deliverySavedToast, setDeliverySavedToast] = useState(false);
 
-  // Social & contact settings local state
+  // Social, WhatsApp, Hotline & Shop Settings local state
   const [socialForm, setSocialForm] = useState({
-    hotline1: settings.hotline1,
-    hotline2: settings.hotline2,
-    facebookUrl: settings.facebookUrl,
-    tiktokUrl: settings.tiktokUrl,
-    youtubeUrl: settings.youtubeUrl,
+    storeName: settings.storeName || 'নারীর স্বপ্ন',
+    slogan: settings.slogan || 'Dress Your Dreams',
+    hotline1: settings.hotline1 || '09649-541717',
+    hotline2: settings.hotline2 || '09617-541717',
+    whatsappNumber: settings.whatsappNumber || '01911-541717',
+    whatsappShortLink: settings.whatsappShortLink || 'https://wa.me/8801911541717',
+    facebookUrl: settings.facebookUrl || '',
+    tiktokUrl: settings.tiktokUrl || '',
+    youtubeUrl: settings.youtubeUrl || '',
     bkashMerchantNumber: settings.bkashMerchantNumber || '01611541717 (মার্চেন্ট)',
     nagadMerchantNumber: settings.nagadMerchantNumber || '01911541717 (পার্সোনাল)',
-    announcementText: settings.announcementText,
+    announcementText: settings.announcementText || '',
     officeAddress: settings.officeAddress || 'হাউজ# ফকিরবাড়ি, ৮নং কোড়ালতলী, ভেদরগঞ্জ, শরিয়তপুর-৮০৩০, বাংলাদেশ',
     officeEmail: settings.officeEmail || 'NaarirShopno@Gmail.com',
+    footerBgImage: settings.footerBgImage || '/footer-bg.jpg',
   });
   const [socialSavedToast, setSocialSavedToast] = useState(false);
+
+  // Keep form in sync when settings change
+  React.useEffect(() => {
+    setSocialForm({
+      storeName: settings.storeName || 'নারীর স্বপ্ন',
+      slogan: settings.slogan || 'Dress Your Dreams',
+      hotline1: settings.hotline1 || '09649-541717',
+      hotline2: settings.hotline2 || '09617-541717',
+      whatsappNumber: settings.whatsappNumber || '01911-541717',
+      whatsappShortLink: settings.whatsappShortLink || 'https://wa.me/8801911541717',
+      facebookUrl: settings.facebookUrl || '',
+      tiktokUrl: settings.tiktokUrl || '',
+      youtubeUrl: settings.youtubeUrl || '',
+      bkashMerchantNumber: settings.bkashMerchantNumber || '01611541717 (মার্চেন্ট)',
+      nagadMerchantNumber: settings.nagadMerchantNumber || '01911541717 (পার্সোনাল)',
+      announcementText: settings.announcementText || '',
+      officeAddress: settings.officeAddress || 'হাউজ# ফকিরবাড়ি, ৮নং কোড়ালতলী, ভেদরগঞ্জ, শরিয়তপুর-৮০৩০, বাংলাদেশ',
+      officeEmail: settings.officeEmail || 'NaarirShopno@Gmail.com',
+      footerBgImage: settings.footerBgImage || '/footer-bg.jpg',
+    });
+  }, [settings, isAdminOpen]);
 
   // Order detail & courier modal
   const [selectedOrderForCourier, setSelectedOrderForCourier] = useState<Order | null>(null);
   const [courierName, setCourierName] = useState('Steadfast Courier');
+  const [customCourierName, setCustomCourierName] = useState('');
   const [courierTrackingId, setCourierTrackingId] = useState('');
   const [courierEstDelivery, setCourierEstDelivery] = useState('২-৩ দিনের মধ্যে');
 
@@ -545,24 +592,29 @@ export const AdminPanel: React.FC = () => {
     setTimeout(() => setDeliverySavedToast(false), 2500);
   };
 
-  // Social & contact save
-  const handleSaveSocial = (e: React.FormEvent) => {
+  // Social, WhatsApp, Address & Contact Save
+  const handleSaveSocial = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateSettings({
+    await updateSettings({
       ...settings,
-      hotline1: socialForm.hotline1,
-      hotline2: socialForm.hotline2,
-      facebookUrl: socialForm.facebookUrl,
-      tiktokUrl: socialForm.tiktokUrl,
-      youtubeUrl: socialForm.youtubeUrl,
-      bkashMerchantNumber: socialForm.bkashMerchantNumber,
-      nagadMerchantNumber: socialForm.nagadMerchantNumber,
-      announcementText: socialForm.announcementText,
-      officeAddress: socialForm.officeAddress,
-      officeEmail: socialForm.officeEmail,
+      storeName: socialForm.storeName.trim() || settings.storeName,
+      slogan: socialForm.slogan.trim() || settings.slogan,
+      hotline1: socialForm.hotline1.trim(),
+      hotline2: socialForm.hotline2.trim(),
+      whatsappNumber: socialForm.whatsappNumber.trim(),
+      whatsappShortLink: socialForm.whatsappShortLink.trim(),
+      facebookUrl: socialForm.facebookUrl.trim(),
+      tiktokUrl: socialForm.tiktokUrl.trim(),
+      youtubeUrl: socialForm.youtubeUrl.trim(),
+      bkashMerchantNumber: socialForm.bkashMerchantNumber.trim(),
+      nagadMerchantNumber: socialForm.nagadMerchantNumber.trim(),
+      announcementText: socialForm.announcementText.trim(),
+      officeAddress: socialForm.officeAddress.trim(),
+      officeEmail: socialForm.officeEmail.trim(),
+      footerBgImage: socialForm.footerBgImage.trim(),
     });
     setSocialSavedToast(true);
-    setTimeout(() => setSocialSavedToast(false), 2500);
+    setTimeout(() => setSocialSavedToast(false), 3000);
   };
 
   // Update order with courier details
@@ -570,8 +622,12 @@ export const AdminPanel: React.FC = () => {
     e.preventDefault();
     if (!selectedOrderForCourier) return;
 
+    const finalCourierName = courierName === 'other'
+      ? (customCourierName.trim() || 'অন্যান্য কুরিয়ার সার্ভিস')
+      : courierName;
+
     updateOrderStatus(selectedOrderForCourier.id, 'shipped', {
-      name: courierName,
+      name: finalCourierName,
       trackingId: courierTrackingId || `TRK-${Date.now().toString().slice(-6)}`,
       shippedDate: new Date().toISOString().substring(0, 10),
       estimatedDelivery: courierEstDelivery,
@@ -808,7 +864,7 @@ export const AdminPanel: React.FC = () => {
                 }`}
               >
                 <Phone className="w-4 h-4 shrink-0" />
-                <span>ঠিকানা, হটলাইন ও সেটিংস</span>
+                <span>হোয়াটসঅ্যাপ, ঠিকানা ও সেটিংস</span>
               </button>
 
               <button
@@ -829,6 +885,19 @@ export const AdminPanel: React.FC = () => {
                     {unreadMessagesCount}
                   </span>
                 )}
+              </button>
+
+              <button
+                id="admin-tab-categories"
+                onClick={() => setActiveTab('categories')}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all ${
+                  activeTab === 'categories'
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'text-slate-700 hover:bg-rose-50 hover:text-rose-700'
+                }`}
+              >
+                <Camera className="w-4 h-4 shrink-0" />
+                <span>ক্যাটাগরি ছবি পরিবর্তন</span>
               </button>
             </div>
 
@@ -1074,34 +1143,27 @@ export const AdminPanel: React.FC = () => {
 
                     {/* Category Filter Chips */}
                     <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                      {(['all', 'three_piece', 'saree', 'kurti', 'gown', 'hijab_abaya', 'lehenga', 'jewellery_bags'] as const).map((catKey) => {
-                        const catLabels: Record<string, string> = {
-                          all: 'সব পোশাক',
-                          three_piece: 'থ্রি-পিস',
-                          saree: 'শাড়ি',
-                          kurti: 'কুর্তি',
-                          gown: 'গাউন',
-                          hijab_abaya: 'হিজাব ও আবায়া',
-                          lehenga: 'লেহেঙ্গা',
-                          jewellery_bags: 'জুয়েলারি ও ব্যাগ',
-                        };
-                        const count = catKey === 'all' 
+                      {([
+                        { id: 'all', title: 'সব পোশাক' },
+                        ...((Array.isArray(settings.categories) ? settings.categories : DEFAULT_CATEGORIES).map(c => ({ id: c.id, title: c.title })))
+                      ]).map((catItem) => {
+                        const count = catItem.id === 'all' 
                           ? products.length 
-                          : products.filter((p) => p.category === catKey).length;
+                          : products.filter((p) => p.category === catItem.id).length;
 
                         return (
                           <button
-                            key={catKey}
-                            onClick={() => setProductCategoryFilter(catKey)}
+                            key={catItem.id}
+                            onClick={() => setProductCategoryFilter(catItem.id as any)}
                             className={`px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all flex items-center gap-1.5 ${
-                              productCategoryFilter === catKey
+                              productCategoryFilter === catItem.id
                                 ? 'bg-rose-600 text-white shadow-xs font-bold'
                                 : 'bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-700'
                             }`}
                           >
-                            <span>{catLabels[catKey]}</span>
+                            <span>{catItem.title}</span>
                             <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                              productCategoryFilter === catKey ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-600'
+                              productCategoryFilter === catItem.id ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-600'
                             }`}>
                               {count}
                             </span>
@@ -1513,7 +1575,27 @@ export const AdminPanel: React.FC = () => {
                               onClick={() => {
                                 setSelectedOrderForCourier(ord);
                                 setCourierTrackingId(ord.courier?.trackingId || '');
-                                setCourierName(ord.courier?.name || 'Steadfast Courier');
+                                setCourierEstDelivery(ord.courier?.estimatedDelivery || '২-৩ দিনের মধ্যে');
+                                const existing = ord.courier?.name || 'Steadfast Courier';
+                                const presets = [
+                                  'Steadfast Courier',
+                                  'Pathao Courier',
+                                  'RedX Logistics',
+                                  'Paperfly',
+                                  'Sundarban Courier',
+                                  'eCourier',
+                                  'SA Paribahan',
+                                  'Karatoa Courier',
+                                  'Janani Express',
+                                  'Rainbow Courier'
+                                ];
+                                if (presets.includes(existing)) {
+                                  setCourierName(existing);
+                                  setCustomCourierName('');
+                                } else {
+                                  setCourierName('other');
+                                  setCustomCourierName(existing);
+                                }
                               }}
                               className="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-3 py-1.5 rounded-lg border border-blue-200 flex items-center gap-1 transition"
                             >
@@ -1631,161 +1713,397 @@ export const AdminPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* TAB 5: HOTLINES & SOCIAL LINKS */}
+              {/* TAB 5: WHATSAPP, HOTLINES, ADDRESS & STORE SETTINGS */}
               {activeTab === 'social' && (
-                <div className="max-w-2xl bg-white p-6 rounded-2xl border border-rose-100 shadow-sm space-y-6">
-                  <div>
-                    <h4 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                      <Phone className="w-5 h-5 text-rose-600" />
-                      <span>ঠিকানা, হটলাইন ও শপ সেটিংস</span>
-                    </h4>
-                    <p className="text-xs text-slate-500 mt-1">
-                      অফিসের ঠিকানা, সাপোর্ট ইমেইল, মোবাইল নম্বর এবং ফেসবুক, টিকটক ও সোশ্যাল লিংক পরিবর্তন করুন।
-                    </p>
+                <div className="space-y-6 max-w-4xl">
+                  {/* Top Header Notice */}
+                  <div className="bg-gradient-to-r from-rose-50 via-pink-50 to-rose-50 p-5 rounded-2xl border border-rose-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-xs">
+                          <SettingsIcon className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-lg font-bold text-slate-900 font-['Hind_Siliguri']">
+                          হোয়াটসঅ্যাপ, হটলাইন, ঠিকানা ও শপ সেটিংস
+                        </h4>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-1">
+                        হোম পেজ ও ফুটারে প্রদর্শিত WhatsApp শর্ট লিংক, হটলাইন নম্বর, শোরুম ঠিকানা ও ব্র্যান্ড সেটিংস পরিবর্তন করুন।
+                      </p>
+                    </div>
+
+                    {socialSavedToast && (
+                      <div className="p-2.5 px-4 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-2 animate-fadeIn shadow-md">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>সেটিংস সফলভাবে সংরক্ষিত হয়েছে!</span>
+                      </div>
+                    )}
                   </div>
 
-                  {socialSavedToast && (
-                    <div className="p-3 bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-2 animate-fadeIn">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>সেটিংস সফলভাবে আপডেট হয়েছে!</span>
-                    </div>
-                  )}
+                  <form onSubmit={handleSaveSocial} className="space-y-6">
+                    {/* SECTION 1: WHATSAPP & HOTLINE CONTACT */}
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-rose-100 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                          <Phone className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h5 className="font-bold text-sm text-slate-900 font-['Hind_Siliguri']">
+                            হোয়াটসঅ্যাপ ও হটলাইন যোগাযোগ
+                          </h5>
+                          <p className="text-[11px] text-slate-500">
+                            কাস্টমারদের সাথে সরাসরি যোগাযোগের মাধ্যম নির্ধারণ করুন
+                          </p>
+                        </div>
+                      </div>
 
-                  <form onSubmit={handleSaveSocial} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                          হটলাইন নম্বর ১:
-                        </label>
+                      {/* WhatsApp Short Link */}
+                      <div className="bg-emerald-50/60 p-4 rounded-xl border border-emerald-200 space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                          <label className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                            <LinkIcon className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>WhatsApp শর্ট লিংক (Direct Link / wa.me):</span>
+                          </label>
+                          {socialForm.whatsappShortLink && (
+                            <a
+                              href={socialForm.whatsappShortLink.startsWith('http') ? socialForm.whatsappShortLink : `https://${socialForm.whatsappShortLink}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 underline self-start sm:self-auto"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              <span>লিংক টেস্ট করুন</span>
+                            </a>
+                          )}
+                        </div>
                         <input
                           type="text"
-                          value={socialForm.hotline1}
-                          onChange={(e) => setSocialForm({ ...socialForm, hotline1: e.target.value })}
-                          className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300"
+                          placeholder="উদা: https://wa.me/message/XXXXXX অথবা https://wa.me/8801911541717"
+                          value={socialForm.whatsappShortLink}
+                          onChange={(e) => setSocialForm({ ...socialForm, whatsappShortLink: e.target.value })}
+                          className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-slate-800 font-mono"
                         />
+                        <p className="text-[11px] text-emerald-800">
+                          💡 <strong>টিপ:</strong> আপনার WhatsApp Business অ্যাকাউন্টের শর্ট লিংক (Short Link) বা wa.me লিংক এখানে দিন। কাস্টমাররা এক ক্লিকেই চ্যাটে চলে যাবে।
+                        </p>
                       </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        {/* WhatsApp Number */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            WhatsApp মোবাইল নম্বর:
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="যেমন: 01911-541717"
+                            value={socialForm.whatsappNumber}
+                            onChange={(e) => setSocialForm({ ...socialForm, whatsappNumber: e.target.value })}
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                          />
+                        </div>
+
+                        {/* Support Email */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            সাপোর্ট ইমেইল এড্রেস:
+                          </label>
+                          <input
+                            type="email"
+                            placeholder="যেমন: NaarirShopno@Gmail.com"
+                            value={socialForm.officeEmail}
+                            onChange={(e) => setSocialForm({ ...socialForm, officeEmail: e.target.value })}
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                          />
+                        </div>
+
+                        {/* Hotline 1 */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            হটলাইন নম্বর ১ (প্রধান):
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="যেমন: 09649-541717"
+                            value={socialForm.hotline1}
+                            onChange={(e) => setSocialForm({ ...socialForm, hotline1: e.target.value })}
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                          />
+                        </div>
+
+                        {/* Hotline 2 */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            হটলাইন নম্বর ২ (বিকল্প):
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="যেমন: 09617-541717"
+                            value={socialForm.hotline2}
+                            onChange={(e) => setSocialForm({ ...socialForm, hotline2: e.target.value })}
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 2: SHOWROOM & OFFICE ADDRESS */}
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-rose-100 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                        <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center">
+                          <MapPin className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h5 className="font-bold text-sm text-slate-900 font-['Hind_Siliguri']">
+                            শোরুম ও অফিস ঠিকানা
+                          </h5>
+                          <p className="text-[11px] text-slate-500">
+                            ফুটার, ইনভয়েস ক্যাশ মেমো এবং কাস্টমার সাপোর্টে এই ঠিকানা দেখানো হবে
+                          </p>
+                        </div>
+                      </div>
+
                       <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1">
-                          হটলাইন নম্বর ২:
+                          সম্পূর্ণ ঠিকানা (Full Address):
                         </label>
-                        <input
-                          type="text"
-                          value={socialForm.hotline2}
-                          onChange={(e) => setSocialForm({ ...socialForm, hotline2: e.target.value })}
-                          className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300"
+                        <textarea
+                          rows={3}
+                          value={socialForm.officeAddress}
+                          onChange={(e) => setSocialForm({ ...socialForm, officeAddress: e.target.value })}
+                          placeholder="যেমন: হাউজ# ফকিরবাড়ি, ৮নং কোড়ালতলী, ভেদরগঞ্জ, শরিয়তপুর-৮০৩০, বাংলাদেশ"
+                          className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 leading-relaxed"
                         />
+                      </div>
+
+                      {/* Live Address Preview Card */}
+                      <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex items-start gap-2.5">
+                        <MapPin className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                        <div className="text-xs">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            লাইভ প্রিভিউ (ফুটার ও মেমোতে যেমন দেখাবে):
+                          </span>
+                          <p className="font-medium text-slate-800 mt-0.5">
+                            {socialForm.officeAddress || 'হাউজ# ফকিরবাড়ি, ৮নং কোড়ালতলী, ভেদরগঞ্জ, শরিয়তপুর-৮০৩০, বাংলাদেশ'}
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        ফেসবুক পেজ লিংক (Facebook URL):
-                      </label>
-                      <input
-                        type="text"
-                        value={socialForm.facebookUrl}
-                        onChange={(e) => setSocialForm({ ...socialForm, facebookUrl: e.target.value })}
-                        className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300"
-                      />
-                    </div>
+                    {/* SECTION 3: STORE IDENTITY & SLOGAN */}
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-rose-100 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                        <div className="w-8 h-8 rounded-lg bg-pink-100 text-pink-700 flex items-center justify-center">
+                          <Globe className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h5 className="font-bold text-sm text-slate-900 font-['Hind_Siliguri']">
+                            দোকানের নাম, স্লোগান ও নোটিশ বার্তা
+                          </h5>
+                          <p className="text-[11px] text-slate-500">
+                            ব্র্যান্ডের নাম, ট্যাগলাইন এবং ওয়েবসাইটের একদম উপরের স্ক্রোলিং নোটিশ
+                          </p>
+                        </div>
+                      </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        টিকটক প্রোফাইল লিংক (TikTok URL):
-                      </label>
-                      <input
-                        type="text"
-                        value={socialForm.tiktokUrl}
-                        onChange={(e) => setSocialForm({ ...socialForm, tiktokUrl: e.target.value })}
-                        className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300"
-                      />
-                    </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            দোকানের নাম (Store Name):
+                          </label>
+                          <input
+                            type="text"
+                            value={socialForm.storeName}
+                            onChange={(e) => setSocialForm({ ...socialForm, storeName: e.target.value })}
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-bold"
+                          />
+                        </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        ইউটিউব চ্যানেল লিংক (YouTube URL):
-                      </label>
-                      <input
-                        type="text"
-                        value={socialForm.youtubeUrl}
-                        onChange={(e) => setSocialForm({ ...socialForm, youtubeUrl: e.target.value })}
-                        className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300"
-                      />
-                    </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            স্লোগান / ট্যাগলাইন (Slogan):
+                          </label>
+                          <input
+                            type="text"
+                            value={socialForm.slogan}
+                            onChange={(e) => setSocialForm({ ...socialForm, slogan: e.target.value })}
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                          />
+                        </div>
+                      </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1">
-                          বিকাশ মার্চেন্ট নম্বর:
+                          শীর্ষ অফার বার্তার নোটিশ (Top Announcement Notice):
                         </label>
-                        <input
-                          type="text"
-                          placeholder="যেমন: 01611541717 (মার্চেন্ট)"
-                          value={socialForm.bkashMerchantNumber}
-                          onChange={(e) => setSocialForm({ ...socialForm, bkashMerchantNumber: e.target.value })}
-                          className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                          নগদ নম্বর:
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="যেমন: 01911541717 (পার্সোনাল)"
-                          value={socialForm.nagadMerchantNumber}
-                          onChange={(e) => setSocialForm({ ...socialForm, nagadMerchantNumber: e.target.value })}
-                          className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300"
+                        <textarea
+                          rows={2}
+                          value={socialForm.announcementText}
+                          onChange={(e) => setSocialForm({ ...socialForm, announcementText: e.target.value })}
+                          className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 leading-relaxed"
                         />
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        অফিস / শোরুমের ঠিকানা (Footer Address):
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={socialForm.officeAddress}
-                        onChange={(e) => setSocialForm({ ...socialForm, officeAddress: e.target.value })}
-                        placeholder="যেমন: হাউজ# ফকিরবাড়ি, ৮নং কোড়ালতলী, ভেদরগঞ্জ, শরিয়তপুর-৮০৩০, বাংলাদেশ"
-                        className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                      />
-                      <p className="text-[11px] text-slate-400 mt-1">এটি ওয়েবসাইটের ফুটারে কাস্টমার সাপোর্ট ঠিকানায় স্বয়ংক্রিয়ভাবে আপডেট হয়ে যাবে।</p>
+                    {/* SECTION 4: PAYMENT MERCHANT ACCOUNTS */}
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-rose-100 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                          <DollarSign className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h5 className="font-bold text-sm text-slate-900 font-['Hind_Siliguri']">
+                            পেমেন্ট মার্চেন্ট নম্বরসমূহ (বিকাশ ও নগদ)
+                          </h5>
+                          <p className="text-[11px] text-slate-500">
+                            চেকআউটে কাস্টমারদের পেমেন্ট করার জন্য প্রদর্শিত নম্বর
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div className="bg-pink-50/50 p-3.5 rounded-xl border border-pink-200">
+                          <label className="block text-xs font-bold text-pink-900 mb-1">
+                            📱 বিকাশ নম্বর:
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="যেমন: 01611541717 (মার্চেন্ট)"
+                            value={socialForm.bkashMerchantNumber}
+                            onChange={(e) => setSocialForm({ ...socialForm, bkashMerchantNumber: e.target.value })}
+                            className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-pink-300 bg-white font-mono"
+                          />
+                        </div>
+
+                        <div className="bg-orange-50/50 p-3.5 rounded-xl border border-orange-200">
+                          <label className="block text-xs font-bold text-orange-900 mb-1">
+                            💳 নগদ নম্বর:
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="যেমন: 01911541717 (পার্সোনাল)"
+                            value={socialForm.nagadMerchantNumber}
+                            onChange={(e) => setSocialForm({ ...socialForm, nagadMerchantNumber: e.target.value })}
+                            className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-orange-300 bg-white font-mono"
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        সাপোর্ট ইমেইল এড্রেস (Support Email):
-                      </label>
-                      <input
-                        type="email"
-                        value={socialForm.officeEmail}
-                        onChange={(e) => setSocialForm({ ...socialForm, officeEmail: e.target.value })}
-                        placeholder="যেমন: NaarirShopno@Gmail.com"
-                        className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                      />
+                    {/* SECTION 5: FOOTER WATERMARK BACKGROUND IMAGE */}
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-rose-100 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                        <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+                          <ImageIcon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h5 className="font-bold text-sm text-slate-900 font-['Hind_Siliguri']">
+                            ফুটার ৩০% জলছাপ ব্যাকগ্রাউন্ড ছবি
+                          </h5>
+                          <p className="text-[11px] text-slate-500">
+                            ফুটারের পেছনের জলছাপ ছবির লিংক পরিবর্তন করুন (ডিফল্ট: /footer-bg.jpg)
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-center gap-3">
+                        <div className="relative w-28 h-16 rounded-xl overflow-hidden border-2 border-rose-200 shadow-xs bg-slate-900 shrink-0">
+                          <img
+                            src={socialForm.footerBgImage || '/footer-bg.jpg'}
+                            alt="Footer Background"
+                            className="w-full h-full object-cover opacity-50"
+                            onError={(e) => {
+                              e.currentTarget.src = '/hero-banner.jpg';
+                            }}
+                          />
+                          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white bg-black/30">
+                            ৩০% জলছাপ
+                          </span>
+                        </div>
+                        <div className="flex-1 w-full">
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            ছবির ইউআরএল (Image URL):
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="যেমন: /footer-bg.jpg অথবা যেকোনো ইমেজ লিংক"
+                            value={socialForm.footerBgImage}
+                            onChange={(e) => setSocialForm({ ...socialForm, footerBgImage: e.target.value })}
+                            className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        শীর্ষ বার্তার নোটিশ (Top Announcement Notice):
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={socialForm.announcementText}
-                        onChange={(e) => setSocialForm({ ...socialForm, announcementText: e.target.value })}
-                        className="w-full text-xs px-3.5 py-2 rounded-xl border border-slate-300"
-                      />
+                    {/* SECTION 6: SOCIAL MEDIA LINKS */}
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-rose-100 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+                          <Share2 className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h5 className="font-bold text-sm text-slate-900 font-['Hind_Siliguri']">
+                            সোশ্যাল মিডিয়া পেজ লিংক
+                          </h5>
+                          <p className="text-[11px] text-slate-500">
+                            ফেসবুক, টিকটক ও ইউটিউব চ্যানেলের অফিশিয়াল লিংক
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                            <span className="text-blue-600 font-bold">f</span>
+                            <span>ফেসবুক পেজ লিংক (Facebook URL):</span>
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="যেমন: https://www.facebook.com/NaarirShopno"
+                            value={socialForm.facebookUrl}
+                            onChange={(e) => setSocialForm({ ...socialForm, facebookUrl: e.target.value })}
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            টিকটক প্রোফাইল লিংক (TikTok URL):
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="যেমন: https://www.tiktok.com/@naarir.shopno"
+                            value={socialForm.tiktokUrl}
+                            onChange={(e) => setSocialForm({ ...socialForm, tiktokUrl: e.target.value })}
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            ইউটিউব চ্যানেল লিংক (YouTube URL):
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="যেমন: https://youtube.com/@naarirshopno"
+                            value={socialForm.youtubeUrl}
+                            onChange={(e) => setSocialForm({ ...socialForm, youtubeUrl: e.target.value })}
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    <button
-                      type="submit"
-                      className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl shadow-md transition flex items-center gap-2"
-                    >
-                      <Save className="w-4 h-4" />
-                      <span>সেটিংস সেভ করুন</span>
-                    </button>
+                    {/* PROMINENT SUBMIT BUTTON */}
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        className="w-full sm:w-auto bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-bold text-sm px-8 py-3.5 rounded-2xl shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                      >
+                        <Save className="w-5 h-5" />
+                        <span>সকল সেটিংস সংরক্ষণ করুন (Save All Settings)</span>
+                      </button>
+                    </div>
                   </form>
 
                   {/* Security & Password Change Section */}
@@ -1974,6 +2292,392 @@ export const AdminPanel: React.FC = () => {
                   )}
                 </div>
               )}
+
+              {/* TAB 7: CATEGORIES MANAGEMENT */}
+              {activeTab === 'categories' && (
+                <div className="space-y-6">
+                  {/* Category Management Header */}
+                  <div className="bg-white p-5 rounded-2xl border border-rose-100 shadow-2xs flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
+                          <Layers className="w-4 h-4" />
+                        </div>
+                        <h4 className="text-lg font-bold text-slate-900 font-['Hind_Siliguri']">
+                          ক্যাটাগরি ম্যানেজমেন্ট ও ছবি
+                        </h4>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        দোকানের যেকোনো ক্যাটাগরি এডিট করুন, নতুন ক্যাটাগরি যুক্ত করুন অথবা ছবি পরিবর্তন করুন।
+                      </p>
+                    </div>
+
+                    {/* Add Category Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingCategoryItem(null);
+                        setCategoryFormTitle('');
+                        setCategoryFormSubtitle('');
+                        setCategoryFormImage('https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80');
+                        setIsCategoryModalOpen(true);
+                      }}
+                      className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-2 self-start sm:self-auto cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>+ নতুন ক্যাটাগরি যোগ করুন</span>
+                    </button>
+                  </div>
+
+                  {/* Toast notification */}
+                  {categoryToast && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-2 animate-fadeIn">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{categoryToast}</span>
+                    </div>
+                  )}
+
+                  {/* Categories Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {(Array.isArray(settings.categories)
+                      ? settings.categories
+                      : DEFAULT_CATEGORIES
+                    ).map((cat) => {
+                      const activeImg = settings.categoryImages?.[cat.id] || cat.image;
+
+                      return (
+                        <div
+                          key={cat.id}
+                          className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm flex flex-col justify-between space-y-3.5 hover:shadow-md transition"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-rose-300 shadow-xs shrink-0 bg-rose-50">
+                              <img
+                                src={activeImg}
+                                alt={cat.title}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = cat.image;
+                                }}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h5 className="font-bold text-sm text-slate-900 truncate font-['Hind_Siliguri']">
+                                {cat.title}
+                              </h5>
+                              <p className="text-[11px] text-slate-500 truncate">{cat.subtitle}</p>
+                              <span className="text-[10px] text-slate-400 font-mono">ID: {cat.id}</span>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons: Edit / Change Picture AND Delete */}
+                          <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingCategoryItem(cat);
+                                setCategoryFormTitle(cat.title);
+                                setCategoryFormSubtitle(cat.subtitle);
+                                setCategoryFormImage(activeImg);
+                                setIsCategoryModalOpen(true);
+                              }}
+                              className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-rose-50 to-pink-50 hover:from-rose-100 hover:to-pink-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs active:scale-98"
+                            >
+                              <Camera className="w-3.5 h-3.5 text-rose-600" />
+                              <span>ছবি ও তথ্য পরিবর্তন</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCategoryToDelete(cat);
+                              }}
+                              className="py-2 px-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-2xs hover:shadow-xs"
+                              title={`"${cat.title}" ক্যাটাগরি ডিলিট করুন`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>ডিলিট</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Add/Edit Category Modal */}
+        {isCategoryModalOpen && (
+          <div className="fixed inset-0 z-60 bg-black/60 flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto border border-rose-100">
+              <div className="flex justify-between items-center pb-3 border-b border-rose-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
+                    <Edit3 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-base sm:text-lg">
+                      {editingCategoryItem ? 'ক্যাটাগরি এডিট করুন' : 'নতুন ক্যাটাগরি যুক্ত করুন'}
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      ক্যাটাগরির নাম, সাবটাইটেল এবং ছবি পরিবর্তন বা সেট করুন
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!categoryFormTitle.trim()) return;
+
+                  if (editingCategoryItem) {
+                    await updateCategory({
+                      id: editingCategoryItem.id,
+                      title: categoryFormTitle.trim(),
+                      subtitle: categoryFormSubtitle.trim() || editingCategoryItem.subtitle,
+                      image: categoryFormImage.trim() || editingCategoryItem.image,
+                    });
+                    setCategoryToast(`"${categoryFormTitle}" ক্যাটাগরি সফলভাবে আপডেট করা হয়েছে!`);
+                  } else {
+                    const newId = 'cat_' + Date.now();
+                    await addCategory({
+                      id: newId,
+                      title: categoryFormTitle.trim(),
+                      subtitle: categoryFormSubtitle.trim() || 'এক্সক্লুসিভ কালেকশন',
+                      image: categoryFormImage.trim() || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80',
+                    });
+                    setCategoryToast(`নতুন ক্যাটাগরি "${categoryFormTitle}" যুক্ত করা হয়েছে!`);
+                  }
+                  setTimeout(() => setCategoryToast(null), 3000);
+                  setIsCategoryModalOpen(false);
+                }}
+                className="space-y-4 text-left"
+              >
+                {/* Title */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    ক্যাটাগরির নাম (Title) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="যেমন: লেহেঙ্গা, শীতের পোশাক, বাচ্চাদের ফ্রক"
+                    value={categoryFormTitle}
+                    onChange={(e) => setCategoryFormTitle(e.target.value)}
+                    className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
+                  />
+                </div>
+
+                {/* Subtitle */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    সাবটাইটেল (Subtitle)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="যেমন: ব্রাইডাল ও এক্সক্লুসিভ ডিজাইন"
+                    value={categoryFormSubtitle}
+                    onChange={(e) => setCategoryFormSubtitle(e.target.value)}
+                    className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
+                  />
+                </div>
+
+                {/* Live Preview */}
+                <div className="bg-rose-50/50 p-3 rounded-2xl border border-rose-100 flex items-center gap-3">
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-rose-400 shadow-xs shrink-0 bg-white">
+                    <img
+                      src={categoryFormImage || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80'}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-rose-600 block">লাইভ প্রিভিউ:</span>
+                    <h5 className="font-bold text-sm text-slate-900">{categoryFormTitle || 'ক্যাটাগরি নাম'}</h5>
+                    <p className="text-[11px] text-slate-500">{categoryFormSubtitle || 'সাবটাইটেল'}</p>
+                  </div>
+                </div>
+
+                {/* Image Upload / URL */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-700">
+                    ক্যাটাগরির ছবি নির্ধারণ করুন
+                  </label>
+
+                  {/* Device File Upload */}
+                  <input
+                    ref={categoryFormFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsCategoryFormUploading(true);
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        const img = new Image();
+                        img.onload = () => {
+                          const canvas = document.createElement('canvas');
+                          const maxDim = 600;
+                          let width = img.width;
+                          let height = img.height;
+                          if (width > height) {
+                            if (width > maxDim) {
+                              height = Math.round((height * maxDim) / width);
+                              width = maxDim;
+                            }
+                          } else {
+                            if (height > maxDim) {
+                              width = Math.round((width * maxDim) / height);
+                              height = maxDim;
+                            }
+                          }
+                          canvas.width = width;
+                          canvas.height = height;
+                          const ctx = canvas.getContext('2d');
+                          if (ctx) {
+                            ctx.drawImage(img, 0, 0, width, height);
+                            setCategoryFormImage(canvas.toDataURL('image/jpeg', 0.85));
+                          } else {
+                            setCategoryFormImage(ev.target?.result as string);
+                          }
+                          setIsCategoryFormUploading(false);
+                        };
+                        img.src = ev.target?.result as string;
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => categoryFormFileInputRef.current?.click()}
+                    disabled={isCategoryFormUploading}
+                    className="w-full py-2.5 px-3 rounded-xl border-2 border-dashed border-rose-300 bg-rose-50/40 hover:bg-rose-50 text-rose-700 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{isCategoryFormUploading ? 'ছবি প্রসেস হচ্ছে...' : 'মোবাইল / কম্পিউটার থেকে ছবি আপলোড'}</span>
+                  </button>
+
+                  {/* URL input */}
+                  <input
+                    type="url"
+                    placeholder="অথবা ছবির ওয়েব লিংক পেস্ট করুন..."
+                    value={categoryFormImage}
+                    onChange={(e) => setCategoryFormImage(e.target.value)}
+                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300 bg-white"
+                  />
+                </div>
+
+                {/* Form Buttons */}
+                <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100">
+                  {editingCategoryItem ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCategoryToDelete(editingCategoryItem);
+                      }}
+                      className="py-2 px-3 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                      title="এই ক্যাটাগরি সম্পূর্ণ মুছে ফেলুন"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>ক্যাটাগরি ডিলিট</span>
+                    </button>
+                  ) : <div />}
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsCategoryModalOpen(false)}
+                      className="py-2.5 px-4 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-100 transition cursor-pointer"
+                    >
+                      বাতিল
+                    </button>
+                    <button
+                      type="submit"
+                      className="py-2.5 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>সংরক্ষণ করুন</span>
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Category In-App Confirmation Modal */}
+        {categoryToDelete && (
+          <div className="fixed inset-0 z-70 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-red-100 space-y-4 text-center">
+              <div className="w-14 h-14 rounded-full bg-red-100 text-red-600 mx-auto flex items-center justify-center shadow-inner">
+                <Trash2 className="w-7 h-7 animate-bounce" />
+              </div>
+
+              <div className="space-y-1.5">
+                <h4 className="text-lg font-black text-slate-900 font-['Hind_Siliguri']">
+                  ক্যাটাগরি ডিলিট করবেন?
+                </h4>
+                <p className="text-xs text-slate-600">
+                  আপনি কি নিশ্চিতভাবে <strong className="text-red-600 font-bold font-['Hind_Siliguri']">"{categoryToDelete.title}"</strong> ক্যাটাগরিটি মুছে ফেলতে চান?
+                </p>
+              </div>
+
+              {/* Preview */}
+              <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl text-left">
+                <div className="w-12 h-12 rounded-xl overflow-hidden border border-rose-200 shrink-0 bg-white">
+                  <img
+                    src={settings.categoryImages?.[categoryToDelete.id] || categoryToDelete.image}
+                    alt={categoryToDelete.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-slate-800 truncate font-['Hind_Siliguri']">
+                    {categoryToDelete.title}
+                  </p>
+                  <p className="text-xs text-slate-500 truncate">{categoryToDelete.subtitle}</p>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCategoryToDelete(null)}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition cursor-pointer"
+                >
+                  না, বাতিল
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const toDelete = categoryToDelete;
+                    setCategoryToDelete(null);
+                    setIsCategoryModalOpen(false);
+                    await deleteCategory(toDelete.id);
+                    setCategoryToast(`"${toDelete.title}" ক্যাটাগরি সফলভাবে ডিলিট করা হয়েছে!`);
+                    setTimeout(() => setCategoryToast(null), 3500);
+                  }}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-md cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>হ্যাঁ, ডিলিট করুন</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -2037,16 +2741,25 @@ export const AdminPanel: React.FC = () => {
                       <label className="block font-semibold text-slate-700 mb-1">ক্যাটাগরি *</label>
                       <select
                         value={productForm.category}
-                        onChange={(e) => setProductForm({ ...productForm, category: e.target.value as CategoryType })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const found = (Array.isArray(settings.categories) ? settings.categories : DEFAULT_CATEGORIES).find(c => c.id === val);
+                          setProductForm({ 
+                            ...productForm, 
+                            category: val as CategoryType,
+                            categoryBengali: found?.title || val
+                          });
+                        }}
                         className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-medium"
                       >
-                        <option value="three_piece">থ্রি-পিস</option>
-                        <option value="saree">শাড়ি</option>
-                        <option value="kurti">কুর্তি</option>
-                        <option value="gown">গাউন</option>
-                        <option value="hijab_abaya">হিজাব ও আবায়া</option>
-                        <option value="lehenga">লেহেঙ্গা</option>
-                        <option value="jewellery_bags">জুয়েলারি ও ব্যাগ</option>
+                        {(Array.isArray(settings.categories)
+                          ? settings.categories
+                          : DEFAULT_CATEGORIES
+                        ).map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.title}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -2569,15 +3282,38 @@ export const AdminPanel: React.FC = () => {
                   <select
                     value={courierName}
                     onChange={(e) => setCourierName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-medium"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-medium bg-white"
                   >
                     <option value="Steadfast Courier">Steadfast Courier (স্টেডফাস্ট)</option>
                     <option value="Pathao Courier">Pathao Courier (পাঠাও)</option>
                     <option value="RedX Logistics">RedX (রেডএক্স)</option>
                     <option value="Paperfly">Paperfly (পেপারফ্লাই)</option>
-                    <option value="Sundarban Courier">সুন্দরবন কুরিয়ার</option>
+                    <option value="Sundarban Courier">সুন্দরবন কুরিয়ার (Sundarban)</option>
+                    <option value="eCourier">eCourier (ই-কুরিয়ার)</option>
+                    <option value="SA Paribahan">এস.এ পরিবহন (SA Paribahan)</option>
+                    <option value="Karatoa Courier">করতোয়া কুরিয়ার (Karatoa)</option>
+                    <option value="Janani Express">জননী এক্সপ্রেস (Janani)</option>
+                    <option value="Rainbow Courier">রেইনবো কুরিয়ার (Rainbow)</option>
+                    <option value="other">✨ অন্যান্য কুরিয়ার সার্ভিস (Other Courier)...</option>
                   </select>
                 </div>
+
+                {/* If Other courier is selected, show custom courier name input */}
+                {courierName === 'other' && (
+                  <div className="bg-rose-50/70 p-3 rounded-xl border border-rose-200 animate-fadeIn space-y-1">
+                    <label className="block font-bold text-rose-800 text-xs">
+                      কুরিয়ার সার্ভিসের নাম লিখুন (Custom Courier Name) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="যেমন: এসএ পরিবহন, জননী এক্সপ্রেস, বা নিজস্ব হোম ডেলিভারি"
+                      value={customCourierName}
+                      onChange={(e) => setCustomCourierName(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-rose-300 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">কুরিয়ার কনসাইনমেন্ট / ট্র্যাকিং আইডি *</label>

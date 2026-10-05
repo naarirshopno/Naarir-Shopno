@@ -132,7 +132,11 @@ export const CustomerChatDrawer: React.FC = () => {
                   </a>
 
                   <a
-                    href={`https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=আসসালামু%20আলাইকুম,%20নারীর%20স্বপ্ন%20থেকে%20একটি%20পোশাক%20সম্পর্কে%20জানতে%20চাই।`}
+                    href={
+                      settings.whatsappShortLink && settings.whatsappShortLink.trim()
+                        ? (settings.whatsappShortLink.startsWith('http') ? settings.whatsappShortLink.trim() : `https://${settings.whatsappShortLink.trim()}`)
+                        : `https://wa.me/${(settings.whatsappNumber || settings.hotline1 || '01911541717').replace(/[^0-9]/g, '')}?text=আসসালামু%20আলাইকুম,%20নারীর%20স্বপ্ন%20থেকে%20একটি%20পোশাক%20সম্পর্কে%20জানতে%20চাই।`
+                    }
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center justify-center gap-1.5 p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 transition"

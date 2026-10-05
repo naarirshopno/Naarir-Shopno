@@ -63,6 +63,7 @@
         "hotline1": { "type": "string" },
         "hotline2": { "type": "string" },
         "whatsappNumber": { "type": "string" },
+        "whatsappShortLink": { "type": "string" },
         "facebookUrl": { "type": "string" },
         "tiktokUrl": { "type": "string" },
         "youtubeUrl": { "type": "string" },
@@ -70,7 +71,8 @@
         "nagadMerchantNumber": { "type": "string" },
         "announcementText": { "type": "string" },
         "officeAddress": { "type": "string" },
-        "officeEmail": { "type": "string" }
+        "officeEmail": { "type": "string" },
+        "footerBgImage": { "type": "string" }
       }
     },
     "CustomerMessage": {

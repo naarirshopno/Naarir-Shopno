@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { useShop } from '../context/ShopContext';
-import { ShoppingBag, Eye, Zap, Star, Check, Heart } from 'lucide-react';
+import { ShoppingBag, Eye, Zap, Star, Check, Heart, ArrowLeftRight } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -14,7 +14,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     setDirectCheckoutItem, 
     setIsCheckoutOpen,
     toggleWishlist,
-    isInWishlist
+    isInWishlist,
+    toggleCompare,
+    isInCompare
   } = useShop();
 
   const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80';
@@ -60,6 +62,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     // Visual toast feedback
     setToastFeedback(nextSaved ? 'পছন্দের তালিকায় সেভ হয়েছে!' : 'তালিকা থেকে সরানো হয়েছে');
     setTimeout(() => setToastFeedback(null), 2000);
+  };
+
+  const isCompared = isInCompare(product.id);
+
+  const handleToggleCompare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const res = toggleCompare(product);
+    setToastFeedback(res.message);
+    setTimeout(() => setToastFeedback(null), 2200);
   };
 
   const discountPercent = Math.round(
@@ -129,9 +140,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         />
       </button>
 
+      {/* Compare Button (Below Wishlist) */}
+      <button
+        id={`btn-compare-${product.id}`}
+        type="button"
+        onClick={handleToggleCompare}
+        title={isCompared ? "তুলনা তালিকা থেকে সরান" : "পোশাক তুলনা তালিকায় যোগ করুন"}
+        aria-label={isCompared ? "তুলনা তালিকা থেকে সরান" : "পোশাক তুলনা তালিকায় যোগ করুন"}
+        className={`absolute top-12 sm:top-13 right-3 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all duration-300 shadow-md ${
+          isCompared 
+            ? 'bg-emerald-600 text-white scale-105 shadow-emerald-300/60 ring-2 ring-white' 
+            : 'bg-white/90 backdrop-blur-sm text-slate-600 hover:text-emerald-600 hover:bg-white hover:scale-110'
+        }`}
+      >
+        <ArrowLeftRight 
+          className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-300 ${
+            isCompared ? 'rotate-180 text-white' : 'stroke-current'
+          }`} 
+        />
+      </button>
+
       {/* Instant Feedback Toast */}
       {toastFeedback && (
-        <div className="absolute top-12 right-3 z-30 bg-slate-900/90 text-white text-[10px] font-medium py-1 px-2.5 rounded-lg shadow-lg backdrop-blur-xs animate-fadeIn pointer-events-none whitespace-nowrap border border-white/20">
+        <div className="absolute top-22 sm:top-24 right-3 z-30 bg-slate-900/90 text-white text-[10px] font-medium py-1 px-2.5 rounded-lg shadow-lg backdrop-blur-xs animate-fadeIn pointer-events-none whitespace-nowrap border border-white/20">
           {toastFeedback}
         </div>
       )}

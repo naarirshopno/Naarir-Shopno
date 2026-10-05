@@ -6,7 +6,15 @@ export type CategoryType =
   | 'gown'
   | 'hijab_abaya'
   | 'lehenga'
-  | 'jewellery_bags';
+  | 'jewellery_bags'
+  | string;
+
+export interface CustomCategoryItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  image: string;
+}
 
 export interface Product {
   id: string;
@@ -90,6 +98,7 @@ export interface StoreSettings {
   hotline1: string;
   hotline2: string;
   whatsappNumber: string;
+  whatsappShortLink?: string;
   facebookUrl: string;
   tiktokUrl: string;
   youtubeUrl: string;
@@ -105,6 +114,16 @@ export interface StoreSettings {
   announcementText: string;
   officeAddress: string;
   officeEmail?: string;
+  footerBgImage?: string;
+  categories?: CustomCategoryItem[];
+  categoryImages?: Record<string, string>;
+  backgroundMusic?: {
+    enabled?: boolean;
+    audioUrl?: string;
+    title?: string;
+    defaultVolume?: number;
+    autoplayOnFirstClick?: boolean;
+  };
 }
 
 export interface CustomerMessage {

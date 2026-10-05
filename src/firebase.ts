@@ -1,12 +1,28 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, setLogLevel } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
+
+// Silence internal SDK connection retry logs in preview iframe
+try {
+  setLogLevel('silent');
+} catch {
+  // ignore
+}
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-/* CRITICAL: Passing firestoreDatabaseId ensures the exact database is connected */
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+/* CRITICAL: Passing firestoreDatabaseId and experimentalForceLongPolling ensures reliable connection in iframe/proxy environments */
+export const db = (() => {
+  try {
+    return initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+    }, firebaseConfig.firestoreDatabaseId);
+  } catch {
+    return getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  }
+})();
+
 export const auth = getAuth(app);
 
 export enum OperationType {
@@ -31,8 +47,18 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errMessage = error instanceof Error ? error.message : String(error);
+  // Gracefully handle expected offline transitions and connection retries without crashing or noisy error logs
+  if (
+    errMessage.includes('offline') ||
+    errMessage.includes('Could not reach Cloud Firestore backend') ||
+    errMessage.includes('unavailable') ||
+    errMessage.includes('failed-precondition')
+  ) {
+    return;
+  }
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errMessage,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -42,18 +68,5 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path,
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  console.warn('Firestore Operation Notice: ', JSON.stringify(errInfo));
 }
-
-// Test connection on boot per Firebase skill guidelines
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Firebase client is offline or initializing.');
-    }
-  }
-}
-
-testConnection();
