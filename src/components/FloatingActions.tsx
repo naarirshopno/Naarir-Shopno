@@ -127,11 +127,11 @@ export const FloatingActions: React.FC = () => {
       {/* Mobile Sticky Order / Hotline Bar at Bottom */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-rose-100 p-2.5 flex items-center justify-between gap-2 shadow-lg">
         <a
-          href={`tel:${settings.hotline1.replace(/[^0-9]/g, '')}`}
-          className="flex-1 bg-slate-100 text-slate-800 text-xs font-bold py-2.5 px-2 rounded-xl flex items-center justify-center gap-1"
+          href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`}
+          className="flex-1 bg-slate-100 hover:bg-rose-50 text-slate-800 hover:text-rose-700 text-xs font-bold py-2.5 px-2 rounded-xl flex items-center justify-center gap-1 font-mono transition"
         >
           <Phone className="w-3.5 h-3.5 text-rose-600" />
-          <span>কল করুন</span>
+          <span>কল: {settings.hotline1 || '09617-541717'}</span>
         </a>
 
         <a

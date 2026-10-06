@@ -9,9 +9,7 @@ import {
   Sliders, 
   X, 
   Disc, 
-  Radio, 
   Check, 
-  ExternalLink,
   ChevronUp,
   Sparkles
 } from 'lucide-react';
@@ -33,6 +31,13 @@ export const PRESET_TRACKS: MusicTrack[] = [
     url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3',
   },
   {
+    id: 'track-special-pixabay',
+    title: 'মনকাড়া সফট পিয়ানো মেলোডি',
+    artist: 'Pixabay Boutique Ambient',
+    category: 'রিল্যাক্সিং',
+    url: '/audio/theme-melody.mp3',
+  },
+  {
     id: 'track-flute',
     title: 'নরম বাঁশি ও পিয়ানো সুবাস',
     artist: 'Eastern Relaxing',
@@ -48,13 +53,22 @@ export const PRESET_TRACKS: MusicTrack[] = [
   },
 ];
 
+// Helper to map remote Pixabay link to local high-speed file with 0 CORS issues
+const resolveAudioUrl = (url: string): string => {
+  if (!url) return '/audio/theme-melody.mp3';
+  if (url.includes('audio_ac92d40521.mp3')) {
+    return '/audio/theme-melody.mp3';
+  }
+  return url;
+};
+
 export const BackgroundMusicPlayer: React.FC = () => {
   const { settings, updateSettings } = useShop();
 
   const musicConfig = settings.backgroundMusic || {
     enabled: true,
-    audioUrl: PRESET_TRACKS[0].url,
-    title: PRESET_TRACKS[0].title,
+    audioUrl: '/audio/theme-melody.mp3',
+    title: PRESET_TRACKS[1].title,
     defaultVolume: 0.35,
     autoplayOnFirstClick: false,
   };
@@ -64,39 +78,31 @@ export const BackgroundMusicPlayer: React.FC = () => {
   const [volume, setVolume] = useState<number>(musicConfig.defaultVolume ?? 0.35);
   const [isOpen, setIsOpen] = useState(false);
   const [customUrl, setCustomUrl] = useState('');
-  const [currentTrackTitle, setCurrentTrackTitle] = useState(musicConfig.title || PRESET_TRACKS[0].title);
-  const [currentUrl, setCurrentUrl] = useState(musicConfig.audioUrl || PRESET_TRACKS[0].url);
-  const [hasInteracted, setHasInteracted] = useState(false);
+  const [currentTrackTitle, setCurrentTrackTitle] = useState(musicConfig.title || PRESET_TRACKS[1].title);
+  const [currentUrl, setCurrentUrl] = useState(resolveAudioUrl(musicConfig.audioUrl || PRESET_TRACKS[1].url));
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize Audio element
+  // Sync with store settings when loaded from Firestore
   useEffect(() => {
-    const audio = new Audio();
-    audio.loop = true;
-    audio.volume = volume;
-    audio.preload = 'metadata';
-    audio.src = currentUrl;
-    audioRef.current = audio;
-
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleError = () => {
-      setIsPlaying(false);
-    };
-
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
-    audio.addEventListener('error', handleError);
-
-    return () => {
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
-      audio.removeEventListener('error', handleError);
-      audio.pause();
-      audio.src = '';
-    };
-  }, []);
+    if (settings.backgroundMusic?.audioUrl) {
+      const resolved = resolveAudioUrl(settings.backgroundMusic.audioUrl);
+      if (resolved !== currentUrl) {
+        setCurrentUrl(resolved);
+        if (settings.backgroundMusic.title) {
+          setCurrentTrackTitle(settings.backgroundMusic.title);
+        }
+        if (audioRef.current) {
+          const wasPlaying = isPlaying;
+          audioRef.current.src = resolved;
+          audioRef.current.load();
+          if (wasPlaying) {
+            audioRef.current.play().catch(() => setIsPlaying(false));
+          }
+        }
+      }
+    }
+  }, [settings.backgroundMusic?.audioUrl, settings.backgroundMusic?.title]);
 
   // Update volume
   useEffect(() => {
@@ -105,46 +111,84 @@ export const BackgroundMusicPlayer: React.FC = () => {
     }
   }, [volume, isMuted]);
 
-  // Update track when url changes
+  // Update track when user selects preset
   const changeTrack = (track: MusicTrack) => {
-    setCurrentUrl(track.url);
+    const effectiveUrl = resolveAudioUrl(track.url);
+    setCurrentUrl(effectiveUrl);
     setCurrentTrackTitle(track.title);
+
     if (audioRef.current) {
-      const wasPlaying = isPlaying;
-      audioRef.current.src = track.url;
+      audioRef.current.src = effectiveUrl;
       audioRef.current.load();
-      if (wasPlaying) {
-        audioRef.current.play().catch(() => setIsPlaying(false));
-      }
+      audioRef.current.volume = isMuted ? 0 : volume;
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch((err) => {
+          console.warn('Playback error:', err);
+          setIsPlaying(false);
+        });
     }
+
+    updateSettings({
+      ...settings,
+      backgroundMusic: {
+        ...(settings.backgroundMusic || {}),
+        audioUrl: track.url,
+        title: track.title,
+      },
+    });
   };
 
   const applyCustomUrl = () => {
     if (!customUrl.trim()) return;
     const trimmed = customUrl.trim();
-    setCurrentUrl(trimmed);
+    const effectiveUrl = resolveAudioUrl(trimmed);
+    setCurrentUrl(effectiveUrl);
     setCurrentTrackTitle('কাস্টম অডিও ট্র্যাক');
+
     if (audioRef.current) {
-      audioRef.current.src = trimmed;
+      audioRef.current.src = effectiveUrl;
       audioRef.current.load();
+      audioRef.current.volume = isMuted ? 0 : volume;
       audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     }
     setCustomUrl('');
   };
 
   const togglePlay = () => {
-    setHasInteracted(true);
-    if (!audioRef.current) return;
+    const audio = audioRef.current;
+    if (!audio) return;
 
     if (isPlaying) {
-      audioRef.current.pause();
+      audio.pause();
+      setIsPlaying(false);
     } else {
-      audioRef.current.play().then(() => {
-        setIsPlaying(true);
-      }).catch((err) => {
-        console.warn('Playback error:', err);
-        setIsPlaying(false);
-      });
+      audio.volume = isMuted ? 0 : volume;
+      // If src is empty or not set, set to currentUrl
+      if (!audio.src || audio.src === '') {
+        audio.src = currentUrl;
+        audio.load();
+      }
+
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch((err) => {
+            console.warn('Primary playback error, trying local fallback:', err);
+            // Fallback to local audio
+            audio.src = '/audio/theme-melody.mp3';
+            audio.load();
+            audio.play()
+              .then(() => setIsPlaying(true))
+              .catch((e) => {
+                console.error('Final playback error:', e);
+                setIsPlaying(false);
+              });
+          });
+      }
     }
   };
 
@@ -154,6 +198,23 @@ export const BackgroundMusicPlayer: React.FC = () => {
 
   return (
     <>
+      {/* Real HTML5 Audio Element in DOM */}
+      <audio
+        ref={audioRef}
+        src={currentUrl}
+        loop
+        preload="auto"
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onError={() => {
+          console.warn('Audio tag failed, switching to local copy');
+          if (audioRef.current && !audioRef.current.src.includes('/audio/theme-melody.mp3')) {
+            audioRef.current.src = '/audio/theme-melody.mp3';
+            audioRef.current.load();
+          }
+        }}
+      />
+
       {/* Floating Bottom-Left Music Trigger Widget */}
       <div className="fixed bottom-20 sm:bottom-6 left-4 sm:left-6 z-40 flex flex-col items-start select-none">
         
@@ -177,7 +238,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
               </div>
               <button 
                 onClick={() => setIsOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -191,14 +252,14 @@ export const BackgroundMusicPlayer: React.FC = () => {
                   <span className="truncate">{currentTrackTitle}</span>
                 </div>
                 <p className="text-[10px] text-slate-500 mt-0.5">
-                  {isPlaying ? 'এখন বাজছে...' : 'মিউজিক বন্ধ আছে'}
+                  {isPlaying ? 'সুর বাজছে 🎵' : 'সুর থামানো আছে'}
                 </p>
               </div>
 
-              {/* Play / Pause button */}
+              {/* Play/Pause Button in header card */}
               <button
                 onClick={togglePlay}
-                className="w-9 h-9 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white flex items-center justify-center shadow-md active:scale-95 transition shrink-0"
+                className="w-9 h-9 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white flex items-center justify-center shadow-md active:scale-95 transition shrink-0 cursor-pointer"
                 title={isPlaying ? 'মিউজিক থামান' : 'মিউজিক চালান'}
               >
                 {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
@@ -219,7 +280,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button 
                   onClick={toggleMute}
-                  className="text-slate-500 hover:text-rose-600 transition"
+                  className="text-slate-500 hover:text-rose-600 transition cursor-pointer"
                   title={isMuted ? 'শব্দ চালু করুন' : 'নিঃশব্দ করুন'}
                 >
                   {isMuted || volume === 0 ? (
@@ -251,12 +312,12 @@ export const BackgroundMusicPlayer: React.FC = () => {
               </p>
               <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                 {PRESET_TRACKS.map((t) => {
-                  const isSelected = currentUrl === t.url;
+                  const isSelected = currentUrl === resolveAudioUrl(t.url);
                   return (
                     <button
                       key={t.id}
                       onClick={() => changeTrack(t)}
-                      className={`w-full text-left p-2 rounded-xl text-xs flex items-center justify-between transition ${
+                      className={`w-full text-left p-2 rounded-xl text-xs flex items-center justify-between transition cursor-pointer ${
                         isSelected 
                           ? 'bg-rose-500 text-white font-bold shadow-xs' 
                           : 'bg-slate-50 hover:bg-rose-50 text-slate-700'
@@ -291,7 +352,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
                 <button
                   onClick={applyCustomUrl}
                   disabled={!customUrl.trim()}
-                  className="bg-rose-600 disabled:opacity-50 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold hover:bg-rose-700 transition shrink-0"
+                  className="bg-rose-600 disabled:opacity-50 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold hover:bg-rose-700 transition shrink-0 cursor-pointer"
                 >
                   সেট
                 </button>
@@ -304,7 +365,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`group flex items-center gap-2 px-3 py-2 rounded-full shadow-lg border transition-all active:scale-95 ${
+            className={`group flex items-center gap-2 px-3 py-2 rounded-full shadow-lg border transition-all active:scale-95 cursor-pointer ${
               isPlaying
                 ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white border-rose-300 ring-2 ring-rose-200'
                 : 'bg-white hover:bg-rose-50 text-slate-700 border-rose-200'
@@ -332,7 +393,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
           {/* Quick Play/Pause Mini Toggle */}
           <button
             onClick={togglePlay}
-            className={`w-8 h-8 rounded-full shadow-md flex items-center justify-center transition active:scale-90 ${
+            className={`w-8 h-8 rounded-full shadow-md flex items-center justify-center transition active:scale-90 cursor-pointer ${
               isPlaying
                 ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
                 : 'bg-white text-slate-600 hover:bg-rose-50 border border-slate-200'

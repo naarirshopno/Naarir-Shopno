@@ -48,8 +48,9 @@ export const DEFAULT_CATEGORIES: CustomCategoryItem[] = [
 export const INITIAL_SETTINGS: StoreSettings = {
   storeName: "নারীর স্বপ্ন",
   slogan: "Dress Your Dreams",
-  hotline1: "09649-541717",
-  hotline2: "09617-541717",
+  hotline1: "09617-541717",
+  hotline2: "09649-541717",
+  supportHours: "সকাল ১০টা - রাত ১০টা সার্বক্ষণিক সেবা",
   whatsappNumber: "01911-541717",
   whatsappShortLink: "https://wa.me/8801911541717",
   facebookUrl: "https://www.facebook.com/NaarirShopno",
@@ -78,8 +79,8 @@ export const INITIAL_SETTINGS: StoreSettings = {
   },
   backgroundMusic: {
     enabled: true,
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3",
-    title: "শান্ত অ্যাকোস্টিক মেলোডি",
+    audioUrl: "https://cdn.pixabay.com/audio/2025/02/22/audio_ac92d40521.mp3",
+    title: "মনকাড়া সফট পিয়ানো মেলোডি",
     defaultVolume: 0.35,
     autoplayOnFirstClick: false,
   },

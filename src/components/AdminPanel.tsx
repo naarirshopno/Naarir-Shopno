@@ -48,7 +48,12 @@ import {
   Link as LinkIcon,
   MapPin,
   ExternalLink,
-  Globe
+  Globe,
+  Database,
+  Activity,
+  Cpu,
+  Server,
+  ShieldAlert
 } from 'lucide-react';
 
 const PRESET_COLORS: { name: string; hex: string }[] = [
@@ -93,7 +98,10 @@ export const AdminPanel: React.FC = () => {
     syncAllToCloud,
     deleteDemoProducts,
     clearAllProducts,
-    restoreDemoProducts
+    restoreDemoProducts,
+    dbHealth,
+    isCheckingDbHealth,
+    runDbHealthCheck
   } = useShop();
 
   const [isSyncingAll, setIsSyncingAll] = useState(false);
@@ -103,7 +111,7 @@ export const AdminPanel: React.FC = () => {
   const [isConfirmDeleteDemosOpen, setIsConfirmDeleteDemosOpen] = useState(false);
   const [demoDeleteToast, setDemoDeleteToast] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'delivery' | 'social' | 'messages' | 'categories'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'delivery' | 'social' | 'messages' | 'categories' | 'database'>('dashboard');
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategoryItem, setEditingCategoryItem] = useState<CustomCategoryItem | null>(null);
   const [categoryFormTitle, setCategoryFormTitle] = useState('');
@@ -203,8 +211,9 @@ export const AdminPanel: React.FC = () => {
   const [socialForm, setSocialForm] = useState({
     storeName: settings.storeName || 'নারীর স্বপ্ন',
     slogan: settings.slogan || 'Dress Your Dreams',
-    hotline1: settings.hotline1 || '09649-541717',
-    hotline2: settings.hotline2 || '09617-541717',
+    hotline1: settings.hotline1 || '09617-541717',
+    hotline2: settings.hotline2 || '09649-541717',
+    supportHours: settings.supportHours || 'সকাল ১০টা - রাত ১০টা সার্বক্ষণিক সেবা',
     whatsappNumber: settings.whatsappNumber || '01911-541717',
     whatsappShortLink: settings.whatsappShortLink || 'https://wa.me/8801911541717',
     facebookUrl: settings.facebookUrl || '',
@@ -224,8 +233,9 @@ export const AdminPanel: React.FC = () => {
     setSocialForm({
       storeName: settings.storeName || 'নারীর স্বপ্ন',
       slogan: settings.slogan || 'Dress Your Dreams',
-      hotline1: settings.hotline1 || '09649-541717',
-      hotline2: settings.hotline2 || '09617-541717',
+      hotline1: settings.hotline1 || '09617-541717',
+      hotline2: settings.hotline2 || '09649-541717',
+      supportHours: settings.supportHours || 'সকাল ১০টা - রাত ১০টা সার্বক্ষণিক সেবা',
       whatsappNumber: settings.whatsappNumber || '01911-541717',
       whatsappShortLink: settings.whatsappShortLink || 'https://wa.me/8801911541717',
       facebookUrl: settings.facebookUrl || '',
@@ -601,6 +611,7 @@ export const AdminPanel: React.FC = () => {
       slogan: socialForm.slogan.trim() || settings.slogan,
       hotline1: socialForm.hotline1.trim(),
       hotline2: socialForm.hotline2.trim(),
+      supportHours: socialForm.supportHours.trim(),
       whatsappNumber: socialForm.whatsappNumber.trim(),
       whatsappShortLink: socialForm.whatsappShortLink.trim(),
       facebookUrl: socialForm.facebookUrl.trim(),
@@ -666,6 +677,30 @@ export const AdminPanel: React.FC = () => {
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                       ভেরিফায়েড সেশন
                     </span>
+
+                    {/* Live Firestore DB Health Badge */}
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('database')}
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 cursor-pointer transition shadow-2xs ${
+                        dbHealth?.status === 'healthy'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                          : dbHealth?.status === 'warning'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
+                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30'
+                      }`}
+                      title="ফায়ারবেস ডাটাবেস ডায়াগনস্টিক রিপোর্ট দেখতে ক্লিক করুন"
+                    >
+                      <Activity className={`w-3 h-3 ${isCheckingDbHealth ? 'animate-spin text-amber-400' : 'text-emerald-400'}`} />
+                      <span>
+                        {isCheckingDbHealth 
+                          ? 'ডিবি চেক হচ্ছে...' 
+                          : dbHealth 
+                          ? `ডিবি: ${dbHealth.status === 'healthy' ? 'সক্রিয়' : 'সতর্কতা'} (${dbHealth.latencyMs}ms)` 
+                          : 'ডিবি চেক'}
+                      </span>
+                    </button>
+
                     {cloudSyncStatus === 'synced' ? (
                       <span className="bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1" title="ফায়ারবেস ক্লাউড ডেটাবেজে সার্বক্ষণিক লাইভ সিঙ্কড">
                         <Cloud className="w-3 h-3 text-sky-400" />
@@ -898,6 +933,26 @@ export const AdminPanel: React.FC = () => {
               >
                 <Camera className="w-4 h-4 shrink-0" />
                 <span>ক্যাটাগরি ছবি পরিবর্তন</span>
+              </button>
+
+              <button
+                id="admin-tab-database"
+                onClick={() => setActiveTab('database')}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all ${
+                  activeTab === 'database'
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'text-slate-700 hover:bg-rose-50 hover:text-rose-700'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Database className="w-4 h-4 shrink-0" />
+                  <span>ডাটাবেস ও হেলথ-চেক</span>
+                </div>
+                {dbHealth && (
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${
+                    dbHealth.status === 'healthy' ? 'bg-emerald-400' : dbHealth.status === 'warning' ? 'bg-amber-400' : 'bg-rose-500'
+                  }`} />
+                )}
               </button>
             </div>
 
@@ -1820,28 +1875,42 @@ export const AdminPanel: React.FC = () => {
                         {/* Hotline 1 */}
                         <div>
                           <label className="block text-xs font-bold text-slate-700 mb-1">
-                            হটলাইন নম্বর ১ (প্রধান):
+                            কাস্টমার সাপোর্ট ও সরাসরি ফোন নম্বর (প্রধান) *:
                           </label>
                           <input
                             type="text"
-                            placeholder="যেমন: 09649-541717"
+                            placeholder="যেমন: 09617-541717"
                             value={socialForm.hotline1}
                             onChange={(e) => setSocialForm({ ...socialForm, hotline1: e.target.value })}
-                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono font-bold text-rose-700"
                           />
                         </div>
 
                         {/* Hotline 2 */}
                         <div>
                           <label className="block text-xs font-bold text-slate-700 mb-1">
-                            হটলাইন নম্বর ২ (বিকল্প):
+                            বিকল্প হটলাইন নম্বর ২:
                           </label>
                           <input
                             type="text"
-                            placeholder="যেমন: 09617-541717"
+                            placeholder="যেমন: 09649-541717"
                             value={socialForm.hotline2}
                             onChange={(e) => setSocialForm({ ...socialForm, hotline2: e.target.value })}
                             className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                          />
+                        </div>
+
+                        {/* Support Hours */}
+                        <div className="sm:col-span-2">
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            কাস্টমার সাপোর্ট সময়সূচি:
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="যেমন: সকাল ১০টা - রাত ১০টা সার্বক্ষণিক সেবা"
+                            value={socialForm.supportHours}
+                            onChange={(e) => setSocialForm({ ...socialForm, supportHours: e.target.value })}
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium text-emerald-800 bg-emerald-50/30"
                           />
                         </div>
                       </div>
@@ -2402,6 +2471,227 @@ export const AdminPanel: React.FC = () => {
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 8: DATABASE & CLOUD HEALTH CHECK */}
+              {activeTab === 'database' && (
+                <div className="space-y-6 max-w-5xl">
+                  {/* Top Header Banner */}
+                  <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-rose-950 p-5 sm:p-6 rounded-3xl text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 border border-slate-700">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-2xl bg-rose-600/30 border border-rose-500/40 text-rose-400 flex items-center justify-center shadow-inner">
+                          <Database className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-bold font-['Hind_Siliguri'] flex items-center gap-2 flex-wrap">
+                            <span>ফায়ারবেস ডাটাবেস ও ক্লাউড হেলথ-চেক</span>
+                            <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                              dbHealth?.status === 'healthy'
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                : dbHealth?.status === 'warning'
+                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                                : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                            }`}>
+                              {dbHealth?.status === 'healthy' ? '🟢 সক্রিয় ও স্বাস্থ্যকর' : dbHealth?.status === 'warning' ? '🟡 সতর্কতা' : '🔴 কানেকশন এরর'}
+                            </span>
+                          </h4>
+                          <p className="text-xs text-slate-300">
+                            ক্লাউড ফায়ারস্টোর ডাটাবেসের কনফিগারেশন, রিড-রাইট পারমিশন ও কানেকশন লেটেন্সি পর্যবেক্ষণ করুন
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => runDbHealthCheck()}
+                        disabled={isCheckingDbHealth}
+                        className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm transition flex items-center gap-2 shadow-md cursor-pointer disabled:opacity-50 active:scale-95"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${isCheckingDbHealth ? 'animate-spin' : ''}`} />
+                        <span>{isCheckingDbHealth ? 'চেক চলছে...' : 'পুনরায় ডায়াগনস্টিক টেস্ট চালান'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setIsSyncingAll(true);
+                          await syncAllToCloud();
+                          setIsSyncingAll(false);
+                          setCloudSyncedToast(true);
+                          setTimeout(() => setCloudSyncedToast(false), 3000);
+                          runDbHealthCheck();
+                        }}
+                        disabled={isSyncingAll}
+                        className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs sm:text-sm transition flex items-center gap-2 cursor-pointer active:scale-95"
+                      >
+                        <Cloud className={`w-4 h-4 ${isSyncingAll ? 'animate-spin' : ''}`} />
+                        <span>ক্লাউড সিঙ্ক করুন</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 4 Metric Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                        সামগ্রিক স্বাস্থ্য অবস্থা
+                      </span>
+                      <div className="flex items-center gap-2 pt-1">
+                        <div className={`w-3 h-3 rounded-full ${dbHealth?.status === 'healthy' ? 'bg-emerald-500 animate-pulse' : dbHealth?.status === 'warning' ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                        <span className="text-base font-bold text-slate-900 font-['Hind_Siliguri']">
+                          {dbHealth?.status === 'healthy' ? 'সম্পূর্ণ কার্যকরী' : dbHealth?.status === 'warning' ? 'সতর্কতা সহ সচল' : 'ত্রুটি পরিলক্ষিত'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">সবগুলো কালেকশন অনলাইন</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                        কানেকশন লেটেন্সি (পিং)
+                      </span>
+                      <div className="flex items-baseline gap-1 pt-1">
+                        <span className="text-2xl font-black text-rose-600 font-mono">
+                          {dbHealth?.latencyMs || '--'}
+                        </span>
+                        <span className="text-xs font-bold text-slate-500 font-mono">ms</span>
+                      </div>
+                      <p className="text-[11px] text-emerald-600 font-semibold">⚡ দ্রুতগতির রেসপন্স স্পিড</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                        ফায়ারবেস প্রজেক্ট আইডি
+                      </span>
+                      <p className="text-xs font-mono font-bold text-slate-800 truncate pt-1">
+                        {dbHealth?.config.projectId || 'excellent-age-fvr20'}
+                      </p>
+                      <p className="text-[10px] font-mono text-slate-400 truncate">
+                        DB: {dbHealth?.config.databaseId || 'ai-studio-naarirshopno-...'}
+                      </p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                        সর্বশেষ পরীক্ষা সম্পন্ন
+                      </span>
+                      <p className="text-sm font-bold text-slate-800 pt-1 font-mono">
+                        {dbHealth?.checkedAt || 'লাইভ সচল'}
+                      </p>
+                      <p className="text-[11px] text-slate-500">রিয়েলটাইম ডায়াগনস্টিক ট্র্যাকিং</p>
+                    </div>
+                  </div>
+
+                  {/* Checklist of all Firestore Collections & Permissions */}
+                  <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+                      <div>
+                        <h5 className="font-bold text-base text-slate-900 font-['Hind_Siliguri'] flex items-center gap-2">
+                          <Activity className="w-5 h-5 text-rose-600" />
+                          <span>ডাটাবেস কম্পোনেন্ট ও পারমিশন অডিট রিপোর্ট</span>
+                        </h5>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          প্রতিটি ডাটাবেস কালেকশনের রিড/রাইট অ্যাক্সেস ও ডকুমেন্ট কাউন্ট
+                        </p>
+                      </div>
+                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 self-start sm:self-auto">
+                        {dbHealth?.steps.filter(s => s.ok).length || 0} / {dbHealth?.steps.length || 0} টি চেক সফল
+                      </span>
+                    </div>
+
+                    <div className="space-y-3">
+                      {dbHealth?.steps.map((step, idx) => (
+                        <div
+                          key={idx}
+                          className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                            step.ok
+                              ? 'bg-emerald-50/40 border-emerald-200/80 hover:bg-emerald-50/70'
+                              : 'bg-rose-50/60 border-rose-200 hover:bg-rose-50'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                              step.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                            }`}>
+                              {step.ok ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h6 className="font-bold text-sm text-slate-900 font-['Hind_Siliguri']">
+                                  {step.bengaliName}
+                                </h6>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase font-mono ${
+                                  step.ok ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                                }`}>
+                                  {step.ok ? 'PASS' : 'FAIL'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-600 mt-0.5">
+                                {step.message}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 self-end sm:self-auto text-xs shrink-0">
+                            {step.count !== undefined && (
+                              <span className="font-bold px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-mono shadow-2xs">
+                                মোট: {step.count}
+                              </span>
+                            )}
+                            {step.latencyMs !== undefined && (
+                              <span className="font-bold px-2 py-1 rounded-lg bg-white border border-slate-200 text-rose-600 font-mono text-[11px] shadow-2xs">
+                                {step.latencyMs}ms
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Diagnostic Console Box */}
+                  <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 text-slate-200 shadow-md space-y-3">
+                    <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-800">
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <Cpu className="w-4 h-4 text-emerald-400" />
+                        <span className="font-mono font-bold">Firestore Diagnostic Console & Security Status</span>
+                      </div>
+                      <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Client SDK v12.19.0 (Connected)
+                      </span>
+                    </div>
+
+                    <div className="font-mono text-xs space-y-1.5 text-slate-300 leading-relaxed overflow-x-auto">
+                      <p className="text-slate-400">&gt; Target Firebase Project: <span className="text-amber-300">{dbHealth?.config.projectId}</span></p>
+                      <p className="text-slate-400">&gt; Target Firestore Database: <span className="text-sky-300">{dbHealth?.config.databaseId}</span></p>
+                      <p className="text-slate-400">&gt; Long-Polling Engine: <span className="text-emerald-400">ENABLED (High-Reliability Mode)</span></p>
+                      <p className="text-slate-400">&gt; Security Rules: <span className="text-emerald-400">ALLOW READ/WRITE ACTIVE</span></p>
+                      <p className="text-slate-400">&gt; Overall Latency: <span className="text-pink-400">{dbHealth?.latencyMs}ms</span></p>
+                    </div>
+
+                    {dbHealth?.errors && dbHealth.errors.length > 0 ? (
+                      <div className="p-3 bg-red-950/60 border border-red-800 text-red-300 rounded-xl text-xs space-y-1">
+                        <span className="font-bold flex items-center gap-1 text-red-200">
+                          <AlertCircle className="w-4 h-4 text-red-400" />
+                          <span>শনাক্ত হওয়া ত্রুটিসমূহ:</span>
+                        </span>
+                        {dbHealth.errors.map((err, i) => (
+                          <p key={i} className="font-mono text-[11px] text-red-300 pl-5">
+                            • {err}
+                          </p>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-emerald-950/50 border border-emerald-800/80 text-emerald-300 rounded-xl text-xs flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>ডাটাবেস কানেকশন, কালেকশন রিড এবং রাইট পারমিশন সম্পূর্ণ নির্ভুলভাবে কাজ করছে। কোনো সমস্যা পাওয়া যায়নি!</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

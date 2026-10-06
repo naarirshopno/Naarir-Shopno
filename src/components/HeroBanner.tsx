@@ -1,9 +1,49 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useShop } from '../context/ShopContext';
 import { Truck, ShieldCheck, RefreshCw, Sparkles, Phone, ArrowRight } from 'lucide-react';
 
 export const HeroBanner: React.FC = () => {
   const { settings } = useShop();
+
+  // Dynamic Open / Closed calculation: 10:00 AM to 10:00 PM (10:00 - 22:00 Asia/Dhaka)
+  const [isOpenNow, setIsOpenNow] = useState<boolean>(() => {
+    try {
+      const dhakaHour = parseInt(
+        new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Dhaka',
+          hour: 'numeric',
+          hour12: false,
+        }).format(new Date()),
+        10
+      );
+      return dhakaHour >= 10 && dhakaHour < 22;
+    } catch {
+      const h = new Date().getHours();
+      return h >= 10 && h < 22;
+    }
+  });
+
+  useEffect(() => {
+    const checkOpenStatus = () => {
+      try {
+        const dhakaHour = parseInt(
+          new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Dhaka',
+            hour: 'numeric',
+            hour12: false,
+          }).format(new Date()),
+          10
+        );
+        setIsOpenNow(dhakaHour >= 10 && dhakaHour < 22);
+      } catch {
+        const h = new Date().getHours();
+        setIsOpenNow(h >= 10 && h < 22);
+      }
+    };
+    checkOpenStatus();
+    const timer = setInterval(checkOpenStatus, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const scrollToProducts = () => {
     const el = document.getElementById('products-section');
@@ -52,12 +92,35 @@ export const HeroBanner: React.FC = () => {
           </div>
 
           <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-rose-100 shadow-sm flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+              isOpenNow ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'
+            }`}>
               <Phone className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs sm:text-sm font-bold text-slate-800">২৪/৭ কাস্টমার সাপোর্ট</h4>
-              <p className="text-[11px] text-slate-500">{settings.hotline1}</p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h4 className="text-xs sm:text-sm font-bold text-slate-800">কাস্টমার সাপোর্ট</h4>
+                <span className="text-[9px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">সরাসরি ফোন</span>
+              </div>
+              <a
+                href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`}
+                className="text-xs sm:text-sm font-bold text-rose-600 font-mono hover:underline block leading-tight mt-0.5"
+              >
+                {settings.hotline1 || '09617-541717'}
+              </a>
+              <div className="mt-1">
+                {isOpenNow ? (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>ওপেন</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                    <span>ক্লোজ</span>
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -101,9 +164,9 @@ export const HeroBanner: React.FC = () => {
 
             {/* Top Right Hotline Watermark */}
             <div className="absolute top-3 right-3 sm:top-5 sm:right-5 z-20 pointer-events-none select-none hidden sm:block">
-              <div className="bg-black/40 backdrop-blur-sm border border-white/20 px-3 py-1 rounded-full text-white text-[11px] font-bold flex items-center gap-1.5 shadow">
+              <div className="bg-black/50 backdrop-blur-sm border border-white/20 px-3.5 py-1 rounded-full text-white text-[11px] font-bold flex items-center gap-1.5 shadow">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                <span>হটলাইন: {settings.hotline1}</span>
+                <span>সরাসরি ফোন সাপোর্ট: {settings.hotline1 || '09617-541717'}</span>
               </div>
             </div>
 

@@ -445,14 +445,16 @@ export const Header: React.FC = () => {
 
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
             <div>
-              <p className="font-semibold text-rose-700">হটলাইন সহায়তা:</p>
-              <div className="flex gap-3">
-                <a href={`tel:${settings.hotline1}`} className="font-bold text-slate-800 hover:text-rose-600">
-                  📞 {settings.hotline1}
+              <p className="font-semibold text-rose-700 text-xs">কাস্টমার সাপোর্ট (সরাসরি ফোন):</p>
+              <div className="flex flex-col gap-0.5 mt-0.5">
+                <a href={`tel:${settings.hotline1 || '09617-541717'}`} className="font-bold text-slate-900 hover:text-rose-600 flex items-center gap-1 font-mono text-sm">
+                  📞 {settings.hotline1 || '09617-541717'}
                 </a>
-                <a href={`tel:${settings.hotline2}`} className="font-bold text-slate-800 hover:text-rose-600">
-                  📞 {settings.hotline2}
-                </a>
+                {settings.supportHours && settings.supportHours.trim() ? (
+                  <span className="text-[10px] text-emerald-600 font-semibold">
+                    {settings.supportHours}
+                  </span>
+                ) : null}
               </div>
             </div>
 

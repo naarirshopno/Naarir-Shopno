@@ -20,6 +20,7 @@ import { ProductCompareModal } from './components/ProductCompareModal';
 import { CompareFloatingBar } from './components/CompareFloatingBar';
 import { FloatingActions } from './components/FloatingActions';
 import { BackgroundMusicPlayer } from './components/BackgroundMusicPlayer';
+import { RecentlyViewedSection } from './components/RecentlyViewedSection';
 import { Footer } from './components/Footer';
 import { 
   Sparkles, 
@@ -305,6 +306,9 @@ const StorefrontContent: React.FC = () => {
           </div>
         )}
 
+        {/* 6. Recently Viewed Products Section */}
+        <RecentlyViewedSection />
+
         {/* Promotional Special Banner */}
         <div className="rounded-3xl bg-gradient-to-r from-rose-900 via-pink-900 to-rose-950 p-6 sm:p-10 text-white relative overflow-hidden shadow-xl">
           <div className="relative z-10 max-w-xl space-y-3">
@@ -329,11 +333,11 @@ const StorefrontContent: React.FC = () => {
               </button>
 
               <a
-                href={`tel:${settings.hotline1.replace(/[^0-9]/g, '')}`}
-                className="bg-rose-800/80 hover:bg-rose-800 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl border border-rose-700 transition flex items-center gap-2"
+                href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`}
+                className="bg-rose-800/80 hover:bg-rose-800 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl border border-rose-700 transition flex items-center gap-2 shadow-xs"
               >
-                <Phone className="w-4 h-4" />
-                <span>হটলাইনে কল করুন: {settings.hotline1}</span>
+                <Phone className="w-4 h-4 text-emerald-300" />
+                <span>সরাসরি ফোন সাপোর্ট: {settings.hotline1 || '09617-541717'}</span>
               </a>
             </div>
           </div>

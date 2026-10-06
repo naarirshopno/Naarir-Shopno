@@ -103,15 +103,25 @@ export const DeliveryInfoModal: React.FC = () => {
           </div>
 
           {/* Hotline Box */}
-          <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between text-xs">
+          <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-rose-600" />
-              <span className="font-semibold text-slate-700">জরুরি তথ্য বা জিজ্ঞাসায় কল করুন:</span>
+              <Phone className="w-4 h-4 text-rose-600 shrink-0" />
+              <div>
+                <span className="font-semibold text-slate-800">কাস্টমার সাপোর্ট ও সরাসরি ফোন:</span>
+                {settings.supportHours && settings.supportHours.trim() ? (
+                  <p className="text-[10px] text-emerald-600 font-semibold">{settings.supportHours}</p>
+                ) : null}
+              </div>
             </div>
-            <div className="flex gap-3 font-bold text-rose-700">
-              <a href={`tel:${settings.hotline1}`} className="hover:underline">{settings.hotline1}</a>
-              <span>/</span>
-              <a href={`tel:${settings.hotline2}`} className="hover:underline">{settings.hotline2}</a>
+            <div className="flex gap-2 font-bold text-rose-700 font-mono self-start sm:self-auto">
+              <a href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`} className="hover:underline bg-rose-50 px-2.5 py-0.5 rounded-lg border border-rose-200">
+                📞 {settings.hotline1 || '09617-541717'}
+              </a>
+              {settings.hotline2 && settings.hotline2 !== settings.hotline1 && (
+                <a href={`tel:${settings.hotline2.replace(/[^0-9]/g, '')}`} className="hover:underline text-slate-600 px-1 py-0.5">
+                  / {settings.hotline2}
+                </a>
+              )}
             </div>
           </div>
         </div>

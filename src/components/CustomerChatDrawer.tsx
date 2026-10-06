@@ -217,8 +217,15 @@ export const CustomerChatDrawer: React.FC = () => {
         </div>
 
         {/* Footer info */}
-        <div className="p-3 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500 text-center">
-          হটলাইনে তাৎক্ষণিক কথা বলুন: <strong className="text-rose-700">{settings.hotline1}</strong>
+        <div className="p-3 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500 text-center space-y-0.5">
+          <p>
+            সরাসরি ফোন সাপোর্ট: <a href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`} className="font-bold text-rose-700 font-mono hover:underline">{settings.hotline1 || '09617-541717'}</a>
+          </p>
+          {settings.supportHours && settings.supportHours.trim() ? (
+            <p className="text-[10px] text-emerald-600 font-semibold">
+              {settings.supportHours}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

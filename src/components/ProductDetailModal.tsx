@@ -359,16 +359,21 @@ export const ProductDetailModal: React.FC = () => {
               </div>
 
               {/* Call Hotline direct action */}
-              <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                 <div className="flex items-center gap-2 text-slate-700 font-medium">
-                  <Phone className="w-4 h-4 text-rose-600" />
-                  <span>ফোনে অর্ডার করতে কল করুন:</span>
+                  <Phone className="w-4 h-4 text-rose-600 shrink-0" />
+                  <div>
+                    <span>সরাসরি ফোন সাপোর্ট ও অর্ডার:</span>
+                    {settings.supportHours && settings.supportHours.trim() ? (
+                      <p className="text-[10px] text-emerald-600 font-semibold">{settings.supportHours}</p>
+                    ) : null}
+                  </div>
                 </div>
                 <a
-                  href={`tel:${settings.hotline1.replace(/[^0-9]/g, '')}`}
-                  className="font-bold text-rose-600 hover:underline"
+                  href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`}
+                  className="font-bold text-rose-600 font-mono hover:underline self-start sm:self-auto bg-rose-50 px-2.5 py-0.5 rounded-lg border border-rose-200 text-xs sm:text-sm"
                 >
-                  {settings.hotline1}
+                  📞 {settings.hotline1 || '09617-541717'}
                 </a>
               </div>
 

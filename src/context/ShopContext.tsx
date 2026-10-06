@@ -3,6 +3,7 @@ import { Product, CartItem, Order, StoreSettings, CustomerMessage, CategoryType,
 import { INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_SETTINGS, INITIAL_MESSAGES, DEFAULT_CATEGORIES } from '../data/initialData';
 import { INITIAL_PRODUCT_REVIEWS, getDefaultReviewsForProduct } from '../data/initialReviews';
 import { db, handleFirestoreError, OperationType } from '../firebase';
+import { runFirestoreHealthCheck, HealthCheckResult } from '../services/dbHealthCheck';
 import { 
   collection, 
   doc, 
@@ -117,11 +118,41 @@ interface ShopContextType {
   getProductReviews: (productId: string) => ProductReview[];
   addProductReview: (review: Omit<ProductReview, 'id' | 'date'>) => void;
   voteReviewHelpful: (productId: string, reviewId: string) => void;
+
+  // Firebase Database Health Check
+  dbHealth: HealthCheckResult | null;
+  isCheckingDbHealth: boolean;
+  runDbHealthCheck: () => Promise<HealthCheckResult>;
+
+  // Recently Viewed Products
+  recentlyViewed: Product[];
+  recordRecentlyViewed: (productId: string) => void;
+  clearRecentlyViewed: () => void;
 }
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Database Health Check State
+  const [dbHealth, setDbHealth] = useState<HealthCheckResult | null>(null);
+  const [isCheckingDbHealth, setIsCheckingDbHealth] = useState<boolean>(false);
+
+  const runDbHealthCheck = async (): Promise<HealthCheckResult> => {
+    setIsCheckingDbHealth(true);
+    try {
+      const res = await runFirestoreHealthCheck();
+      setDbHealth(res);
+      return res;
+    } finally {
+      setIsCheckingDbHealth(false);
+    }
+  };
+
+  useEffect(() => {
+    // Run real-time health check on startup
+    runDbHealthCheck();
+  }, []);
+
   // Local storage initialized states (defaulting to empty arrays, filtering out demo IDs)
   const [products, setProducts] = useState<Product[]>(() => {
     try {
@@ -253,6 +284,50 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return [];
     }
   });
+
+  // Recently Viewed state initialized from localStorage
+  const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('ns_recently_viewed');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const recordRecentlyViewed = (productId: string) => {
+    if (!productId) return;
+    setRecentlyViewedIds((prev) => {
+      const filtered = prev.filter((id) => id !== productId);
+      const updated = [productId, ...filtered].slice(0, 12);
+      try {
+        localStorage.setItem('ns_recently_viewed', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+  };
+
+  const clearRecentlyViewed = () => {
+    setRecentlyViewedIds([]);
+    try {
+      localStorage.removeItem('ns_recently_viewed');
+    } catch {
+      // ignore
+    }
+  };
+
+  // Automatically record when product modal opens
+  useEffect(() => {
+    if (selectedProductModal?.id) {
+      recordRecentlyViewed(selectedProductModal.id);
+    }
+  }, [selectedProductModal]);
+
+  const recentlyViewed = recentlyViewedIds
+    .map((id) => products.find((p) => p.id === id))
+    .filter((p): p is Product => Boolean(p));
 
   useEffect(() => {
     try {
@@ -950,6 +1025,12 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getProductReviews,
         addProductReview,
         voteReviewHelpful,
+        dbHealth,
+        isCheckingDbHealth,
+        runDbHealthCheck,
+        recentlyViewed,
+        recordRecentlyViewed,
+        clearRecentlyViewed,
       }}
     >
       {children}

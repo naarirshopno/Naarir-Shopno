@@ -372,15 +372,17 @@ export const OrderTrackingModal: React.FC = () => {
                 {/* Need Help Phone Banner */}
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2 text-slate-700">
-                    <Phone className="w-4 h-4 text-rose-600" />
-                    <span>পার্সেল সংক্রান্ত যেকোনো জরুরি তথ্যের জন্য যোগাযোগ করুন:</span>
+                    <Phone className="w-4 h-4 text-rose-600 shrink-0" />
+                    <div>
+                      <span className="font-semibold text-slate-800">কাস্টমার সাপোর্ট ও সরাসরি ফোন:</span>
+                      {settings.supportHours && settings.supportHours.trim() ? (
+                        <p className="text-[10px] text-emerald-600 font-semibold">{settings.supportHours}</p>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="flex gap-3">
-                    <a href={`tel:${settings.hotline1.replace(/[^0-9]/g, '')}`} className="font-bold text-rose-600 hover:underline">
-                      {settings.hotline1}
-                    </a>
-                    <a href={`tel:${settings.hotline2.replace(/[^0-9]/g, '')}`} className="font-bold text-rose-600 hover:underline">
-                      {settings.hotline2}
+                  <div className="flex gap-2">
+                    <a href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`} className="font-bold text-rose-600 font-mono hover:underline bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                      📞 {settings.hotline1 || '09617-541717'}
                     </a>
                   </div>
                 </div>

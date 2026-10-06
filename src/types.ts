@@ -97,6 +97,7 @@ export interface StoreSettings {
   slogan: string;
   hotline1: string;
   hotline2: string;
+  supportHours?: string;
   whatsappNumber: string;
   whatsappShortLink?: string;
   facebookUrl: string;

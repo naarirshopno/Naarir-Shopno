@@ -75,7 +75,9 @@ export const Footer: React.FC = () => {
             </div>
             <div>
               <h4 className="font-bold text-white text-sm">সরাসরি ফোন সাপোর্ট</h4>
-              <p className="text-xs text-slate-300">সকাল ৯টা - রাত ১১টা সার্বক্ষণিক সেবা</p>
+              <p className="text-xs text-slate-300">
+                {settings.supportHours || 'সকাল ১০টা - রাত ১০টা সার্বক্ষণিক সেবা'}
+              </p>
             </div>
           </div>
         </div>
@@ -194,9 +196,24 @@ export const Footer: React.FC = () => {
               <div className="flex items-start gap-2">
                 <Phone className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-slate-300 font-bold">হটলাইন নম্বরসমূহ:</p>
-                  <p className="font-mono text-white text-xs">{settings.hotline1}</p>
-                  <p className="font-mono text-white text-xs">{settings.hotline2}</p>
+                  <p className="text-slate-300 font-bold">সরাসরি ফোন সাপোর্ট:</p>
+                  <a
+                    href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`}
+                    className="font-mono text-white text-sm font-bold hover:text-rose-400 block transition mt-0.5"
+                  >
+                    📞 {settings.hotline1 || '09617-541717'}
+                  </a>
+                  {settings.hotline2 && settings.hotline2 !== settings.hotline1 && (
+                    <a
+                      href={`tel:${settings.hotline2.replace(/[^0-9]/g, '')}`}
+                      className="font-mono text-slate-300 text-xs hover:text-rose-400 block transition mt-0.5"
+                    >
+                      বিকল্প: {settings.hotline2}
+                    </a>
+                  )}
+                  <p className="text-emerald-400 text-[11px] font-semibold mt-1">
+                    {settings.supportHours || 'সকাল ১০টা - রাত ১০টা সার্বক্ষণিক সেবা'}
+                  </p>
                 </div>
               </div>
 
