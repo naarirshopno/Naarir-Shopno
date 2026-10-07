@@ -94,6 +94,7 @@ export const AdminPanel: React.FC = () => {
     messages, 
     markMessageAsRead, 
     deleteMessage,
+    clearAllMessages,
     cloudSyncStatus,
     syncAllToCloud,
     deleteDemoProducts,
@@ -2279,9 +2280,24 @@ export const AdminPanel: React.FC = () => {
               {/* TAB 6: CUSTOMER MESSAGES INBOX */}
               {activeTab === 'messages' && (
                 <div className="space-y-4">
-                  <div>
-                    <h4 className="text-lg font-bold text-slate-900">কাস্টমার সরাসরি মেসেজ ইনবক্স</h4>
-                    <p className="text-xs text-slate-500">ওয়েবসাইট থেকে কাস্টমারদের পাঠানো প্রশ্ন ও মেসেজ</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h4 className="text-lg font-bold text-slate-900">কাস্টমার সরাসরি মেসেজ ইনবক্স</h4>
+                      <p className="text-xs text-slate-500">ওয়েবসাইট থেকে কাস্টমারদের পাঠানো প্রশ্ন ও মেসেজ</p>
+                    </div>
+                    {messages.length > 0 && (
+                      <button
+                        onClick={async () => {
+                          if (window.confirm('আপনি কি নিশ্চিত যে সকল চ্যাট ও মেসেজ মুছে ফেলতে চান?')) {
+                            await clearAllMessages();
+                          }
+                        }}
+                        className="self-start sm:self-auto bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>সকল চ্যাট মুছুন (Clear All)</span>
+                      </button>
+                    )}
                   </div>
 
                   {messages.length === 0 ? (

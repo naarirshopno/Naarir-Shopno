@@ -79,8 +79,8 @@ export const INITIAL_SETTINGS: StoreSettings = {
   },
   backgroundMusic: {
     enabled: true,
-    audioUrl: "https://cdn.pixabay.com/audio/2025/02/22/audio_ac92d40521.mp3",
-    title: "মনকাড়া সফট পিয়ানো মেলোডি",
+    audioUrl: "/audio/track-piano-serenade.mp3",
+    title: "রেশমি পিয়ানো ও সফট মেলোডি",
     defaultVolume: 0.35,
     autoplayOnFirstClick: false,
   },

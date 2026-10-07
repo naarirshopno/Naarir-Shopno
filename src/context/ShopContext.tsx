@@ -97,6 +97,7 @@ interface ShopContextType {
   sendCustomerMessage: (msg: { name: string; phone: string; message: string; subject?: string }) => void;
   markMessageAsRead: (msgId: string) => void;
   deleteMessage: (msgId: string) => void;
+  clearAllMessages: () => Promise<void>;
 
   // Category Management
   deleteCategory: (categoryId: string) => Promise<void>;
@@ -935,6 +936,26 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .catch(err => handleFirestoreError(err, OperationType.DELETE, `messages/${msgId}`));
   };
 
+  const clearAllMessages = async () => {
+    const currentMsgs = [...messages];
+    setMessages([]);
+    try {
+      localStorage.removeItem('ns_messages');
+    } catch {
+      // ignore
+    }
+
+    try {
+      const batch = writeBatch(db);
+      currentMsgs.forEach((m) => {
+        batch.delete(doc(db, 'messages', m.id));
+      });
+      await batch.commit();
+    } catch (err) {
+      console.warn('Error clearing messages:', err);
+    }
+  };
+
   const resetFilters = () => {
     setActiveCategory('all');
     setSearchQuery('');
@@ -1021,6 +1042,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sendCustomerMessage,
         markMessageAsRead,
         deleteMessage,
+        clearAllMessages,
         reviews,
         getProductReviews,
         addProductReview,

@@ -203,14 +203,28 @@ export const CustomerChatDrawer: React.FC = () => {
                   />
                 </div>
 
-                <button
-                  id="btn-submit-chat"
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-bold text-xs py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2 active:scale-95"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>মেসেজ পাঠান</span>
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setName('');
+                      setPhone('');
+                      setMessage('');
+                      setError('');
+                    }}
+                    className="px-3.5 py-3 rounded-xl border border-slate-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50 text-xs font-bold transition cursor-pointer"
+                  >
+                    ক্লিয়ার চ্যাট
+                  </button>
+                  <button
+                    id="btn-submit-chat"
+                    type="submit"
+                    className="flex-1 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-bold text-xs py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>মেসেজ পাঠান</span>
+                  </button>
+                </div>
               </form>
             </>
           )}
