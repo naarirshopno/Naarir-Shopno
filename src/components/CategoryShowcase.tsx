@@ -37,8 +37,8 @@ export const CategoryShowcase: React.FC = () => {
         </button>
       </div>
 
-      {/* Categories Grid (Compact 20% smaller cards with Centered Larger Text) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2.5 sm:gap-3.5">
+      {/* Categories Grid (50% Compact Size with Centered Bottom Text) */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-3">
         {categoryList.map((item) => {
           const isSelected = activeCategory === item.id;
           const currentImage = settings.categoryImages?.[item.id] || item.image;
@@ -47,37 +47,37 @@ export const CategoryShowcase: React.FC = () => {
             <div
               key={item.id}
               onClick={() => handleSelect(item.id)}
-              className={`group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-xl aspect-[4/5] flex flex-col justify-end p-2.5 sm:p-3 border ${
+              className={`group relative cursor-pointer rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-lg aspect-[3/4] flex flex-col justify-end p-1.5 sm:p-2.5 border ${
                 isSelected
                   ? 'border-rose-500 ring-2 ring-rose-400 scale-[1.02]'
                   : 'border-rose-100 hover:border-rose-300 hover:scale-[1.02]'
               }`}
             >
-              {/* Full Image filling the entire div */}
+              {/* Full Image filling the entire div with object-top to prevent face and dress cropping */}
               <img
                 src={currentImage}
                 alt={item.title}
-                className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-700"
+                className="absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                 onError={(e) => {
                   e.currentTarget.src = item.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80';
                 }}
               />
 
               {/* Gradient Scrim for crystal clear typography */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none group-hover:from-black/90 transition-colors" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none group-hover:from-black/95 transition-colors" />
 
-              {/* Category Info Overlay (Centered from the bottom with larger text) */}
-              <div className="relative z-10 w-full text-center flex flex-col items-center justify-end space-y-0.5">
-                <h4 className="w-full text-center text-sm sm:text-base font-extrabold font-['Hind_Siliguri'] text-white drop-shadow-md group-hover:text-pink-200 transition-colors line-clamp-1 leading-snug">
+              {/* Category Info Overlay (Centered from the bottom with both Title and Subtitle) */}
+              <div className="relative z-10 w-full text-center flex flex-col items-center justify-end px-1 pb-0.5 space-y-0.5">
+                <h4 className="w-full text-center text-xs sm:text-sm font-extrabold font-['Hind_Siliguri'] text-white drop-shadow-md group-hover:text-pink-200 transition-colors line-clamp-1 leading-tight">
                   {item.title}
                 </h4>
                 {item.subtitle && (
-                  <p className="w-full text-center text-[11px] sm:text-xs text-pink-100/95 line-clamp-1 drop-shadow-xs font-medium">
+                  <p className="w-full text-center text-[9px] sm:text-[11px] text-pink-100/95 font-medium line-clamp-1 drop-shadow-xs leading-tight">
                     {item.subtitle}
                   </p>
                 )}
                 {isSelected && (
-                  <span className="mx-auto inline-flex items-center gap-1 bg-rose-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full mt-1 shadow-xs">
+                  <span className="mx-auto inline-flex items-center gap-0.5 bg-rose-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-0.5 shadow-xs">
                     বাছাইকৃত ✓
                   </span>
                 )}
