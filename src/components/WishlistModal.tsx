@@ -1,5 +1,6 @@
 import React from 'react';
 import { useShop } from '../context/ShopContext';
+import { Product } from '../types';
 import { 
   X, 
   Heart, 
@@ -23,8 +24,17 @@ export const WishlistModal: React.FC = () => {
     addToCart, 
     setDirectCheckoutItem, 
     setIsCheckoutOpen,
-    setSelectedProductModal
+    setSelectedProductModal,
+    settings
   } = useShop();
+
+  const getCategoryTitle = (prod: Product) => {
+    const cats = Array.isArray(settings.categories) ? settings.categories : [];
+    const found = cats.find(c => c.id === prod.category);
+    if (found) return found.title;
+    if (prod.categoryBengali && prod.categoryBengali !== 'থ্রি-পিস') return prod.categoryBengali;
+    return cats[0]?.title || prod.categoryBengali || 'পোশাক';
+  };
 
   if (!isWishlistOpen) return null;
 
@@ -199,7 +209,7 @@ export const WishlistModal: React.FC = () => {
                         <div>
                           <div className="flex items-start justify-between gap-1">
                             <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider">
-                              {product.categoryBengali}
+                              {getCategoryTitle(product)}
                             </span>
                             <button
                               onClick={() => removeFromWishlist(product.id)}

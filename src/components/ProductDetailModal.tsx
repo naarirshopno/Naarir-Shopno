@@ -42,6 +42,17 @@ export const ProductDetailModal: React.FC = () => {
   const [addedToast, setAddedToast] = useState(false);
   const reviewsSectionRef = useRef<HTMLDivElement>(null);
 
+  const displayCategory = React.useMemo(() => {
+    if (!product) return 'পোশাক';
+    const cats = Array.isArray(settings.categories) ? settings.categories : [];
+    const found = cats.find(c => c.id === product.category);
+    if (found) return found.title;
+    if (product.categoryBengali && product.categoryBengali !== 'থ্রি-পিস') {
+      return product.categoryBengali;
+    }
+    return cats[0]?.title || product.categoryBengali || 'পোশাক';
+  }, [product, settings.categories]);
+
   useEffect(() => {
     if (product) {
       setSelectedImg(null);
@@ -148,7 +159,7 @@ export const ProductDetailModal: React.FC = () => {
               {/* Category, SKU & Star rating */}
               <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
                 <span className="font-semibold text-rose-600 uppercase bg-rose-50 px-2 py-0.5 rounded">
-                  {product.categoryBengali}
+                  {displayCategory}
                 </span>
                 <span>কোড: {product.sku}</span>
               </div>

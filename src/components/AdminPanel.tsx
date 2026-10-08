@@ -164,6 +164,10 @@ export const AdminPanel: React.FC = () => {
   });
   const [changePassToast, setChangePassToast] = useState<{ success: boolean; message: string } | null>(null);
 
+  const initialCat = (Array.isArray(settings.categories) && settings.categories.length > 0)
+    ? settings.categories[0]
+    : DEFAULT_CATEGORIES[0];
+
   // Product modal state
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -171,8 +175,8 @@ export const AdminPanel: React.FC = () => {
     name: '',
     bengaliName: '',
     sku: '',
-    category: 'three_piece' as CategoryType,
-    categoryBengali: 'থ্রি-পিস',
+    category: (initialCat?.id || 'all') as CategoryType,
+    categoryBengali: initialCat?.title || 'পোশাক',
     price: 1500,
     regularPrice: 2000,
     images: [] as string[],
@@ -349,12 +353,17 @@ export const AdminPanel: React.FC = () => {
   // Product form handlers
   const handleOpenAddProduct = () => {
     setEditingProduct(null);
+    const storeCategories = Array.isArray(settings.categories) && settings.categories.length > 0
+      ? settings.categories
+      : DEFAULT_CATEGORIES;
+    const defaultCat = storeCategories[0];
+
     setProductForm({
       name: '',
       bengaliName: '',
       sku: `NS-${Math.floor(1000 + Math.random() * 9000)}`,
-      category: 'three_piece',
-      categoryBengali: 'থ্রি-পিস',
+      category: (defaultCat?.id || 'all') as CategoryType,
+      categoryBengali: defaultCat?.title || 'পোশাক',
       price: 1800,
       regularPrice: 2400,
       images: ['https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80'],
@@ -525,16 +534,11 @@ export const AdminPanel: React.FC = () => {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const catBengaliMap: Record<CategoryType, string> = {
-      all: 'সব',
-      three_piece: 'থ্রি-পিস',
-      saree: 'শাড়ি',
-      kurti: 'কুর্তি',
-      gown: 'গাউন',
-      hijab_abaya: 'হিজাব ও আবায়া',
-      lehenga: 'লেহেঙ্গা',
-      jewellery_bags: 'জুয়েলারি ও ব্যাগ',
-    };
+    const storeCategories = Array.isArray(settings.categories) && settings.categories.length > 0
+      ? settings.categories
+      : DEFAULT_CATEGORIES;
+    const foundCat = storeCategories.find((c) => c.id === productForm.category);
+    const resolvedCategoryBengali = foundCat?.title || productForm.categoryBengali || 'পোশাক';
 
     const finalColors = productForm.colors.length > 0 
       ? productForm.colors 
@@ -547,7 +551,7 @@ export const AdminPanel: React.FC = () => {
         bengaliName: productForm.bengaliName,
         sku: productForm.sku || editingProduct.sku,
         category: productForm.category,
-        categoryBengali: catBengaliMap[productForm.category] || 'পোশাক',
+        categoryBengali: resolvedCategoryBengali,
         price: Number(productForm.price),
         regularPrice: Number(productForm.regularPrice),
         images: finalImages,
@@ -566,7 +570,7 @@ export const AdminPanel: React.FC = () => {
         name: productForm.name || productForm.bengaliName,
         bengaliName: productForm.bengaliName,
         category: productForm.category,
-        categoryBengali: catBengaliMap[productForm.category] || 'পোশাক',
+        categoryBengali: resolvedCategoryBengali,
         price: Number(productForm.price),
         regularPrice: Number(productForm.regularPrice),
         images: finalImages,
@@ -1301,7 +1305,7 @@ export const AdminPanel: React.FC = () => {
                                     <div>
                                       <div className="flex items-center justify-between gap-1">
                                         <span className="text-[10px] font-bold text-rose-600 uppercase bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
-                                          {prod.categoryBengali}
+                                          {(Array.isArray(settings.categories) ? settings.categories : DEFAULT_CATEGORIES).find(c => c.id === prod.category)?.title || prod.categoryBengali || 'পোশাক'}
                                         </span>
                                         <span className="text-[10px] font-mono text-slate-400 font-semibold">
                                           {prod.sku}

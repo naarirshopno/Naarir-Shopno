@@ -16,8 +16,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     toggleWishlist,
     isInWishlist,
     toggleCompare,
-    isInCompare
+    isInCompare,
+    settings
   } = useShop();
+
+  const displayCategory = React.useMemo(() => {
+    const cats = Array.isArray(settings.categories) ? settings.categories : [];
+    const found = cats.find(c => c.id === product.category);
+    if (found) return found.title;
+    if (product.categoryBengali && product.categoryBengali !== 'থ্রি-পিস') {
+      return product.categoryBengali;
+    }
+    return cats[0]?.title || product.categoryBengali || 'পোশাক';
+  }, [product.category, product.categoryBengali, settings.categories]);
 
   const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80';
 
@@ -199,7 +210,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {/* Category & Rating */}
           <div className="flex items-center justify-between gap-1 mb-1">
             <span className="text-[11px] font-semibold text-rose-600 uppercase tracking-wider">
-              {product.categoryBengali}
+              {displayCategory}
             </span>
             <div className="flex items-center gap-1 text-[11px] text-amber-500 font-semibold">
               <Star className="w-3 h-3 fill-amber-400 text-amber-400" />

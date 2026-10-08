@@ -30,8 +30,17 @@ export const ProductCompareModal: React.FC = () => {
     setDirectCheckoutItem,
     setIsCheckoutOpen,
     setSelectedProductModal,
-    products
+    products,
+    settings
   } = useShop();
+
+  const getCatTitle = (p: Product) => {
+    const cats = Array.isArray(settings.categories) ? settings.categories : [];
+    const found = cats.find(c => c.id === p.category);
+    if (found) return found.title;
+    if (p.categoryBengali && p.categoryBengali !== 'থ্রি-পিস') return p.categoryBengali;
+    return cats[0]?.title || p.categoryBengali || 'পোশাক';
+  };
 
   if (!isCompareModalOpen) return null;
 
@@ -254,7 +263,7 @@ export const ProductCompareModal: React.FC = () => {
                             )}
 
                             <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-xs text-white text-[10px] font-medium px-2 py-0.5 rounded-md">
-                              {product.categoryBengali || product.category}
+                              {getCatTitle(product)}
                             </div>
                           </div>
 

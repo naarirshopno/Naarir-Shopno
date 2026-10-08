@@ -158,7 +158,7 @@ const StorefrontContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF9F9] flex flex-col font-['Outfit'] selection:bg-rose-500 selection:text-white pb-14 sm:pb-0 w-full">
+    <div className="min-h-screen bg-[#FFF9F9] flex flex-col font-['Outfit'] selection:bg-rose-500 selection:text-white pb-6 sm:pb-0 w-full">
       
       {/* 0 & 1. Sticky Navigation & Seasonal Offers Shutter Banner */}
       <div className="sticky top-0 z-50 w-full shadow-md">

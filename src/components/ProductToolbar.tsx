@@ -34,7 +34,7 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({ totalCount }) =>
 
   const currentCategoryLabel = activeCategory === 'all'
     ? 'আমাদের সকল পোশাকের সংগ্রহ'
-    : products.find(p => p.category === activeCategory)?.categoryBengali || categories.find(c => c.id === activeCategory)?.label || 'পণ্য তালিকা';
+    : customCategories.find(c => c.id === activeCategory)?.title || categories.find(c => c.id === activeCategory)?.label || 'পণ্য তালিকা';
 
   return (
     <div className="bg-white rounded-3xl p-4 sm:p-6 border border-rose-100 shadow-sm mb-6 space-y-4">
