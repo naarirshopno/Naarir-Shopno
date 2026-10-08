@@ -1,6 +1,5 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { ShopProvider, useShop } from './context/ShopContext';
-import { SeasonalOffersBanner } from './components/SeasonalOffersBanner';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
 import { WelcomeStorySection } from './components/WelcomeStorySection';
@@ -158,11 +157,10 @@ const StorefrontContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF9F9] flex flex-col font-['Outfit'] selection:bg-rose-500 selection:text-white pb-6 sm:pb-0 w-full">
+    <div className="min-h-screen bg-[#FFF9F9] flex flex-col font-['Outfit'] selection:bg-rose-500 selection:text-white pb-16 sm:pb-16 w-full">
       
-      {/* 0 & 1. Sticky Navigation & Seasonal Offers Shutter Banner */}
+      {/* 0 & 1. Sticky Navigation Header */}
       <div className="sticky top-0 z-50 w-full shadow-md">
-        <SeasonalOffersBanner />
         <Header />
       </div>
 

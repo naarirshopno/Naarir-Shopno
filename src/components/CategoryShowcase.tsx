@@ -37,8 +37,8 @@ export const CategoryShowcase: React.FC = () => {
         </button>
       </div>
 
-      {/* Categories Grid (dynamic for all categories) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4">
+      {/* Categories Grid (Compact 20% smaller cards with Centered Larger Text) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2.5 sm:gap-3.5">
         {categoryList.map((item) => {
           const isSelected = activeCategory === item.id;
           const currentImage = settings.categoryImages?.[item.id] || item.image;
@@ -47,27 +47,41 @@ export const CategoryShowcase: React.FC = () => {
             <div
               key={item.id}
               onClick={() => handleSelect(item.id)}
-              className={`group cursor-pointer rounded-2xl p-2.5 sm:p-3 text-center transition-all bg-white border ${
+              className={`group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-xl aspect-[4/5] flex flex-col justify-end p-2.5 sm:p-3 border ${
                 isSelected
-                  ? 'border-rose-500 shadow-md ring-2 ring-rose-200 bg-rose-50/30'
-                  : 'border-rose-100 hover:border-pink-300 hover:shadow-md'
+                  ? 'border-rose-500 ring-2 ring-rose-400 scale-[1.02]'
+                  : 'border-rose-100 hover:border-rose-300 hover:scale-[1.02]'
               }`}
             >
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full overflow-hidden mb-2.5 border-2 border-rose-200/60 shadow-inner group-hover:scale-105 transition-transform bg-rose-50">
-                <img
-                  src={currentImage}
-                  alt={item.title}
-                  className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500"
-                  onError={(e) => {
-                    e.currentTarget.src = item.image;
-                  }}
-                />
-              </div>
+              {/* Full Image filling the entire div */}
+              <img
+                src={currentImage}
+                alt={item.title}
+                className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-700"
+                onError={(e) => {
+                  e.currentTarget.src = item.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80';
+                }}
+              />
 
-              <h4 className="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-rose-600 transition-colors">
-                {item.title}
-              </h4>
-              <p className="text-[10px] text-slate-500 truncate mt-0.5">{item.subtitle}</p>
+              {/* Gradient Scrim for crystal clear typography */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none group-hover:from-black/90 transition-colors" />
+
+              {/* Category Info Overlay (Centered from the bottom with larger text) */}
+              <div className="relative z-10 w-full text-center flex flex-col items-center justify-end space-y-0.5">
+                <h4 className="w-full text-center text-sm sm:text-base font-extrabold font-['Hind_Siliguri'] text-white drop-shadow-md group-hover:text-pink-200 transition-colors line-clamp-1 leading-snug">
+                  {item.title}
+                </h4>
+                {item.subtitle && (
+                  <p className="w-full text-center text-[11px] sm:text-xs text-pink-100/95 line-clamp-1 drop-shadow-xs font-medium">
+                    {item.subtitle}
+                  </p>
+                )}
+                {isSelected && (
+                  <span className="mx-auto inline-flex items-center gap-1 bg-rose-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full mt-1 shadow-xs">
+                    বাছাইকৃত ✓
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}
