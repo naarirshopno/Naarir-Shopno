@@ -230,7 +230,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
       />
 
       {/* Floating Bottom-Left Music Trigger Widget */}
-      <div className="fixed bottom-6 left-4 sm:left-6 z-40 flex flex-col items-start select-none">
+      <div className="fixed bottom-20 sm:bottom-20 left-4 sm:left-6 z-40 flex flex-col items-start select-none">
         
         {/* Expanded Music Control Panel Popup */}
         {isOpen && (
@@ -397,8 +397,11 @@ export const BackgroundMusicPlayer: React.FC = () => {
               <Music className="w-3.5 h-3.5 text-rose-600" />
             )}
 
-            <span className="text-xs font-bold font-['Hind_Siliguri']">
+            <span className="hidden sm:inline text-xs font-bold font-['Hind_Siliguri']">
               {isPlaying ? 'মিউজিক বাজছে' : 'ব্যাকগ্রাউন্ড মিউজিক'}
+            </span>
+            <span className="sm:hidden text-[11px] font-bold font-['Hind_Siliguri']">
+              {isPlaying ? 'সুর বাজছে' : 'মিউজিক'}
             </span>
 
             <ChevronUp className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
