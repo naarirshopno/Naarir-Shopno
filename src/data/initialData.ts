@@ -2,46 +2,88 @@ import { Product, StoreSettings, Order, CustomerMessage, CustomCategoryItem } fr
 
 export const DEFAULT_CATEGORIES: CustomCategoryItem[] = [
   {
-    id: 'three_piece',
-    title: 'থ্রি-পিস কালেকশন',
-    subtitle: 'জর্জেট, সুতি ও সিল্ক',
+    id: 'cat_1791038823348',
+    title: 'রেডিমেড থ্রিপিস.টু পিস',
+    subtitle: '💥আধুনিক ডিজাইনে আপনার সৌন্দর্যের প্রকাশ',
+    image: 'https://i.postimg.cc/cCV8zJp0/screenshot-1791019217004.png',
+  },
+  {
+    id: 'cat_1791040926301',
+    title: 'আনস্টিজ থ্রিপিস',
+    subtitle: '🌟নিজের পছন্দে সাজুন, নিজের মতো করে',
+    image: 'https://i.postimg.cc/nzMsmYt6/file-0000000003e482118159592126429a07.png',
+  },
+  {
+    id: 'cat_1791040993494',
+    title: 'গাউন & কুর্তি',
+    subtitle: '🌸 প্রতিটি সাজে ফুটে উঠুক আপনার নিজস্ব স্টাইল',
+    image: 'https://i.postimg.cc/Prp7vFKw/young-beautiful-stylish-woman-wedding-dress.jpg',
+  },
+  {
+    id: 'cat_1791041020279',
+    title: 'লেহেঙ্গা & পার্টি',
+    subtitle: '💖 গর্জিয়াস লুকে ফুটে উঠুক আপনার সৌন্দর্য',
+    image: 'https://i.postimg.cc/ZKq6dK2f/Glamorous-Maroon-Lehenga-Portrait.png',
+  },
+  {
+    id: 'cat_1791041045533',
+    title: 'ওয়েস্টার্ন ড্রেস',
+    subtitle: '👗 স্মার্ট লুক, স্টাইলিশ উপস্থিতি',
+    image: 'https://i.postimg.cc/TYWYSzD3/fashion-portrait-young-hippie-woman-model-summer-sunny-day-bright-colorful-hipster-clothes-hat.jpg',
+  },
+  {
+    id: 'cat_1791041069272',
+    title: 'টিশার্ট & স্কার্ট',
+    subtitle: '🌸 ক্যাজুয়াল লুকে স্টাইলিশ ফ্যাশনের ছোঁয়া',
+    image: 'https://i.postimg.cc/QMPj0SxR/Featured-Image-of-summer-outfit-Ideas-for-women-576x1024.jpg',
+  },
+  {
+    id: 'cat_1791041103747',
+    title: 'ইনার & নাইটি',
+    subtitle: '💖 আরাম ও স্বাচ্ছন্দ্যে প্রতিদিনের সঙ্গী',
+    image: 'https://i.postimg.cc/SN5VQMRN/371ef556ad81f7e6d1ca19e51f3f5401e044aff3-original.jpg',
+  },
+  {
+    id: 'cat_1791041121728',
+    title: 'শাড়ি',
+    subtitle: '🌷 বাঙালিয়ানার ছোঁয়ায় ফুটে উঠুক আপনার সৌন্দর্য',
+    image: 'https://i.postimg.cc/NFv9PQjs/indian-ethnic-wear-saree-photoshoot-traditional-saree-catalogue-photoshoot-17-orig.jpg',
+  },
+  {
+    id: 'cat_1791041144724',
+    title: 'হ্যান্ডপ্রিন্ট শাড়ি',
+    subtitle: '🌸 ঐতিহ্যবাহী নকশায় আধুনিকতার মেলবন্ধন',
+    image: 'https://i.postimg.cc/brZCLHdJ/Hand-Painted-Red-Organza-Saree2.jpg',
+  },
+  {
+    id: 'cat_1791041161656',
+    title: 'ইন্ডিয়ান শাড়ী',
+    subtitle: '🌸 ইন্ডিয়ান ডিজাইনে রাজকীয় সাজের ছোঁয়া',
+    image: 'https://i.postimg.cc/0j7tL5Gh/ac2592-b-2.webp',
+  },
+  {
+    id: 'cat_1791041181391',
+    title: 'তাঁতের শাড়ী',
+    subtitle: '🌷 ঐতিহ্যের বুননে ফুটে উঠুক বাঙালিয়ানার সৌন্দর্য',
+    image: 'https://i.postimg.cc/PrRLBbx4/handloom-cotton-tant-saree-in-red-v1-suua102-1.jpg',
+  },
+  {
+    id: 'cat_1791041200144',
+    title: 'হিজাব & নিকাব',
+    subtitle: '🌸 পর্দার সৌন্দর্যে নিজেকে সাজান রুচিশীলভাব',
+    image: 'https://i.postimg.cc/fb0gxvtw/07f735262f8db36b39c1626aa2a00f4c-jpg-720x720q80.jpg',
+  },
+  {
+    id: 'cat_1791041224436',
+    title: 'সুন্নাতি ড্রেস',
+    subtitle: '🕌 সুন্নাহসম্মত পোশাকে থাকুক পরিমিত সৌন্দর',
+    image: 'https://i.postimg.cc/43BbH7wf/modefa-abaya-modest-muslim-woman-abaya-with-niqab-khimar-ecru-1236735249-1800x1800.jpg',
+  },
+  {
+    id: 'cat_1791458017933',
+    title: 'Bed.Sheet & Curtain',
+    subtitle: 'Exclusive Design',
     image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    id: 'saree',
-    title: 'শাড়ির মেলা',
-    subtitle: 'জামদানি ও কাঞ্জিভরম',
-    image: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    id: 'kurti',
-    title: 'রেডিমেড কুর্তি',
-    subtitle: 'ক্যাজুয়াল ও পার্টি ওয়্যার',
-    image: 'https://images.unsplash.com/photo-1596783074918-c84cb06531ca?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    id: 'gown',
-    title: 'পার্টি গাউন',
-    subtitle: 'লং ফ্লেয়ার্ড সিকোয়েন্স',
-    image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    id: 'hijab_abaya',
-    title: 'হিজাব ও আবায়া',
-    subtitle: 'দুবাই চেরি ফেব্রিক',
-    image: 'https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    id: 'lehenga',
-    title: 'লেহেঙ্গা',
-    subtitle: 'ব্রাইডাল ও এক্সক্লুসিভ',
-    image: 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    id: 'jewellery_bags',
-    title: 'জুয়েলারি ও ব্যাগ',
-    subtitle: 'ম্যাচিং অ্যাক্সেসরিজ',
-    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=400&q=80',
   },
 ];
 

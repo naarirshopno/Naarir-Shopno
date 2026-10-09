@@ -128,7 +128,7 @@ export const Header: React.FC = () => {
               <img 
                 src="/logo.jpg" 
                 alt="নারীর স্বপ্ন লোগো" 
-                className="w-full h-full object-cover scale-115 object-center"
+                className="w-full h-full object-cover object-center"
                 onError={(e) => {
                   // fallback to icon if missing
                   e.currentTarget.src = "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=150&q=80";

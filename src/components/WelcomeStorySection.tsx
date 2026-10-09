@@ -1,17 +1,7 @@
 import React from 'react';
-import { Sparkles, CheckCircle2, MessageCircle, ShoppingBag } from 'lucide-react';
-import { useShop } from '../context/ShopContext';
+import { Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const WelcomeStorySection: React.FC = () => {
-  const { setIsCustomerChatOpen } = useShop();
-
-  const scrollToProducts = () => {
-    const el = document.getElementById('products-section');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 my-5 sm:my-8">
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-50 via-white to-pink-50/80 border border-rose-200/80 shadow-md p-6 sm:p-8 md:p-10">
@@ -35,66 +25,53 @@ export const WelcomeStorySection: React.FC = () => {
             আপনার সেই স্বপ্নকে বাস্তবে রূপ দিতেই আমাদের এই পথচলা। আভিজাত্য, সেরা ফেব্রিক এবং অনন্য ডিজাইনের সমন্বয়ে তৈরি আমাদের প্রতিটি পোশাক।
           </p>
 
-          {/* 4 Feature Highlights Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 pt-2 text-left">
-            <div className="bg-white/90 backdrop-blur-xs p-3.5 sm:p-4 rounded-2xl border border-rose-100 shadow-2xs hover:shadow-xs transition">
-              <div className="flex items-center gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-1 font-['Hind_Siliguri']">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>ট্রেন্ডি ও প্রিমিয়াম কোয়ালিটি</span>
+          {/* Feature Highlights Grid - 2 Divs Left and Right (50% each) */}
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-4 pt-2 text-left">
+            {/* 1st Div (Left, 50%): Contains 1st & 2nd texts */}
+            <div className="bg-white/95 backdrop-blur-xs p-3 sm:p-5 rounded-2xl border border-rose-100 shadow-2xs hover:shadow-xs transition space-y-2.5 sm:space-y-3.5">
+              <div>
+                <div className="flex items-center gap-1.5 sm:gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-0.5 sm:mb-1 font-['Hind_Siliguri']">
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-600" />
+                  <span>ট্রেন্ডি ও প্রিমিয়াম কোয়ালিটি</span>
+                </div>
+                <p className="text-[10px] sm:text-xs text-slate-500 pl-5 sm:pl-6 leading-relaxed">
+                  এক্সক্লুসিভ কালেকশন ও ঐতিহ্যবাহী শাড়ির সেরা মেলা
+                </p>
               </div>
-              <p className="text-[11px] sm:text-xs text-slate-500">
-                এক্সক্লুসিভ থ্রি-পিস ও ঐতিহ্যবাহী শাড়ির সেরা মেলা
-              </p>
+
+              <div className="border-t border-rose-100/70 pt-2.5 sm:pt-3">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-0.5 sm:mb-1 font-['Hind_Siliguri']">
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-600" />
+                  <span>ক্যাজুয়াল ও গর্জিয়াস কালেকশন</span>
+                </div>
+                <p className="text-[10px] sm:text-xs text-slate-500 pl-5 sm:pl-6 leading-relaxed">
+                  প্রতিদিনের স্বাচ্ছন্দ্য ও উৎসবের জাঁকজমকপূর্ণ আয়োজন
+                </p>
+              </div>
             </div>
 
-            <div className="bg-white/90 backdrop-blur-xs p-3.5 sm:p-4 rounded-2xl border border-rose-100 shadow-2xs hover:shadow-xs transition">
-              <div className="flex items-center gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-1 font-['Hind_Siliguri']">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>ক্যাজুয়াল ও গর্জিয়াস কালেকশন</span>
+            {/* 2nd Div (Right, 50%): Contains 3rd & 4th texts */}
+            <div className="bg-white/95 backdrop-blur-xs p-3 sm:p-5 rounded-2xl border border-rose-100 shadow-2xs hover:shadow-xs transition space-y-2.5 sm:space-y-3.5">
+              <div>
+                <div className="flex items-center gap-1.5 sm:gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-0.5 sm:mb-1 font-['Hind_Siliguri']">
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-600" />
+                  <span>বাজেটবান্ধব সেরা ফেব্রিকস</span>
+                </div>
+                <p className="text-[10px] sm:text-xs text-slate-500 pl-5 sm:pl-6 leading-relaxed">
+                  অতুলনীয় মানের পিওর সুতি, জর্জেট, সিল্ক ও দুবাই চেরি
+                </p>
               </div>
-              <p className="text-[11px] sm:text-xs text-slate-500">
-                প্রতিদিনের স্বাচ্ছন্দ্য ও উৎসবের জাঁকজমকপূর্ণ আয়োজন
-              </p>
-            </div>
 
-            <div className="bg-white/90 backdrop-blur-xs p-3.5 sm:p-4 rounded-2xl border border-rose-100 shadow-2xs hover:shadow-xs transition">
-              <div className="flex items-center gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-1 font-['Hind_Siliguri']">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>বাজেটবান্ধব সেরা ফেব্রিকস</span>
+              <div className="border-t border-rose-100/70 pt-2.5 sm:pt-3">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-0.5 sm:mb-1 font-['Hind_Siliguri']">
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-600" />
+                  <span>ক্যাশ অন ডেলিভারি</span>
+                </div>
+                <p className="text-[10px] sm:text-xs text-slate-500 pl-5 sm:pl-6 leading-relaxed">
+                  সারাদেশে ঘরে বসে পণ্য দেখে মূল্য পরিশোধের সুবিধা
+                </p>
               </div>
-              <p className="text-[11px] sm:text-xs text-slate-500">
-                অতুলনীয় মানের পিওর সুতি, জর্জেট, সিল্ক ও দুবাই চেরি
-              </p>
             </div>
-
-            <div className="bg-white/90 backdrop-blur-xs p-3.5 sm:p-4 rounded-2xl border border-rose-100 shadow-2xs hover:shadow-xs transition">
-              <div className="flex items-center gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-1 font-['Hind_Siliguri']">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>ক্যাশ অন ডেলিভারি</span>
-              </div>
-              <p className="text-[11px] sm:text-xs text-slate-500">
-                সারাদেশে ঘরে বসে পণ্য দেখে মূল্য পরিশোধের সুবিধা
-              </p>
-            </div>
-          </div>
-
-          {/* Closing & Direct Action Buttons */}
-          <div className="pt-2 sm:pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button
-              onClick={scrollToProducts}
-              className="w-full sm:w-auto bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white text-xs sm:text-sm font-bold px-6 py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
-            >
-              <ShoppingBag className="w-4 h-4" />
-              <span>পোশাকের কালেকশন দেখুন</span>
-            </button>
-
-            <button
-              onClick={() => setIsCustomerChatOpen(true)}
-              className="w-full sm:w-auto bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 text-xs sm:text-sm font-bold px-6 py-3 rounded-xl shadow-2xs transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
-            >
-              <MessageCircle className="w-4 h-4 text-rose-600" />
-              <span>সরাসরি ইনবক্স / মেসেজ করুন</span>
-            </button>
           </div>
 
           <p className="text-xs text-rose-600 font-semibold italic pt-1">

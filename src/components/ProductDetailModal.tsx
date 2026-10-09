@@ -12,8 +12,7 @@ import {
   Check,
   ChevronRight,
   MessageSquare,
-  Heart,
-  ArrowLeftRight
+  Heart
 } from 'lucide-react';
 import { CustomerReviews } from './CustomerReviews';
 
@@ -26,9 +25,6 @@ export const ProductDetailModal: React.FC = () => {
     setIsCheckoutOpen,
     toggleWishlist,
     isInWishlist,
-    toggleCompare,
-    isInCompare,
-    setIsCompareModalOpen,
     settings 
   } = useShop();
 
@@ -351,21 +347,6 @@ export const ProductDetailModal: React.FC = () => {
                   }`}
                 >
                   <Heart className={`w-5 h-5 transition-transform ${isInWishlist(product.id) ? 'fill-rose-600 text-rose-600 scale-110' : ''}`} />
-                </button>
-
-                <button
-                  id="btn-modal-compare"
-                  type="button"
-                  onClick={() => toggleCompare(product)}
-                  title={isInCompare(product.id) ? "তুলনা তালিকা থেকে সরান" : "পোশাক তুলনা তালিকায় যোগ করুন"}
-                  aria-label="Compare Product"
-                  className={`px-3 py-3 rounded-xl border transition-all flex items-center justify-center shrink-0 cursor-pointer ${
-                    isInCompare(product.id)
-                      ? 'bg-emerald-50 border-emerald-300 text-emerald-600 scale-102'
-                      : 'bg-white hover:bg-emerald-50 text-slate-600 hover:text-emerald-600 border-slate-200'
-                  }`}
-                >
-                  <ArrowLeftRight className={`w-5 h-5 transition-transform ${isInCompare(product.id) ? 'rotate-180 text-emerald-600' : ''}`} />
                 </button>
               </div>
 

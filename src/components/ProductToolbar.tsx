@@ -28,7 +28,7 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({ totalCount }) =>
     { id: 'all', label: 'সবগুলো' },
     ...customCategories.map((c) => ({
       id: c.id,
-      label: c.title.replace(/ কালেকশন| মেলা| রেডিমেড/, '').trim(),
+      label: c.title,
     })),
   ];
 

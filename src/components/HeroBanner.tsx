@@ -59,40 +59,44 @@ export const HeroBanner: React.FC = () => {
       <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-rose-200/30 blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 relative">
-        {/* 4 Pillars Trust Badges */}
+        {/* 4 Pillars Trust Badges - 4 Distinct Beautiful Colors */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-rose-100 shadow-sm flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+          {/* Card 1: Rose / Pink Pastel */}
+          <div className="bg-gradient-to-br from-rose-50 via-pink-50/50 to-rose-100/40 p-3.5 sm:p-4 rounded-2xl border border-rose-200/90 shadow-2xs hover:shadow-xs transition flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 shadow-2xs">
               <Truck className="w-5 h-5" />
             </div>
             <div>
               <h4 className="text-xs sm:text-sm font-bold text-slate-800">সারাদেশে দ্রুত ডেলিভারি</h4>
-              <p className="text-[11px] text-slate-500">ঢাকার ভেতরে ২৪-৪৮ ঘণ্টা</p>
+              <p className="text-[11px] text-slate-600">ঢাকার ভেতরে ২৪-৪৮ ঘণ্টা</p>
             </div>
           </div>
 
-          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-rose-100 shadow-sm flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+          {/* Card 2: Warm Amber / Gold Pastel */}
+          <div className="bg-gradient-to-br from-amber-50 via-yellow-50/50 to-amber-100/40 p-3.5 sm:p-4 rounded-2xl border border-amber-200/90 shadow-2xs hover:shadow-xs transition flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 shadow-2xs">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
               <h4 className="text-xs sm:text-sm font-bold text-slate-800">১০০% কোয়ালিটি গ্যারান্টি</h4>
-              <p className="text-[11px] text-slate-500">কালার ও ফেব্রিক শতভাগ খাঁটি</p>
+              <p className="text-[11px] text-slate-600">কালার ও ফেব্রিক শতভাগ খাঁটি</p>
             </div>
           </div>
 
-          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-rose-100 shadow-sm flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center shrink-0">
+          {/* Card 3: Soft Lavender / Purple Pastel */}
+          <div className="bg-gradient-to-br from-purple-50 via-violet-50/50 to-purple-100/40 p-3.5 sm:p-4 rounded-2xl border border-purple-200/90 shadow-2xs hover:shadow-xs transition flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 shadow-2xs">
               <RefreshCw className="w-5 h-5" />
             </div>
             <div>
               <h4 className="text-xs sm:text-sm font-bold text-slate-800">সহজ রিটার্ন ও এক্সচেঞ্জ</h4>
-              <p className="text-[11px] text-slate-500">৩ দিনের মধ্যে পরিবর্তনের সুবিধা</p>
+              <p className="text-[11px] text-slate-600">৩ দিনের মধ্যে পরিবর্তনের সুবিধা</p>
             </div>
           </div>
 
-          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-rose-100 shadow-sm flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+          {/* Card 4: Fresh Mint / Emerald Pastel */}
+          <div className="bg-gradient-to-br from-emerald-50 via-teal-50/50 to-emerald-100/40 p-3.5 sm:p-4 rounded-2xl border border-emerald-200/90 shadow-2xs hover:shadow-xs transition flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-2xs transition-colors ${
               isOpenNow ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'
             }`}>
               <Phone className="w-5 h-5" />
@@ -100,7 +104,7 @@ export const HeroBanner: React.FC = () => {
             <div>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <h4 className="text-xs sm:text-sm font-bold text-slate-800">কাস্টমার সাপোর্ট</h4>
-                <span className="text-[9px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">সরাসরি ফোন</span>
+                <span className="text-[9px] font-bold bg-emerald-100/80 text-emerald-800 px-1.5 py-0.5 rounded">সরাসরি ফোন</span>
               </div>
               <a
                 href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`}
@@ -110,12 +114,12 @@ export const HeroBanner: React.FC = () => {
               </a>
               <div className="mt-1">
                 {isOpenNow ? (
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-white/85 px-2 py-0.5 rounded-full border border-emerald-300">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span>ওপেন</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-600 bg-white/85 px-2 py-0.5 rounded-full border border-red-300">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
                     <span>ক্লোজ</span>
                   </span>
@@ -144,7 +148,7 @@ export const HeroBanner: React.FC = () => {
             <div className="absolute top-3 left-3 sm:top-5 sm:left-5 z-20 pointer-events-none select-none">
               <div className="flex items-center gap-2.5 bg-black/50 backdrop-blur-md border border-white/30 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-2xl text-white">
                 <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full overflow-hidden border-2 border-rose-400 shrink-0 shadow">
-                  <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover scale-115 object-center" />
+                  <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover object-center" />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">

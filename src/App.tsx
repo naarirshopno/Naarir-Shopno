@@ -1,5 +1,7 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { ShopProvider, useShop } from './context/ShopContext';
+import { DEFAULT_CATEGORIES } from './data/initialData';
+import { CustomCategoryItem } from './types';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
 import { WelcomeStorySection } from './components/WelcomeStorySection';
@@ -15,8 +17,6 @@ import { CustomerChatDrawer } from './components/CustomerChatDrawer';
 import { DeliveryInfoModal } from './components/DeliveryInfoModal';
 import { AdminPanel } from './components/AdminPanel';
 import { WishlistModal } from './components/WishlistModal';
-import { ProductCompareModal } from './components/ProductCompareModal';
-import { CompareFloatingBar } from './components/CompareFloatingBar';
 import { FloatingActions } from './components/FloatingActions';
 import { BackgroundMusicPlayer } from './components/BackgroundMusicPlayer';
 import { RecentlyViewedSection } from './components/RecentlyViewedSection';
@@ -85,7 +85,11 @@ const StorefrontContent: React.FC = () => {
 
     // Category filter
     if (activeCategory !== 'all') {
-      result = result.filter((p) => p.category === activeCategory);
+      const targetCat = (Array.isArray(settings.categories) ? settings.categories : DEFAULT_CATEGORIES).find((c: CustomCategoryItem) => c.id === activeCategory);
+      result = result.filter((p) => 
+        p.category === activeCategory || 
+        (targetCat && (p.categoryBengali === targetCat.title || p.category === targetCat.title))
+      );
     }
 
     // Search query filter
@@ -366,8 +370,6 @@ const StorefrontContent: React.FC = () => {
       <DeliveryInfoModal />
       <AdminPanel />
       <WishlistModal />
-      <ProductCompareModal />
-      <CompareFloatingBar />
     </div>
   );
 };
