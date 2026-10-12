@@ -1,0 +1,6 @@
+{
+  "name": "নারীর স্বপ্ন - Naarir Shopno",
+  "description": "নারীর স্বপ্ন (Naarir Shopno) - এক্সক্লুসিভ থ্রি-পিস, শাড়ি, কুর্তি, গাউন ও উইমেন্স ফ্যাশন। ক্যাশ অন ডেলিভারি ও দ্রুত হোম ডেলিভারি।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
