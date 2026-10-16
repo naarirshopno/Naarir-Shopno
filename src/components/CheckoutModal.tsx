@@ -13,8 +13,10 @@ import {
   MapPin, 
   Phone, 
   FileText,
-  Printer
+  Printer,
+  Sparkles
 } from 'lucide-react';
+import { PostPurchaseReviewSection } from './PostPurchaseReviewSection';
 
 export const CheckoutModal: React.FC = () => {
   const { 
@@ -55,10 +57,16 @@ export const CheckoutModal: React.FC = () => {
   if (!isCheckoutOpen) return null;
 
   const subtotal = checkoutItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const totalItemCount = checkoutItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Free Delivery Rule: Any 3 products (items >= 3) OR subtotal >= 3000 (freeDeliveryAbove)
+  const freeThreshold = settings.deliveryCharges.freeDeliveryAbove || 3000;
+  const freeMinItems = settings.deliveryCharges.freeDeliveryMinItems || 3;
+  const isFreeDelivery = totalItemCount >= freeMinItems || subtotal >= freeThreshold;
 
   // Calculate dynamic delivery charge from settings
   let deliveryFee = 0;
-  if (subtotal >= settings.deliveryCharges.freeDeliveryAbove) {
+  if (isFreeDelivery) {
     deliveryFee = 0;
   } else {
     if (deliveryZone === 'inside_dhaka') {
@@ -252,6 +260,14 @@ export const CheckoutModal: React.FC = () => {
                 <span className="text-rose-700 font-black font-['Outfit']">৳{placedOrder.total.toLocaleString()}</span>
               </div>
             </div>
+
+            {/* Post-Purchase Review Section */}
+            <PostPurchaseReviewSection
+              orderId={placedOrder.id}
+              customerName={placedOrder.customerName}
+              customerLocation={placedOrder.district || placedOrder.address}
+              items={placedOrder.items}
+            />
 
             {/* Action buttons */}
             <div className="flex flex-wrap justify-center gap-3 pt-2">
@@ -673,6 +689,27 @@ export const CheckoutModal: React.FC = () => {
                         ৳{grandTotal.toLocaleString()}
                       </span>
                     </div>
+                  </div>
+
+                  {/* Free Delivery Offer Status Banner */}
+                  <div className="mt-2.5">
+                    {deliveryFee === 0 ? (
+                      <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 font-semibold flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>
+                          {totalItemCount >= freeMinItems 
+                            ? `🎉 অভিনন্দন! ৩টি বা ততোধিক (${totalItemCount}টি) পোশাক অর্ডারে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি!`
+                            : `🎉 অভিনন্দন! ৩,০০০+ টাকার (৳${subtotal.toLocaleString()}) অর্ডারে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি!`}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="p-2.5 bg-pink-50/70 rounded-xl border border-pink-200 text-xs text-rose-800 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                        <span className="font-medium">💡 যেকোনো ৩টি পোশাকে বা ৩,০০০+ টাকার অর্ডারে ডেলিভারি ফ্রি!</span>
+                        <span className="font-bold text-[11px] text-rose-700 bg-white px-2 py-0.5 rounded-md border border-rose-200 shadow-2xs self-start sm:self-auto">
+                          আরও {Math.max(1, freeMinItems - totalItemCount)}টি পোশাক যোগ করুন
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Notice */}

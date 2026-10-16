@@ -15,7 +15,10 @@ import {
   Heart,
   FileText,
   Sparkles,
-  Info
+  Info,
+  Share2,
+  ZoomIn,
+  ZoomOut
 } from 'lucide-react';
 import { CustomerReviews } from './CustomerReviews';
 
@@ -39,7 +42,13 @@ export const ProductDetailModal: React.FC = () => {
   const [selectedColor, setSelectedColor] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
   const [addedToast, setAddedToast] = useState(false);
+  const [shareToast, setShareToast] = useState<string | null>(null);
   const reviewsSectionRef = useRef<HTMLDivElement>(null);
+
+  // Image magnification state (Top-level hooks)
+  const [isZooming, setIsZooming] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  const imageContainerRef = useRef<HTMLDivElement>(null);
 
   const displayCategory = React.useMemo(() => {
     if (!product) return 'পোশাক';
@@ -59,8 +68,34 @@ export const ProductDetailModal: React.FC = () => {
       setSelectedColor(product.colors[0]?.name || '');
       setQuantity(1);
       setAddedToast(false);
+      setShareToast(null);
+      setIsZooming(false);
+      setZoomPos({ x: 50, y: 50 });
     }
   }, [product]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!imageContainerRef.current) return;
+    const { left, top, width, height } = imageContainerRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - left) / width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - top) / height) * 100));
+    setZoomPos({ x, y });
+  };
+
+  const handleMouseEnter = () => setIsZooming(true);
+  const handleMouseLeave = () => {
+    setIsZooming(false);
+    setZoomPos({ x: 50, y: 50 });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!imageContainerRef.current || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    const { left, top, width, height } = imageContainerRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((touch.clientX - left) / width) * 100));
+    const y = Math.max(0, Math.min(100, ((touch.clientY - top) / height) * 100));
+    setZoomPos({ x, y });
+  };
 
   if (!product) return null;
 
@@ -94,6 +129,61 @@ export const ProductDetailModal: React.FC = () => {
     setIsCheckoutOpen(true);
   };
 
+  const handleShareModal = async () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const shareUrl = `${origin}/?product=${product.id}`;
+    const shareTitle = `${product.bengaliName} | নারীর স্বপ্ন`;
+    const shareText = `নারীর স্বপ্ন - ${product.bengaliName}\nমূল্য: ৳${product.price.toLocaleString()} টাকা। সরাসরি অর্ডার করতে লিংকটি দেখুন:`;
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+        setShareToast('শেয়ার সফল হয়েছে!');
+        setTimeout(() => setShareToast(null), 2000);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          copyShareLink(shareUrl);
+        }
+      }
+    } else {
+      copyShareLink(shareUrl);
+    }
+  };
+
+  const copyShareLink = (url: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url)
+        .then(() => {
+          setShareToast('লিংক কপি করা হয়েছে! 📋');
+          setTimeout(() => setShareToast(null), 2000);
+        })
+        .catch(() => fallbackCopy(url));
+    } else {
+      fallbackCopy(url);
+    }
+  };
+
+  const fallbackCopy = (url: string) => {
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setShareToast('লিংক কপি করা হয়েছে! 📋');
+    } catch {
+      setShareToast('শেয়ার লিংক প্রস্তুত');
+    }
+    setTimeout(() => setShareToast(null), 2000);
+  };
+
   return (
     <div 
       className="fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-center justify-center p-3 sm:p-6 animate-fadeIn cursor-pointer"
@@ -115,19 +205,65 @@ export const ProductDetailModal: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-12 max-h-[90vh] overflow-y-auto">
           {/* Images Section */}
           <div className="md:col-span-6 p-4 sm:p-6 bg-rose-50/30 flex flex-col items-center">
-            {/* Main Preview */}
-            <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-white shadow-md border border-rose-100 mb-3">
+            {/* Main Preview with Image Magnification */}
+            <div 
+              ref={imageContainerRef}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+              onMouseMove={handleMouseMove}
+              onTouchStart={() => setIsZooming(true)}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={() => setIsZooming(false)}
+              className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-white shadow-md border border-rose-100 mb-3 cursor-zoom-in select-none group/zoom"
+              title="মাউস নাড়িয়ে কাপড়ের নিখুঁত বুনন ও কাজ বড় করে দেখুন"
+            >
               <img
                 src={activeImage}
                 alt={product.bengaliName}
-                className="w-full h-full object-cover object-top"
+                style={{
+                  transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+                  transform: isZooming ? 'scale(2.5)' : 'scale(1)',
+                  transition: isZooming ? 'transform 0.08s ease-out' : 'transform 0.3s ease-out',
+                }}
+                className="w-full h-full object-cover object-top will-change-transform pointer-events-none"
                 onError={(e) => {
                   e.currentTarget.src = FALLBACK_IMAGE;
                 }}
               />
-              {discountPercent > 0 && (
-                <div className="absolute top-3 left-3 bg-rose-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+
+              {/* Discount Badge */}
+              {discountPercent > 0 && !isZooming && (
+                <div className="absolute top-3 left-3 bg-rose-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow pointer-events-none">
                   {discountPercent}% ছাড়
+                </div>
+              )}
+
+              {/* Magnifier Lens Guide when zooming */}
+              {isZooming && (
+                <div 
+                  className="absolute pointer-events-none w-28 h-28 rounded-full border-2 border-white/90 shadow-[0_0_20px_rgba(0,0,0,0.35)] -translate-x-1/2 -translate-y-1/2 ring-2 ring-rose-500/50 bg-white/5"
+                  style={{
+                    left: `${zoomPos.x}%`,
+                    top: `${zoomPos.y}%`,
+                  }}
+                />
+              )}
+
+              {/* Hover to Zoom Instruction Hint (hidden when zooming) */}
+              <div 
+                className={`absolute bottom-3 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur-xs text-white text-[11px] font-medium px-3 py-1.5 rounded-full shadow-lg transition-all duration-300 pointer-events-none flex items-center gap-1.5 whitespace-nowrap border border-white/20 ${
+                  isZooming ? 'opacity-0 scale-90' : 'opacity-90 group-hover/zoom:opacity-100 scale-100'
+                }`}
+              >
+                <ZoomIn className="w-3.5 h-3.5 text-rose-300" />
+                <span>মাউস দিয়ে কাপড়ের নিখুঁত ফেব্রিক ও কাজ জুম করুন</span>
+              </div>
+
+              {/* Zoom Active Indicator */}
+              {isZooming && (
+                <div className="absolute top-3 right-3 bg-rose-600/90 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md pointer-events-none flex items-center gap-1 border border-white/20 animate-fadeIn">
+                  <Sparkles className="w-3 h-3 text-amber-300" />
+                  <span>2.5x ম্যাগনিফায়ার</span>
                 </div>
               )}
             </div>
@@ -140,6 +276,8 @@ export const ProductDetailModal: React.FC = () => {
                     key={idx}
                     onClick={() => {
                       setSelectedImg(img);
+                      setIsZooming(false);
+                      setZoomPos({ x: 50, y: 50 });
                       if (product.colors && product.colors[idx]) {
                         setSelectedColor(product.colors[idx].name);
                       }
@@ -223,11 +361,35 @@ export const ProductDetailModal: React.FC = () => {
                 </p>
                 <p className="flex items-center gap-1.5">
                   <strong className="text-slate-800 shrink-0">স্টক অবস্থা:</strong>
-                  <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded text-[11px] border border-emerald-200">
-                    ইন স্টক (পণ্যটি রেডি আছে)
-                  </span>
+                  {!product.inStock || (product.stockCount !== undefined && product.stockCount <= 0) ? (
+                    <span className="text-red-700 font-bold bg-red-50 px-2 py-0.5 rounded text-[11px] border border-red-200">
+                      স্টক শেষ (আউট অব স্টক)
+                    </span>
+                  ) : product.stockCount !== undefined && product.stockCount < 5 ? (
+                    <span className="text-red-700 font-bold bg-red-50 px-2 py-0.5 rounded text-[11px] border border-red-200 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                      <span>সীমিত স্টক (আর মাত্র {product.stockCount}টি বাকি!)</span>
+                    </span>
+                  ) : (
+                    <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded text-[11px] border border-emerald-200">
+                      ইন স্টক ({product.stockCount !== undefined ? `${product.stockCount}টি রেডি আছে` : 'পণ্যটি রেডি আছে'})
+                    </span>
+                  )}
                 </p>
               </div>
+
+              {/* Product Short Description Highlight */}
+              {product.description && (
+                <div className="mt-4 text-xs p-3.5 bg-rose-50/50 rounded-xl border border-rose-100/80 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-800 font-['Hind_Siliguri']">
+                    <Sparkles className="w-3.5 h-3.5 text-rose-500" />
+                    <span>পোশাকের বিবরণ (Description):</span>
+                  </div>
+                  <p className="text-slate-600 leading-relaxed font-['Hind_Siliguri']">
+                    {product.description}
+                  </p>
+                </div>
+              )}
 
               {/* Size Selector */}
               {product.sizes.length > 0 && (
@@ -357,7 +519,26 @@ export const ProductDetailModal: React.FC = () => {
                 >
                   <Heart className={`w-5 h-5 transition-transform ${isInWishlist(product.id) ? 'fill-rose-600 text-rose-600 scale-110' : ''}`} />
                 </button>
+
+                {/* Share Button (Web Share API) */}
+                <button
+                  id="btn-modal-share"
+                  type="button"
+                  onClick={handleShareModal}
+                  title="শেয়ার করুন (Web Share)"
+                  aria-label={`${product.bengaliName} শেয়ার করুন`}
+                  className="px-3 py-3 rounded-xl border border-slate-200 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 transition-all flex items-center justify-center shrink-0 cursor-pointer"
+                >
+                  <Share2 className="w-5 h-5" />
+                </button>
               </div>
+
+              {/* Share Feedback Toast */}
+              {shareToast && (
+                <div className="p-2.5 bg-slate-900 text-white rounded-xl text-xs font-semibold text-center animate-fadeIn shadow-lg">
+                  {shareToast}
+                </div>
+              )}
 
               {/* Call Hotline direct action */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-200">

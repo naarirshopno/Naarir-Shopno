@@ -473,11 +473,53 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
+    // 5. Customer Reviews Collection Sync
+    const reviewsCol = collection(db, 'reviews');
+    const unsubReviews = onSnapshot(
+      reviewsCol,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const remoteMap: Record<string, ProductReview[]> = {};
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data() as ProductReview;
+            if (data && data.productId) {
+              if (!remoteMap[data.productId]) {
+                remoteMap[data.productId] = [];
+              }
+              remoteMap[data.productId].push(data);
+            }
+          });
+          setReviews((prev) => {
+            const merged = { ...prev };
+            Object.keys(remoteMap).forEach((pid) => {
+              const currentReviews = merged[pid] || [];
+              const incoming = remoteMap[pid];
+              const combined = [...incoming];
+              currentReviews.forEach((cr) => {
+                if (!combined.some((ir) => ir.id === cr.id)) {
+                  combined.push(cr);
+                }
+              });
+              merged[pid] = combined;
+            });
+            try {
+              localStorage.setItem('ns_reviews', JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'reviews');
+      }
+    );
+
     return () => {
       unsubProducts();
       unsubOrders();
       unsubSettings();
       unsubMessages();
+      unsubReviews();
     };
   }, []);
 
@@ -556,11 +598,21 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setReviews(prev => {
       const existing = prev[newReviewData.productId] || getDefaultReviewsForProduct(newReviewData.productId);
-      return {
+      const updated = {
         ...prev,
         [newReviewData.productId]: [newReview, ...existing],
       };
+      try {
+        localStorage.setItem('ns_reviews', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
     });
+
+    // Persist review to Firestore
+    setDoc(doc(db, 'reviews', newReview.id), sanitizeForFirestore(newReview))
+      .catch(err => handleFirestoreError(err, OperationType.WRITE, 'reviews'));
 
     // Update product rating and reviews count
     setProducts(prev =>
@@ -569,11 +621,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const currentReviews = reviews[p.id] || getDefaultReviewsForProduct(p.id);
           const allRatings = [newReviewData.rating, ...currentReviews.map(r => r.rating)];
           const newAvg = Number((allRatings.reduce((sum, r) => sum + r, 0) / allRatings.length).toFixed(1));
-          return {
+          const updatedProd = {
             ...p,
             rating: newAvg,
             reviewsCount: (p.reviewsCount || 0) + 1,
           };
+          setDoc(doc(db, 'products', p.id), sanitizeForFirestore(updatedProd))
+            .catch(err => handleFirestoreError(err, OperationType.UPDATE, `products/${p.id}`));
+          return updatedProd;
         }
         return p;
       })
@@ -585,14 +640,24 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const currentList = prev[productId] || getDefaultReviewsForProduct(productId);
       const updated = currentList.map(r => {
         if (r.id === reviewId) {
-          return { ...r, helpfulCount: (r.helpfulCount || 0) + 1 };
+          const newHelpful = (r.helpfulCount || 0) + 1;
+          const updatedReview = { ...r, helpfulCount: newHelpful };
+          setDoc(doc(db, 'reviews', reviewId), sanitizeForFirestore(updatedReview))
+            .catch(err => handleFirestoreError(err, OperationType.UPDATE, `reviews/${reviewId}`));
+          return updatedReview;
         }
         return r;
       });
-      return {
+      const res = {
         ...prev,
         [productId]: updated,
       };
+      try {
+        localStorage.setItem('ns_reviews', JSON.stringify(res));
+      } catch {
+        // ignore
+      }
+      return res;
     });
   };
 

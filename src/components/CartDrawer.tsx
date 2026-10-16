@@ -19,9 +19,21 @@ export const CartDrawer: React.FC = () => {
   if (!isCartOpen) return null;
 
   const subtotal = getCartSubtotal();
-  const freeThreshold = settings.deliveryCharges.freeDeliveryAbove;
-  const progressPercent = Math.min(100, Math.round((subtotal / freeThreshold) * 100));
-  const diffToFree = freeThreshold - subtotal;
+  const totalItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const freeThreshold = settings.deliveryCharges.freeDeliveryAbove || 3000;
+  const freeMinItems = settings.deliveryCharges.freeDeliveryMinItems || 3;
+
+  const isFreeByCount = totalItemCount >= freeMinItems;
+  const isFreeByPrice = subtotal >= freeThreshold;
+  const isFreeDelivery = isFreeByCount || isFreeByPrice;
+
+  const diffToFree = Math.max(0, freeThreshold - subtotal);
+  const diffItemsToFree = Math.max(0, freeMinItems - totalItemCount);
+
+  // Progress percentage (whichever gets closer to 100%)
+  const priceProgressPercent = Math.min(100, Math.round((subtotal / freeThreshold) * 100));
+  const countProgressPercent = Math.min(100, Math.round((totalItemCount / freeMinItems) * 100));
+  const progressPercent = isFreeDelivery ? 100 : Math.max(priceProgressPercent, countProgressPercent);
 
   const handleProceedToCheckout = () => {
     setDirectCheckoutItem(null); // use full cart
@@ -43,7 +55,7 @@ export const CartDrawer: React.FC = () => {
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-rose-600" />
             <h3 className="text-lg font-bold text-slate-900 font-['Hind_Siliguri']">
-              আপনার শপিং কার্ট ({cart.reduce((sum, item) => sum + item.quantity, 0)})
+              আপনার শপিং কার্ট ({totalItemCount})
             </h3>
           </div>
           <button
@@ -58,13 +70,15 @@ export const CartDrawer: React.FC = () => {
         {/* Free Delivery Goal Bar */}
         <div className="p-3 bg-pink-50/70 border-b border-pink-100 text-xs text-slate-700">
           <div className="flex items-center gap-1.5 font-semibold text-rose-700 mb-1.5">
-            <Truck className="w-4 h-4 text-rose-600 animate-bounce" />
-            {diffToFree > 0 ? (
-              <span>
-                আর মাত্র <strong className="text-rose-950 font-['Outfit']">৳{diffToFree.toLocaleString()}</strong> টাকার অর্ডারে ফ্রি ডেলিভারি!
+            <Truck className="w-4 h-4 text-rose-600 animate-bounce shrink-0" />
+            {isFreeDelivery ? (
+              <span className="text-emerald-700 font-bold">
+                🎉 অভিনন্দন! আপনি ফ্রি ডেলিভারি উপভোগ করছেন! {isFreeByCount ? `(${totalItemCount}টি পোশাক অর্ডারে)` : `(৳${subtotal.toLocaleString()} টাকার অর্ডারে)`}
               </span>
             ) : (
-              <span className="text-emerald-700 font-bold">অভিনন্দন! আপনি ফ্রি ডেলিভারি উপভোগ করছেন! 🎉</span>
+              <span>
+                যেকোনো <strong className="text-rose-950 font-bold">৩টি পোশাক</strong> (আরও {diffItemsToFree}টি) অথবা আর মাত্র <strong className="text-rose-950 font-['Outfit']">৳{diffToFree.toLocaleString()}</strong> টাকার অর্ডারে ফ্রি ডেলিভারি!
+              </span>
             )}
           </div>
           <div className="w-full h-2 bg-pink-200 rounded-full overflow-hidden">
@@ -180,7 +194,11 @@ export const CartDrawer: React.FC = () => {
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>ডেলিভারি চার্জ:</span>
-                <span className="font-medium text-rose-600">চেকআউটে নির্ধারিত হবে</span>
+                {isFreeDelivery ? (
+                  <span className="font-bold text-emerald-600">ফ্রি ডেলিভারি 🎉</span>
+                ) : (
+                  <span className="font-medium text-rose-600">চেকআউটে নির্ধারিত হবে</span>
+                )}
               </div>
               <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-100">
                 <span>সর্বমোট (আনুমানিক):</span>

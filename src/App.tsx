@@ -53,8 +53,23 @@ const StorefrontContent: React.FC = () => {
     setIsDeliveryInfoOpen,
     setIsFacebookModalOpen,
     setIsAdminOpen,
+    setSelectedProductModal,
     settings
   } = useShop();
+
+  // Open shared product modal if ?product=ID is present in URL
+  useEffect(() => {
+    if (products.length > 0 && typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const sharedProductId = params.get('product');
+      if (sharedProductId) {
+        const found = products.find(p => p.id === sharedProductId);
+        if (found) {
+          setSelectedProductModal(found);
+        }
+      }
+    }
+  }, [products, setSelectedProductModal]);
 
   // Handle browser back / mouse back / swipe back to close open modals
   useModalBackNavigation();

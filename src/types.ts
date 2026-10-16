@@ -111,6 +111,7 @@ export interface StoreSettings {
     subDhaka: number;
     outsideDhaka: number;
     freeDeliveryAbove: number;
+    freeDeliveryMinItems?: number;
   };
   announcementText: string;
   officeAddress: string;

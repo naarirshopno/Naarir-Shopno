@@ -209,6 +209,7 @@ export const AdminPanel: React.FC = () => {
     subDhaka: settings.deliveryCharges.subDhaka,
     outsideDhaka: settings.deliveryCharges.outsideDhaka,
     freeDeliveryAbove: settings.deliveryCharges.freeDeliveryAbove,
+    freeDeliveryMinItems: settings.deliveryCharges.freeDeliveryMinItems || 3,
   });
   const [deliverySavedToast, setDeliverySavedToast] = useState(false);
 
@@ -601,6 +602,7 @@ export const AdminPanel: React.FC = () => {
         subDhaka: Number(deliveryForm.subDhaka),
         outsideDhaka: Number(deliveryForm.outsideDhaka),
         freeDeliveryAbove: Number(deliveryForm.freeDeliveryAbove),
+        freeDeliveryMinItems: Number(deliveryForm.freeDeliveryMinItems) || 3,
       },
     });
     setDeliverySavedToast(true);
@@ -1757,6 +1759,20 @@ export const AdminPanel: React.FC = () => {
                         type="number"
                         value={deliveryForm.freeDeliveryAbove}
                         onChange={(e) => setDeliveryForm({ ...deliveryForm, freeDeliveryAbove: Number(e.target.value) })}
+                        className="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-rose-500 font-bold text-slate-900 font-['Outfit']"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        ৫. ফ্রি ডেলিভারি অফার (ন্যূনতম কয়টি পোশাকে চার্জ ফ্রি হবে):
+                      </label>
+                      <input
+                        id="input-delivery-free-items"
+                        type="number"
+                        min="1"
+                        value={deliveryForm.freeDeliveryMinItems}
+                        onChange={(e) => setDeliveryForm({ ...deliveryForm, freeDeliveryMinItems: Number(e.target.value) })}
                         className="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-rose-500 font-bold text-slate-900 font-['Outfit']"
                       />
                     </div>

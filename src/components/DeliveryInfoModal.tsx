@@ -62,8 +62,8 @@ export const DeliveryInfoModal: React.FC = () => {
           </div>
 
           {/* Free delivery banner */}
-          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 font-semibold text-center text-xs">
-            🎉 ৳{settings.deliveryCharges.freeDeliveryAbove.toLocaleString()} টাকার বেশি অর্ডারে সারাদেশে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি!
+          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 font-bold text-center text-xs sm:text-sm shadow-2xs">
+            🎉 যেকোনো ৩টি পোশাকের অর্ডারে অথবা ৳{(settings.deliveryCharges.freeDeliveryAbove || 3000).toLocaleString()}+ টাকার অর্ডারে সারাদেশে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি!
           </div>
 
           {/* Detailed Instructions */}

@@ -16,6 +16,7 @@ import {
   Copy,
   Check
 } from 'lucide-react';
+import { PostPurchaseReviewSection } from './PostPurchaseReviewSection';
 
 export const OrderTrackingModal: React.FC = () => {
   const { 
@@ -374,6 +375,14 @@ export const OrderTrackingModal: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Customer Post-Purchase Review Section */}
+                <PostPurchaseReviewSection
+                  orderId={matchedOrder.id}
+                  customerName={matchedOrder.customerName}
+                  customerLocation={matchedOrder.district || matchedOrder.address}
+                  items={matchedOrder.items}
+                />
 
                 {/* Need Help Phone Banner */}
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
