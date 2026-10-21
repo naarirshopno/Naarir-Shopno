@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { X, Trash2, ShoppingBag, ArrowRight, Truck, Plus, Minus } from 'lucide-react';
 
 export const CartDrawer: React.FC = () => {
+  const navigate = useNavigate();
   const { 
     isCartOpen, 
     setIsCartOpen, 
@@ -38,7 +40,7 @@ export const CartDrawer: React.FC = () => {
   const handleProceedToCheckout = () => {
     setDirectCheckoutItem(null); // use full cart
     setIsCartOpen(false);
-    setIsCheckoutOpen(true);
+    navigate('/checkout');
   };
 
   return (

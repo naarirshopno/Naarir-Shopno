@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { 
   Phone, 
@@ -162,29 +163,34 @@ export const Footer: React.FC = () => {
             <h4 className="text-white font-bold text-sm font-['Hind_Siliguri']">জরুরি লিংক</h4>
             <ul className="space-y-2 text-xs text-slate-400">
               <li>
-                <button onClick={() => setIsOrderTrackingOpen(true)} className="hover:text-rose-400 transition text-left">
+                <Link to="/track" className="hover:text-rose-400 transition text-left block">
                   পার্সেল ট্র্যাকিং
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => setIsDeliveryInfoOpen(true)} className="hover:text-rose-400 transition text-left">
+                <Link to="/delivery-info" className="hover:text-rose-400 transition text-left block">
                   ডেলিভারি চার্জ ও সময়
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => setIsFacebookModalOpen(true)} className="hover:text-rose-400 transition text-left">
+                <button onClick={() => setIsFacebookModalOpen(true)} className="hover:text-rose-400 transition text-left cursor-pointer">
                   অফিসিয়াল ফেসবুক পেজ
                 </button>
               </li>
               <li>
-                <button onClick={() => setIsCustomerChatOpen(true)} className="hover:text-rose-400 transition text-left">
+                <button onClick={() => setIsCustomerChatOpen(true)} className="hover:text-rose-400 transition text-left cursor-pointer">
                   সরাসরি বার্তা পাঠান
                 </button>
               </li>
               <li>
-                <button onClick={() => setIsDeliveryInfoOpen(true)} className="hover:text-rose-400 transition text-left">
+                <Link to="/delivery-info" className="hover:text-rose-400 transition text-left block">
                   রিটার্ন ও এক্সচেঞ্জ পলিসি
-                </button>
+                </Link>
+              </li>
+              <li>
+                <Link to="/admin" className="hover:text-rose-400 text-slate-500 transition text-left block">
+                  অ্যাডমিন প্যানেল
+                </Link>
               </li>
             </ul>
           </div>

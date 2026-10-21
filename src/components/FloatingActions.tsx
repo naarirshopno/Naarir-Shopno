@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { MessageCircle, Phone, Truck, ArrowUp } from 'lucide-react';
 
 export const FloatingActions: React.FC = () => {
+  const navigate = useNavigate();
   const { 
     setIsFacebookModalOpen, 
     setIsCustomerChatOpen, 
@@ -81,7 +83,7 @@ export const FloatingActions: React.FC = () => {
           {/* 3. Order Tracking */}
           <button
             id="btn-floating-track"
-            onClick={() => setIsOrderTrackingOpen(true)}
+            onClick={() => navigate('/track')}
             className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-1.5 sm:py-2 px-0.5 sm:px-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition text-[10px] sm:text-xs font-bold font-['Hind_Siliguri'] text-center shadow-md active:scale-95 cursor-pointer min-w-0"
             title="আপনার অর্ডার ট্র্যাক করুন"
           >

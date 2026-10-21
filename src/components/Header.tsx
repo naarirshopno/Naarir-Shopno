@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { CategoryType } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/initialData';
@@ -16,7 +17,8 @@ import {
   Clock,
   Calendar,
   Heart,
-  Lock
+  Lock,
+  Sparkles
 } from 'lucide-react';
 
 const LiveClockBadge: React.FC<{ isMobile?: boolean }> = React.memo(({ isMobile }) => {
@@ -144,6 +146,9 @@ export const Header: React.FC = () => {
     setSearchQuery
   } = useShop();
 
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Dynamic categories synced directly from Admin Panel (settings.categories)
@@ -167,7 +172,8 @@ export const Header: React.FC = () => {
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-3.5 w-full max-w-full">
           <div className="flex items-center justify-between gap-2 sm:gap-6 w-full">
           {/* Brand Logo & Name */}
-          <div 
+          <Link 
+            to="/"
             className="flex items-center gap-2 sm:gap-3 cursor-pointer group shrink-0"
             onClick={() => {
               setActiveCategory('all');
@@ -198,7 +204,7 @@ export const Header: React.FC = () => {
                 Dress Your Dreams
               </p>
             </div>
-          </div>
+          </Link>
 
           {/* Center Area: Live Date & Time + Search Bar */}
           <div className="flex-1 max-w-xl mx-2 sm:mx-4 flex flex-col items-center justify-center gap-1.5 py-0.5 min-w-0">
@@ -213,7 +219,12 @@ export const Header: React.FC = () => {
                   type="text"
                   placeholder="থ্রি-পিস, শাড়ি, কুর্তি, গাউন বা প্রোডাক্ট সার্চ করুন..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (location.pathname !== '/' && e.target.value.trim()) {
+                      navigate('/');
+                    }
+                  }}
                   className="w-full pl-10 pr-10 py-1.5 text-xs sm:text-sm bg-rose-50/50 border border-rose-200 rounded-full focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400 shadow-inner"
                 />
                 <Search className="w-4 h-4 text-rose-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -231,11 +242,22 @@ export const Header: React.FC = () => {
 
           {/* Header Action Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Track Order Direct Button (Desktop) */}
+            <button
+              id="btn-track-header"
+              onClick={() => navigate('/track')}
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all border border-slate-200 hover:border-rose-300 cursor-pointer"
+              title="অর্ডার ট্র্যাক করুন"
+            >
+              <Truck className="w-3.5 h-3.5 text-rose-600" />
+              <span>অর্ডার ট্র্যাক</span>
+            </button>
+
             {/* Wishlist Button with Saved Items Count */}
             <button
               id="btn-wishlist-header"
-              onClick={() => setIsWishlistOpen(true)}
-              className="relative p-2 text-slate-700 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all group flex items-center justify-center"
+              onClick={() => navigate('/wishlist')}
+              className="relative p-2 text-slate-700 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all group flex items-center justify-center cursor-pointer"
               title="পছন্দের তালিকা (উইশলিস্ট)"
               aria-label="পছন্দের তালিকা (উইশলিস্ট)"
             >
@@ -254,8 +276,8 @@ export const Header: React.FC = () => {
             {/* Admin Panel Direct Access Button */}
             <button
               id="btn-admin-header"
-              onClick={() => setIsAdminOpen(true)}
-              className="p-2 text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all group flex items-center justify-center"
+              onClick={() => navigate('/admin')}
+              className="p-2 text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all group flex items-center justify-center cursor-pointer"
               title="এডমিন প্যানেল (মালিকের লগইন ও প্রোডাক্ট যোগ)"
               aria-label="এডমিন প্যানেল"
             >
@@ -325,6 +347,51 @@ export const Header: React.FC = () => {
       </div>
       </div>
 
+      {/* Desktop Quick Category Bar */}
+      <div className="hidden lg:block bg-gradient-to-r from-rose-50/80 via-pink-50/60 to-rose-50/80 border-b border-rose-100/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-1.5 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
+              ক্যাটাগরি:
+            </span>
+            {categories.map((cat) => {
+              const isActive = location.pathname === `/category/${cat.id}` || (cat.id === 'all' && (location.pathname === '/' || location.pathname === '/category/all'));
+              return (
+                <button
+                  key={`desktop-bar-${cat.id}`}
+                  onClick={() => {
+                    setActiveCategory(cat.id);
+                    navigate(`/category/${cat.id}`);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
+                    isActive 
+                      ? 'bg-rose-600 text-white shadow-xs scale-102 ring-2 ring-rose-300' 
+                      : 'text-slate-700 hover:text-rose-700 hover:bg-rose-100/70'
+                  }`}
+                >
+                  {cat.image && (
+                    <img 
+                      src={cat.image} 
+                      alt="" 
+                      className="w-3.5 h-3.5 rounded-full object-cover shrink-0 border border-rose-200"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  )}
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 text-slate-500 font-medium">
+            <span className="flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-semibold">
+              <Sparkles className="w-3 h-3 text-amber-500" />
+              <span>নতুন স্টক লাইভ</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Drawer Menu with Categories Navigation inside the SVG Menu */}
       {mobileMenuOpen && (
         <div className="bg-white border-b border-rose-200 shadow-2xl px-4 py-4 space-y-4 animate-fadeIn">
@@ -341,37 +408,37 @@ export const Header: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pt-1">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  id={`cat-nav-${cat.id}`}
-                  onClick={() => {
-                    setActiveCategory(cat.id);
-                    setMobileMenuOpen(false);
-                    const el = document.getElementById('products-section');
-                    if (el) {
-                      el.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
-                  className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all text-center cursor-pointer ${
-                    activeCategory === cat.id
-                      ? 'bg-rose-600 text-white shadow-md shadow-rose-200 scale-102 ring-2 ring-rose-400'
-                      : 'bg-rose-50/60 text-slate-700 hover:bg-rose-100 hover:text-rose-800 border border-rose-100'
-                  }`}
-                >
-                  {cat.image && (
-                    <img 
-                      src={cat.image} 
-                      alt="" 
-                      className="w-4 h-4 rounded-full object-cover shrink-0 border border-rose-200" 
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  )}
-                  <span className="truncate">{cat.label}</span>
-                </button>
-              ))}
+              {categories.map((cat) => {
+                const isActive = location.pathname === `/category/${cat.id}` || (cat.id === 'all' && (location.pathname === '/' || location.pathname === '/category/all')) || activeCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    id={`cat-nav-${cat.id}`}
+                    onClick={() => {
+                      setActiveCategory(cat.id);
+                      setMobileMenuOpen(false);
+                      navigate(`/category/${cat.id}`);
+                    }}
+                    className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all text-center cursor-pointer ${
+                      isActive
+                        ? 'bg-rose-600 text-white shadow-md shadow-rose-200 scale-102 ring-2 ring-rose-400'
+                        : 'bg-rose-50/60 text-slate-700 hover:bg-rose-100 hover:text-rose-800 border border-rose-100'
+                    }`}
+                  >
+                    {cat.image && (
+                      <img 
+                        src={cat.image} 
+                        alt="" 
+                        className="w-4 h-4 rounded-full object-cover shrink-0 border border-rose-200" 
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    )}
+                    <span className="truncate">{cat.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </nav>
 
@@ -380,10 +447,10 @@ export const Header: React.FC = () => {
             <button
               id="btn-mobile-drawer-wishlist"
               onClick={() => {
-                setIsWishlistOpen(true);
+                navigate('/wishlist');
                 setMobileMenuOpen(false);
               }}
-              className="flex items-center justify-between px-3 py-2 text-sm font-medium text-rose-700 bg-rose-50/70 hover:bg-rose-100 rounded-lg transition-colors"
+              className="flex items-center justify-between px-3 py-2 text-sm font-medium text-rose-700 bg-rose-50/70 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
                 <Heart className="w-4 h-4 text-rose-600 fill-rose-500" />
@@ -396,10 +463,10 @@ export const Header: React.FC = () => {
 
             <button
               onClick={() => {
-                setIsOrderTrackingOpen(true);
+                navigate('/track');
                 setMobileMenuOpen(false);
               }}
-              className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-rose-50 rounded-lg transition-colors"
+              className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
             >
               <Truck className="w-4 h-4 text-rose-600" />
               <span>আপনার অর্ডার ট্র্যাক করুন</span>
@@ -410,7 +477,7 @@ export const Header: React.FC = () => {
                 setIsFacebookModalOpen(true);
                 setMobileMenuOpen(false);
               }}
-              className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50/60 hover:bg-blue-100 rounded-lg transition-colors"
+              className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50/60 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
             >
               <svg className="w-4 h-4 fill-current text-blue-600" viewBox="0 0 24 24">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -423,7 +490,7 @@ export const Header: React.FC = () => {
                 setIsCustomerChatOpen(true);
                 setMobileMenuOpen(false);
               }}
-              className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors"
+              className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
             >
               <MessageCircle className="w-4 h-4 text-rose-600" />
               <span>সরাসরি মেসেজ পাঠান</span>
@@ -449,9 +516,9 @@ export const Header: React.FC = () => {
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
-                setIsAdminOpen(true);
+                navigate('/admin');
               }}
-              className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-300 rounded-lg px-2 py-1 transition"
+              className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-300 rounded-lg px-2 py-1 transition cursor-pointer"
               title="এডমিন লগইন"
             >
               <Lock className="w-3 h-3 text-slate-400" />

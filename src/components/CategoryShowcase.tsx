@@ -1,10 +1,12 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { CategoryType } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/initialData';
 
 export const CategoryShowcase: React.FC = () => {
   const { activeCategory, setActiveCategory, settings } = useShop();
+  const navigate = useNavigate();
 
   const categoryList = Array.isArray(settings.categories)
     ? settings.categories
@@ -12,10 +14,7 @@ export const CategoryShowcase: React.FC = () => {
 
   const handleSelect = (id: CategoryType) => {
     setActiveCategory(id);
-    const el = document.getElementById('products-section');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
+    navigate(`/category/${id}`);
   };
 
   return (

@@ -13,7 +13,6 @@ import {
   MapPin, 
   Phone, 
   FileText,
-  Printer,
   Sparkles
 } from 'lucide-react';
 import { PostPurchaseReviewSection } from './PostPurchaseReviewSection';
@@ -280,16 +279,8 @@ export const CheckoutModal: React.FC = () => {
               </button>
 
               <button
-                onClick={() => window.print()}
-                className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold text-xs sm:text-sm px-5 py-3 rounded-xl transition flex items-center gap-2"
-              >
-                <Printer className="w-4 h-4" />
-                <span>ইনভয়েস প্রিন্ট করুন</span>
-              </button>
-
-              <button
                 onClick={handleClose}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm px-5 py-3 rounded-xl transition"
+                className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm px-6 py-3 rounded-xl transition"
               >
                 আরও কেনাকাটা করুন
               </button>

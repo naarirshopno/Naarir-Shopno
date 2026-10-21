@@ -369,9 +369,9 @@ export const OrderTrackingModal: React.FC = () => {
                         );
                       })}
                     </div>
-                    <div className="pt-1 flex justify-between font-bold text-rose-700">
-                      <span>মোট মূল্য:</span>
-                      <span className="font-['Outfit'] text-sm">৳{matchedOrder.total.toLocaleString()}</span>
+                    <div className="pt-2 flex justify-between items-center font-bold text-rose-700 border-t border-rose-100">
+                      <span className="text-slate-600 text-xs">মোট পরিশোধযোগ্য:</span>
+                      <span className="font-['Outfit'] text-sm sm:text-base font-black">৳{matchedOrder.total.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
