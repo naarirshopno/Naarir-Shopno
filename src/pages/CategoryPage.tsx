@@ -35,9 +35,10 @@ export const CategoryPage: React.FC = () => {
     resetFilters
   } = useShop();
 
-  // Local search query inside this category
+    // Local search query inside this category
   const [localSearch, setLocalSearch] = useState('');
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
 
   // Available categories list
   const categoryList: CustomCategoryItem[] = useMemo(() => {
@@ -85,11 +86,33 @@ export const CategoryPage: React.FC = () => {
     }
   }, [categoryId, setActiveCategory]);
 
-  // Scroll to top when category changes
+  // Scroll to top and reset material filters when category changes
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     setLocalSearch('');
+    setSelectedMaterials([]);
   }, [categoryId]);
+
+  // Compute available materials/fabrics in this category
+  const availableMaterials = useMemo(() => {
+    let catProducts = products;
+    if (currentCategory.id !== 'all') {
+      catProducts = catProducts.filter((p) => {
+        if (p.category === currentCategory.id) return true;
+        if (p.categoryBengali === currentCategory.title || p.category === currentCategory.title) return true;
+        if (p.categoryBengali && currentCategory.title && (
+          p.categoryBengali.includes(currentCategory.title) || 
+          currentCategory.title.includes(p.categoryBengali)
+        )) return true;
+        return false;
+      });
+    }
+    const set = new Set<string>();
+    catProducts.forEach((p) => {
+      if (p.fabric) set.add(p.fabric);
+    });
+    return Array.from(set);
+  }, [products, currentCategory]);
 
   // Filter products for this category
   const filteredProducts = useMemo(() => {
@@ -126,7 +149,12 @@ export const CategoryPage: React.FC = () => {
     // 3. Price range filter
     result = result.filter((p) => p.price >= priceRange[0] && p.price <= priceRange[1]);
 
-    // 4. Sorting logic
+    // 4. Material / Brand Fabric filter
+    if (selectedMaterials.length > 0) {
+      result = result.filter((p) => selectedMaterials.includes(p.fabric));
+    }
+
+    // 5. Sorting logic
     if (sortBy === 'price_asc' || sortBy === 'price-asc') {
       result.sort((a, b) => a.price - b.price);
     } else if (sortBy === 'price_desc' || sortBy === 'price-desc') {
@@ -145,10 +173,16 @@ export const CategoryPage: React.FC = () => {
     }
 
     return result;
-  }, [products, currentCategory, localSearch, priceRange, sortBy]);
+  }, [products, currentCategory, localSearch, priceRange, selectedMaterials, sortBy]);
 
   // Category image
   const categoryBannerImg = settings.categoryImages?.[currentCategory.id] || currentCategory.image;
+
+  const toggleMaterialFilter = (mat: string) => {
+    setSelectedMaterials((prev) =>
+      prev.includes(mat) ? prev.filter((m) => m !== mat) : [...prev, mat]
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#FCFBF7] pb-16">
@@ -172,7 +206,6 @@ export const CategoryPage: React.FC = () => {
 
       {/* 2. Category Hero Banner */}
       <div className="relative bg-gradient-to-r from-rose-900 via-pink-900 to-rose-950 text-white overflow-hidden shadow-md">
-        {/* Ambient background decoration */}
         <div className="absolute inset-0 opacity-20 pointer-events-none">
           <img 
             src={categoryBannerImg} 
@@ -208,13 +241,12 @@ export const CategoryPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Category Thumbnail Card */}
           <div className="relative shrink-0 hidden sm:block">
-            <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden border-2 border-white/30 shadow-2xl ring-4 ring-rose-500/20">
+            <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden border-2 border-white/30 shadow-2xl ring-4 ring-rose-500/20 group">
               <img 
                 src={categoryBannerImg} 
                 alt={currentCategory.title}
-                className="w-full h-full object-cover object-top"
+                className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                 onError={(e) => {
                   e.currentTarget.src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80';
                 }}
@@ -224,7 +256,7 @@ export const CategoryPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Horizontal Category Switcher Bar (Quick Navigation) */}
+      {/* 3. Horizontal Category Switcher Bar */}
       <div className="bg-white border-b border-rose-100 sticky top-16 z-20 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5">
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5">
@@ -232,7 +264,6 @@ export const CategoryPage: React.FC = () => {
               ক্যাটাগরি:
             </span>
 
-            {/* "সবগুলো" button */}
             <button
               onClick={() => {
                 setActiveCategory('all');
@@ -247,7 +278,6 @@ export const CategoryPage: React.FC = () => {
               সবগুলো কালেকশন
             </button>
 
-            {/* All other categories */}
             {categoryList.map((cat) => {
               const isActive = currentCategory.id === cat.id;
               const imgUrl = settings.categoryImages?.[cat.id] || cat.image;
@@ -283,10 +313,9 @@ export const CategoryPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Filter, Search & Sort Control Bar */}
+      {/* 4. Top Search & Sort Control Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 pb-2">
         <div className="bg-white p-3 sm:p-4 rounded-2xl border border-rose-100 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
-          {/* In-category Search Input */}
           <div className="relative w-full md:w-80">
             <input
               type="text"
@@ -299,27 +328,26 @@ export const CategoryPage: React.FC = () => {
             {localSearch && (
               <button
                 onClick={() => setLocalSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
-          {/* Quick Actions & Sorting */}
           <div className="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto">
-            {/* Price Filter Toggle Button */}
+            {/* Mobile Filter Toggle Button */}
             <button
               onClick={() => setShowFilterDrawer(!showFilterDrawer)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
-                showFilterDrawer || priceRange[0] > 0 || priceRange[1] < 10000
+              className={`lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                showFilterDrawer || priceRange[0] > 0 || priceRange[1] < 10000 || selectedMaterials.length > 0
                   ? 'bg-rose-50 text-rose-700 border-rose-300'
                   : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
               }`}
             >
               <SlidersHorizontal className="w-3.5 h-3.5 text-rose-600" />
-              <span>মূল্য ফিল্টার</span>
-              {(priceRange[0] > 0 || priceRange[1] < 10000) && (
+              <span>ফিল্টার মেনু</span>
+              {(priceRange[0] > 0 || priceRange[1] < 10000 || selectedMaterials.length > 0) && (
                 <span className="w-2 h-2 rounded-full bg-rose-600"></span>
               )}
             </button>
@@ -341,10 +369,11 @@ export const CategoryPage: React.FC = () => {
             </div>
 
             {/* Active filter count / Reset */}
-            {(localSearch || priceRange[0] > 0 || priceRange[1] < 10000 || sortBy !== 'default') && (
+            {(localSearch || priceRange[0] > 0 || priceRange[1] < 10000 || selectedMaterials.length > 0 || sortBy !== 'default') && (
               <button
                 onClick={() => {
                   setLocalSearch('');
+                  setSelectedMaterials([]);
                   resetFilters();
                 }}
                 className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
@@ -356,98 +385,257 @@ export const CategoryPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Collapsible Price Filter Range Drawer */}
+        {/* Mobile Collapsible Filter Drawer */}
         {showFilterDrawer && (
-          <div className="mt-3 p-4 bg-white rounded-2xl border border-rose-200 shadow-sm animate-fadeIn">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="w-full sm:w-auto">
-                <h4 className="text-xs font-bold text-slate-800 mb-1">বাজেট নির্ধারণ করুন:</h4>
-                <p className="text-[11px] text-slate-500">
-                  মূল্য পরিসীমা: <strong>৳{priceRange[0]}</strong> থেকে <strong>৳{priceRange[1]}</strong>
-                </p>
-              </div>
+          <div className="lg:hidden mt-3 p-4 bg-white rounded-2xl border border-rose-200 shadow-sm space-y-4 animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 font-['Hind_Siliguri']">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-rose-600" />
+                <span>প্রোডাক্ট ফিল্টার মেনু</span>
+              </h3>
+              <button onClick={() => setShowFilterDrawer(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-              <div className="flex items-center gap-3 w-full sm:w-80">
-                <input
-                  type="range"
-                  min="0"
-                  max="10000"
-                  step="100"
-                  value={priceRange[1]}
-                  onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                  className="w-full accent-rose-600 cursor-pointer"
-                />
-                <span className="text-xs font-bold text-rose-700 font-mono shrink-0">
-                  ৳{priceRange[1]}
-                </span>
+            {/* Price Range Filter */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs font-bold text-slate-700">
+                <span>মূল্য পরিসীমা (Budget)</span>
+                <span className="text-rose-600 font-mono">৳{priceRange[0]} - ৳{priceRange[1]}</span>
               </div>
+              <input
+                type="range"
+                min="0"
+                max="10000"
+                step="100"
+                value={priceRange[1]}
+                onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                className="w-full accent-rose-600 cursor-pointer"
+              />
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {[
+                  { label: 'সব মূল্য', range: [0, 10000] as [number, number] },
+                  { label: '৳১৫০০ এর নিচে', range: [0, 1500] as [number, number] },
+                  { label: '৳৩০০০ এর নিচে', range: [0, 3000] as [number, number] },
+                  { label: '৳৫০০০+', range: [5000, 10000] as [number, number] },
+                ].map((preset, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setPriceRange(preset.range)}
+                    className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-[11px] font-semibold transition cursor-pointer"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => setPriceRange([0, 10000])}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 underline cursor-pointer"
-                >
-                  রিসেট
-                </button>
-                <button
-                  onClick={() => setShowFilterDrawer(false)}
-                  className="px-3 py-1 bg-rose-600 text-white rounded-lg text-xs font-bold hover:bg-rose-700 transition cursor-pointer"
-                >
-                  ঠিক আছে
-                </button>
+            {/* Material / Brand Fabric Filter */}
+            {availableMaterials.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <h4 className="text-xs font-bold text-slate-700">ব্র্যান্ড ও ম্যাটেরিয়াল (Fabric):</h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableMaterials.map((mat) => {
+                    const isSelected = selectedMaterials.includes(mat);
+                    return (
+                      <button
+                        key={mat}
+                        onClick={() => toggleMaterialFilter(mat)}
+                        className={`px-3 py-1 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                          isSelected
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : 'bg-slate-100 hover:bg-rose-50 text-slate-700'
+                        }`}
+                      >
+                        {mat} {isSelected && ' ✓'}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => {
+                  setPriceRange([0, 10000]);
+                  setSelectedMaterials([]);
+                }}
+                className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
+              >
+                রিসেট
+              </button>
+              <button
+                onClick={() => setShowFilterDrawer(false)}
+                className="px-4 py-1.5 bg-rose-600 text-white rounded-xl text-xs font-bold hover:bg-rose-700 transition cursor-pointer"
+              >
+                প্রয়োগ করুন ({filteredProducts.length})
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* 5. Main Product Grid Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
-        {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-            {filteredProducts.map((product: Product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        ) : (
-          /* Empty State */
-          <div className="py-16 text-center bg-white rounded-3xl border border-rose-100 p-8 shadow-xs max-w-lg mx-auto space-y-4 animate-scaleUp">
-            <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto">
-              <PackageOpen className="w-8 h-8" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold text-slate-800 font-['Hind_Siliguri']">
-                এই মুহূর্তে কোনো প্রোডাক্ট খুঁজে পাওয়া যায়নি
+      {/* 5. Main Layout with Desktop Sidebar & Product Grid */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+          
+          {/* Desktop Sidebar Filter Menu */}
+          <div className="hidden lg:block lg:col-span-1 bg-white p-5 rounded-3xl border border-rose-100 shadow-sm space-y-6 sticky top-28">
+            <div className="flex items-center justify-between border-b border-rose-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 font-['Hind_Siliguri']">
+                <SlidersHorizontal className="w-4 h-4 text-rose-600" />
+                <span>ফিল্টার ও বাজেট মেনু</span>
               </h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                {localSearch
-                  ? `"${localSearch}" এর সাথে মিল রয়েছে এমন কোনো পোশাক পাওয়া যায়নি। বানান চেক করে পুনরায় চেষ্টা করুন।`
-                  : 'এই ক্যাটাগরিতে বর্তমানে নতুন স্টক আপডেট করা হচ্ছে অথবা ফিল্টার অনুযায়ী কোনো পণ্য নেই।'}
-              </p>
+              {(priceRange[0] > 0 || priceRange[1] < 10000 || selectedMaterials.length > 0) && (
+                <button
+                  onClick={() => {
+                    setPriceRange([0, 10000]);
+                    setSelectedMaterials([]);
+                  }}
+                  className="text-xs text-rose-600 hover:underline font-semibold cursor-pointer"
+                >
+                  ক্লিয়ার
+                </button>
+              )}
             </div>
 
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
-              <button
-                onClick={() => {
-                  setLocalSearch('');
-                  resetFilters();
-                }}
-                className="px-4 py-2 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition cursor-pointer"
-              >
-                ফিল্টার রিসেট করুন
-              </button>
-              <button
-                onClick={() => {
-                  setActiveCategory('all');
-                  navigate('/category/all');
-                }}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
-              >
-                সবগুলো কালেকশন দেখুন
-              </button>
+            {/* Price Range Filter */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-slate-700">মূল্য পরিসীমা (Price Range):</h4>
+              <div className="flex items-center justify-between text-xs font-semibold text-rose-700 font-mono">
+                <span>৳{priceRange[0]}</span>
+                <span>৳{priceRange[1]}</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="10000"
+                step="100"
+                value={priceRange[1]}
+                onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                className="w-full accent-rose-600 cursor-pointer"
+              />
+              <div className="grid grid-cols-2 gap-1.5 pt-1">
+                {[
+                  { label: 'সব মূল্য', range: [0, 10000] as [number, number] },
+                  { label: '৳১৫০০ নিচে', range: [0, 1500] as [number, number] },
+                  { label: '৳৩০০০ নিচে', range: [0, 3000] as [number, number] },
+                  { label: '৳৫০০০+', range: [5000, 10000] as [number, number] },
+                ].map((preset, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setPriceRange(preset.range)}
+                    className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 rounded-xl text-[11px] font-semibold transition cursor-pointer text-center"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Material / Brand Fabric Filter */}
+            {availableMaterials.length > 0 && (
+              <div className="space-y-3 pt-3 border-t border-rose-100">
+                <h4 className="text-xs font-bold text-slate-700">ম্যাটেরিয়াল ও ফেব্রিক (Fabric):</h4>
+                <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto pr-1">
+                  {availableMaterials.map((mat) => {
+                    const isSelected = selectedMaterials.includes(mat);
+                    return (
+                      <button
+                        key={mat}
+                        onClick={() => toggleMaterialFilter(mat)}
+                        className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${
+                          isSelected
+                            ? 'bg-rose-600 text-white font-bold shadow-xs'
+                            : 'bg-rose-50/60 hover:bg-rose-100/70 text-slate-700'
+                        }`}
+                      >
+                        <span>{mat}</span>
+                        <span className={`w-4 h-4 rounded-md flex items-center justify-center text-[10px] ${isSelected ? 'bg-white text-rose-600 font-bold' : 'border border-rose-300'}`}>
+                          {isSelected && '✓'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Active Filters Summary */}
+            {(priceRange[0] > 0 || priceRange[1] < 10000 || selectedMaterials.length > 0) && (
+              <div className="pt-3 border-t border-rose-100 space-y-2">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">সক্রিয় ফিল্টার:</span>
+                <div className="flex flex-wrap gap-1">
+                  {priceRange[1] < 10000 && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-[11px] font-semibold">
+                      সর্বোচ্চ ৳{priceRange[1]}
+                      <button onClick={() => setPriceRange([0, 10000])} className="hover:text-rose-900 cursor-pointer">×</button>
+                    </span>
+                  )}
+                  {selectedMaterials.map((m) => (
+                    <span key={m} className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-[11px] font-semibold">
+                      {m}
+                      <button onClick={() => toggleMaterialFilter(m)} className="hover:text-rose-900 cursor-pointer">×</button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Product Grid Area (Span 3 on Desktop) */}
+          <div className="lg:col-span-3 space-y-4">
+            {filteredProducts.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-5">
+                {filteredProducts.map((product: Product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            ) : (
+              /* Empty State */
+              <div className="py-16 text-center bg-white rounded-3xl border border-rose-100 p-8 shadow-xs max-w-lg mx-auto space-y-4 animate-scaleUp">
+                <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto">
+                  <PackageOpen className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-slate-800 font-['Hind_Siliguri']">
+                    এই মুহূর্তে কোনো প্রোডাক্ট খুঁজে পাওয়া যায়নি
+                  </h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    {localSearch || selectedMaterials.length > 0 || priceRange[1] < 10000
+                      ? `আপনার নির্বাচিত ফিল্টার বা খোঁজার সাথে মিল রয়েছে এমন কোনো পোশাক পাওয়া যায়নি। ফিল্টার রিসেট করে আবার চেষ্টা করুন।`
+                      : 'এই ক্যাটাগরিতে বর্তমানে নতুন স্টক আপডেট করা হচ্ছে অথবা ফিল্টার অনুযায়ী কোনো পণ্য নেই।'}
+                  </p>
+                </div>
+
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    onClick={() => {
+                      setLocalSearch('');
+                      setSelectedMaterials([]);
+                      resetFilters();
+                    }}
+                    className="px-4 py-2 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    ফিল্টার রিসেট করুন
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveCategory('all');
+                      navigate('/category/all');
+                    }}
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+                  >
+                    সবগুলো কালেকশন দেখুন
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+        </div>
       </div>
 
       {/* 6. Customer Confidence & Hotline Strip */}

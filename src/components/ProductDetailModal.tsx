@@ -429,18 +429,21 @@ export const ProductDetailModal: React.FC = () => {
                         key={c.name}
                         onClick={() => {
                           setSelectedColor(c.name);
-                          if (product.images && product.images[cIdx]) {
-                            setSelectedImg(product.images[cIdx]);
+                          if (product.images && product.images.length > 0) {
+                            const targetImg = product.images[cIdx] || product.images[cIdx % product.images.length];
+                            if (targetImg) {
+                              setSelectedImg(targetImg);
+                            }
                           }
                         }}
-                        className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-full border transition-all cursor-pointer ${
+                        className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
                           selectedColor === c.name
                             ? 'border-rose-600 ring-2 ring-rose-200 bg-rose-50 text-rose-800 font-bold'
                             : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
                         }`}
                       >
                         <span
-                          className="w-3 h-3 rounded-full border border-black/10 shrink-0"
+                          className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
                           style={{ backgroundColor: c.hex }}
                         />
                         <span>{c.name}</span>

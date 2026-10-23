@@ -25,6 +25,7 @@ export interface Product {
   price: number;
   regularPrice: number;
   images: string[];
+  videoUrl?: string; // AI Video of female model wearing the clothes
   rating: number;
   reviewsCount: number;
   isNew?: boolean;

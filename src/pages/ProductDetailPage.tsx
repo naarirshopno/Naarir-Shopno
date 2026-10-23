@@ -20,8 +20,15 @@ import {
   Info, 
   Share2, 
   ZoomIn, 
+  ZoomOut,
+  RotateCcw,
+  Maximize2,
+  X,
   Flame, 
-  SearchX 
+  SearchX,
+  Video,
+  Play,
+  Pause
 } from 'lucide-react';
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80';
@@ -41,6 +48,12 @@ export const ProductDetailPage: React.FC = () => {
 
   const product = products.find((p) => p.id === productId);
 
+  const modelVideo = product?.videoUrl?.trim() || '';
+  const [isVideoMode, setIsVideoMode] = useState<boolean>(Boolean(modelVideo));
+  const [videoError, setVideoError] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   const [selectedImg, setSelectedImg] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
@@ -48,11 +61,36 @@ export const ProductDetailPage: React.FC = () => {
   const [addedToast, setAddedToast] = useState(false);
   const [shareToast, setShareToast] = useState<string | null>(null);
 
-  // Image Magnification State
-  const [isZooming, setIsZooming] = useState(false);
-  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  // Two-Finger Pinch-to-Zoom & Pan State (Touch Gestures)
+  const [scale, setScale] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPinching, setIsPinching] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Hover-to-Zoom State (for desktop mouse hover)
+  const [isHoverZooming, setIsHoverZooming] = useState(false);
+  const [hoverPos, setHoverPos] = useState({ x: 50, y: 50 });
+  const isTouchActiveRef = useRef(false);
+
+  // Gesture tracking refs
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const reviewsSectionRef = useRef<HTMLDivElement>(null);
+  const touchStartDistRef = useRef<number | null>(null);
+  const touchStartScaleRef = useRef<number>(1);
+  const touchStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const touchStartPanRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const isDraggingMouseRef = useRef(false);
+  const mouseStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const mousePanStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lastTapRef = useRef<number>(0);
+
+  const resetZoom = () => {
+    setScale(1);
+    setPan({ x: 0, y: 0 });
+    setIsPinching(false);
+    setIsHoverZooming(false);
+    setHoverPos({ x: 50, y: 50 });
+  };
 
   useEffect(() => {
     if (product) {
@@ -62,8 +100,23 @@ export const ProductDetailPage: React.FC = () => {
       setQuantity(1);
       setAddedToast(false);
       setShareToast(null);
-      setIsZooming(false);
-      setZoomPos({ x: 50, y: 50 });
+      const hasVideo = Boolean(product?.videoUrl?.trim());
+      setIsVideoMode(hasVideo);
+      setVideoError(false);
+      setIsPlaying(true);
+      resetZoom();
+
+      if (hasVideo) {
+        setTimeout(() => {
+          if (videoRef.current) {
+            videoRef.current.play().then(() => {
+              setIsPlaying(true);
+            }).catch(() => {
+              setIsPlaying(false);
+            });
+          }
+        }, 150);
+      }
     }
   }, [product]);
 
@@ -98,27 +151,153 @@ export const ProductDetailPage: React.FC = () => {
       .slice(0, 4);
   }, [products, product]);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!imageContainerRef.current) return;
-    const { left, top, width, height } = imageContainerRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(100, ((e.clientX - left) / width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - top) / height) * 100));
-    setZoomPos({ x, y });
+  const getTouchDistance = (t1: React.Touch, t2: React.Touch) => {
+    return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
   };
 
-  const handleMouseEnter = () => setIsZooming(true);
-  const handleMouseLeave = () => {
-    setIsZooming(false);
-    setZoomPos({ x: 50, y: 50 });
+  // 2-Finger Touch Pinch Zoom & Drag Pan Handlers
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    isTouchActiveRef.current = true;
+    setIsHoverZooming(false);
+    if (e.touches.length === 2) {
+      // 2 fingers detected: pinch to zoom
+      const dist = getTouchDistance(e.touches[0], e.touches[1]);
+      touchStartDistRef.current = dist;
+      touchStartScaleRef.current = scale;
+      touchStartPanRef.current = { ...pan };
+      setIsPinching(true);
+    } else if (e.touches.length === 1) {
+      // Double tap check: toggle between 1x and 2.5x
+      const now = Date.now();
+      if (now - lastTapRef.current < 300) {
+        if (scale > 1.2) {
+          resetZoom();
+        } else {
+          setScale(2.5);
+          setPan({ x: 0, y: 0 });
+        }
+        lastTapRef.current = 0;
+        return;
+      }
+      lastTapRef.current = now;
+
+      // 1-finger pan if already zoomed
+      if (scale > 1.05) {
+        touchStartPosRef.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+        };
+        touchStartPanRef.current = { ...pan };
+      }
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!imageContainerRef.current || e.touches.length === 0) return;
-    const touch = e.touches[0];
-    const { left, top, width, height } = imageContainerRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(100, ((touch.clientX - left) / width) * 100));
-    const y = Math.max(0, Math.min(100, ((touch.clientY - top) / height) * 100));
-    setZoomPos({ x, y });
+    if (e.touches.length === 2 && touchStartDistRef.current !== null) {
+      if (e.cancelable) e.preventDefault();
+      const dist = getTouchDistance(e.touches[0], e.touches[1]);
+      const factor = dist / touchStartDistRef.current;
+      const nextScale = Math.min(4, Math.max(1, +(touchStartScaleRef.current * factor).toFixed(2)));
+      setScale(nextScale);
+      if (nextScale <= 1.05) {
+        setPan({ x: 0, y: 0 });
+      }
+    } else if (e.touches.length === 1 && scale > 1.05) {
+      if (e.cancelable) e.preventDefault();
+      const dx = e.touches[0].clientX - touchStartPosRef.current.x;
+      const dy = e.touches[0].clientY - touchStartPosRef.current.y;
+
+      const container = imageContainerRef.current;
+      const rect = container ? container.getBoundingClientRect() : { width: 400, height: 500 };
+      const maxPanX = (rect.width * (scale - 1)) / 2;
+      const maxPanY = (rect.height * (scale - 1)) / 2;
+
+      setPan({
+        x: Math.min(maxPanX, Math.max(-maxPanX, touchStartPanRef.current.x + dx)),
+        y: Math.min(maxPanY, Math.max(-maxPanY, touchStartPanRef.current.y + dy)),
+      });
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length < 2) {
+      touchStartDistRef.current = null;
+      setIsPinching(false);
+    }
+    if (e.touches.length === 0) {
+      if (scale <= 1.05) {
+        resetZoom();
+      }
+      setTimeout(() => {
+        isTouchActiveRef.current = false;
+      }, 300);
+    }
+  };
+
+  // Hover-to-Zoom & Drag Handlers for Desktop Mouse
+  const handleMouseEnter = () => {
+    if (isTouchActiveRef.current) return;
+    if (scale <= 1.05) {
+      setIsHoverZooming(true);
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isTouchActiveRef.current) return;
+    if (!imageContainerRef.current) return;
+
+    if (isDraggingMouseRef.current && scale > 1.05) {
+      const dx = e.clientX - mouseStartRef.current.x;
+      const dy = e.clientY - mouseStartRef.current.y;
+
+      const container = imageContainerRef.current;
+      const rect = container ? container.getBoundingClientRect() : { width: 400, height: 500 };
+      const maxPanX = (rect.width * (scale - 1)) / 2;
+      const maxPanY = (rect.height * (scale - 1)) / 2;
+
+      setPan({
+        x: Math.min(maxPanX, Math.max(-maxPanX, mousePanStartRef.current.x + dx)),
+        y: Math.min(maxPanY, Math.max(-maxPanY, mousePanStartRef.current.y + dy)),
+      });
+      return;
+    }
+
+    // High precision Hover-to-Zoom positioning
+    if (scale <= 1.05) {
+      const rect = imageContainerRef.current.getBoundingClientRect();
+      const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+      const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+      setHoverPos({ x, y });
+      setIsHoverZooming(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    isDraggingMouseRef.current = false;
+    setIsHoverZooming(false);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (scale <= 1.05) return;
+    e.preventDefault();
+    isDraggingMouseRef.current = true;
+    mouseStartRef.current = { x: e.clientX, y: e.clientY };
+    mousePanStartRef.current = { ...pan };
+  };
+
+  const handleMouseUp = () => {
+    isDraggingMouseRef.current = false;
+  };
+
+  const handleColorSelect = (colorName: string, colorIndex: number) => {
+    setSelectedColor(colorName);
+    if (product && product.images && product.images.length > 0) {
+      const targetImg = product.images[colorIndex] || product.images[colorIndex % product.images.length];
+      if (targetImg) {
+        setSelectedImg(targetImg);
+        resetZoom();
+      }
+    }
   };
 
   const handleAddToCart = () => {
@@ -225,34 +404,166 @@ export const ProductDetailPage: React.FC = () => {
       </div>
 
       {/* 2. Main Product Showcase (2-Column Desktop, 1-Column Mobile) */}
-      <div className="bg-white rounded-3xl border border-rose-100 shadow-md p-4 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="bg-white rounded-3xl border border-rose-100 shadow-md overflow-hidden grid grid-cols-1 lg:grid-cols-12">
         
-        {/* Left Column: Image Gallery with 2.5x Magnifier */}
-        <div className="lg:col-span-6 flex flex-col items-center">
+        {/* Left Column: Image Gallery with 2-Finger Pinch Zoom */}
+        <div className="lg:col-span-6 flex flex-col items-center p-0 sm:p-6 lg:p-8 bg-rose-50/15 sm:border-r border-b lg:border-b-0 border-rose-100">
+          {/* Mode Switcher Buttons: AI Model Video vs Fabric Photo & Zoom */}
+          {modelVideo && !videoError && (
+            <div className="w-full flex items-center justify-center gap-2 mb-3 px-4 sm:px-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsVideoMode(true);
+                  resetZoom();
+                }}
+                className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition shadow-xs cursor-pointer ${
+                  isVideoMode
+                    ? 'bg-rose-600 text-white ring-2 ring-rose-300 shadow-sm'
+                    : 'bg-white text-slate-700 hover:bg-rose-50 border border-slate-200'
+                }`}
+              >
+                <Video className="w-3.5 h-3.5 text-amber-300" />
+                <span>মডেল AI ভিডিও</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsVideoMode(false);
+                }}
+                className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition shadow-xs cursor-pointer ${
+                  !isVideoMode
+                    ? 'bg-rose-600 text-white ring-2 ring-rose-300 shadow-sm'
+                    : 'bg-white text-slate-700 hover:bg-rose-50 border border-slate-200'
+                }`}
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+                <span>ফেব্রিক ফটো ও জুম</span>
+              </button>
+            </div>
+          )}
+
           <div 
             ref={imageContainerRef}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-            onMouseMove={handleMouseMove}
-            onTouchStart={() => setIsZooming(true)}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={() => setIsZooming(false)}
-            className="relative w-full aspect-[3/4] max-w-lg rounded-3xl overflow-hidden bg-rose-50/30 shadow-md border border-rose-100 mb-4 cursor-zoom-in select-none group/zoom"
-            title="মাউস নাড়িয়ে কাপড়ের নিখুঁত বুনন ও কাজ বড় করে দেখুন"
+            onMouseEnter={isVideoMode ? undefined : handleMouseEnter}
+            onMouseMove={isVideoMode ? undefined : handleMouseMove}
+            onMouseLeave={isVideoMode ? undefined : handleMouseLeave}
+            onTouchStart={isVideoMode ? undefined : handleTouchStart}
+            onTouchMove={isVideoMode ? undefined : handleTouchMove}
+            onTouchEnd={isVideoMode ? undefined : handleTouchEnd}
+            onTouchCancel={isVideoMode ? undefined : handleTouchEnd}
+            onMouseDown={isVideoMode ? undefined : handleMouseDown}
+            onMouseUp={isVideoMode ? undefined : handleMouseUp}
+            style={{
+              touchAction: !isVideoMode && scale > 1.05 ? 'none' : 'pan-y',
+            }}
+            className={`relative w-full aspect-[3/4] max-w-xl sm:rounded-2xl rounded-t-3xl sm:rounded-3xl overflow-hidden bg-rose-50/30 sm:shadow-sm sm:border border-rose-100 select-none group/zoom ${
+              isVideoMode
+                ? 'cursor-default'
+                : scale > 1.05
+                ? 'cursor-grab active:cursor-grabbing'
+                : 'cursor-crosshair'
+            }`}
+            title={isVideoMode ? 'মডেলের পোশাক পরা এআই ভিডিও' : 'মাউস নাড়িয়ে কাপড়ের নিখুঁত বুনন ও ফেব্রিক ডিটেইলস জুম করুন'}
           >
-            <img
-              src={activeImage}
-              alt={product.bengaliName}
-              style={{
-                transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                transform: isZooming ? 'scale(2.5)' : 'scale(1)',
-                transition: isZooming ? 'transform 0.08s ease-out' : 'transform 0.3s ease-out',
-              }}
-              className="w-full h-full object-cover object-top will-change-transform pointer-events-none"
-              onError={(e) => {
-                e.currentTarget.src = FALLBACK_IMAGE;
-              }}
-            />
+            {isVideoMode && modelVideo && !videoError ? (
+              <div 
+                className="relative w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden cursor-pointer"
+                onClick={() => {
+                  if (videoRef.current) {
+                    if (videoRef.current.paused) {
+                      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+                    } else {
+                      videoRef.current.pause();
+                      setIsPlaying(false);
+                    }
+                  }
+                }}
+              >
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  crossOrigin="anonymous"
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  onError={() => setVideoError(true)}
+                  className="w-full h-full object-cover object-top"
+                >
+                  <source src={modelVideo} type="video/mp4" />
+                  <source src="https://assets.mixkit.co/videos/preview/mixkit-stylish-woman-walking-on-a-street-41584-large.mp4" type="video/mp4" />
+                </video>
+
+                {/* Center Play Button Overlay if paused */}
+                {!isPlaying && (
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-3xs flex flex-col items-center justify-center z-20 pointer-events-none">
+                    <div className="w-16 h-16 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-2xl animate-bounce">
+                      <Play className="w-8 h-8 fill-white ml-1" />
+                    </div>
+                    <span className="text-white text-xs font-bold mt-2 bg-black/70 px-3 py-1 rounded-full border border-white/20">
+                      ট্যাপ করে ভিডিও প্লে করুন
+                    </span>
+                  </div>
+                )}
+
+                {/* AI Model Dress Overlay */}
+                <div className="absolute top-3 right-3 z-10 bg-slate-950/85 backdrop-blur-md text-amber-300 text-[11px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-amber-400/40 shadow-lg pointer-events-none">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin" />
+                  <span>AI মডেল ড্রেস শোকেস</span>
+                </div>
+
+                {/* Play/Pause Button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (videoRef.current) {
+                      if (videoRef.current.paused) {
+                        videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+                      } else {
+                        videoRef.current.pause();
+                        setIsPlaying(false);
+                      }
+                    }
+                  }}
+                  className="absolute bottom-3 right-3 z-20 p-2.5 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-xs transition border border-white/20 shadow-md cursor-pointer"
+                  title={isPlaying ? 'ভিডিও থামান' : 'ভিডিও প্লে করুন'}
+                >
+                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-white" />}
+                </button>
+
+                <div className="absolute bottom-3 left-3 bg-slate-950/80 backdrop-blur-xs text-white text-[11px] font-medium px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/20 pointer-events-none">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span>৫ সেকেন্ড এআই ভিডিও</span>
+                </div>
+              </div>
+            ) : (
+              <img
+                src={activeImage}
+                alt={product.bengaliName}
+                style={{
+                  transformOrigin: isHoverZooming ? `${hoverPos.x}% ${hoverPos.y}%` : 'center center',
+                  transform: isHoverZooming
+                    ? 'scale(2.5)'
+                    : scale > 1.05
+                    ? `translate(${pan.x}px, ${pan.y}px) scale(${scale})`
+                    : 'scale(1)',
+                  transition: isHoverZooming
+                    ? 'transform 0.08s ease-out'
+                    : isPinching || isDraggingMouseRef.current
+                    ? 'none'
+                    : 'transform 0.2s ease-out',
+                }}
+                className="w-full h-full object-cover object-top will-change-transform pointer-events-none select-none"
+                onError={(e) => {
+                  e.currentTarget.src = FALLBACK_IMAGE;
+                }}
+              />
+            )}
 
             {/* Badges Container */}
             <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 pointer-events-none">
@@ -285,7 +596,7 @@ export const ProductDetailPage: React.FC = () => {
               )}
             </div>
 
-            {/* Top Right Floating Actions: Wishlist & Share */}
+            {/* Top Right Floating Actions: Wishlist, Share & Fullscreen */}
             <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
               <button
                 type="button"
@@ -314,6 +625,19 @@ export const ProductDetailPage: React.FC = () => {
               >
                 <Share2 className="w-4 h-4" />
               </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  resetZoom();
+                  setIsFullscreen(true);
+                }}
+                className="w-9 h-9 rounded-full bg-white/95 text-slate-700 hover:text-rose-600 hover:bg-white flex items-center justify-center transition-all shadow-md cursor-pointer"
+                title="সম্পূর্ণ স্ক্রিনে ছবি দেখুন"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </button>
             </div>
 
             {/* Share Toast */}
@@ -323,54 +647,125 @@ export const ProductDetailPage: React.FC = () => {
               </div>
             )}
 
-            {/* Magnifier Lens Guide when zooming */}
-            {isZooming && (
+            {/* Magnifier Lens Guide when Hover Zooming */}
+            {!isVideoMode && isHoverZooming && (
               <div 
-                className="absolute pointer-events-none w-28 h-28 rounded-full border-2 border-white/90 shadow-[0_0_20px_rgba(0,0,0,0.35)] -translate-x-1/2 -translate-y-1/2 ring-2 ring-rose-500/50 bg-white/5"
+                className="absolute pointer-events-none w-28 h-28 rounded-full border-2 border-white/95 shadow-[0_0_25px_rgba(0,0,0,0.35)] -translate-x-1/2 -translate-y-1/2 ring-2 ring-rose-500/60 bg-white/10 z-20 backdrop-contrast-125"
                 style={{
-                  left: `${zoomPos.x}%`,
-                  top: `${zoomPos.y}%`,
+                  left: `${hoverPos.x}%`,
+                  top: `${hoverPos.y}%`,
                 }}
               />
             )}
 
-            {/* Hover to Zoom Instruction Hint */}
-            <div 
-              className={`absolute bottom-3 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur-xs text-white text-[11px] font-medium px-3.5 py-1.5 rounded-full shadow-lg transition-all duration-300 pointer-events-none flex items-center gap-1.5 whitespace-nowrap border border-white/20 ${
-                isZooming ? 'opacity-0 scale-90' : 'opacity-90 group-hover/zoom:opacity-100 scale-100'
-              }`}
-            >
-              <ZoomIn className="w-3.5 h-3.5 text-rose-300" />
-              <span>মাউস দিয়ে কাপড়ের নিখুঁত ফেব্রিক ও কাজ জুম করুন</span>
-            </div>
-
-            {isZooming && (
-              <div className="absolute top-3 right-14 bg-rose-600/90 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md pointer-events-none flex items-center gap-1 border border-white/20 animate-fadeIn">
-                <Sparkles className="w-3 h-3 text-amber-300" />
-                <span>2.5x ম্যাগনিফায়ার</span>
+            {/* Hover Zoom Active Banner */}
+            {!isVideoMode && isHoverZooming && (
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-rose-600/95 backdrop-blur-xs text-white text-[11px] font-bold px-3.5 py-1 rounded-full shadow-lg pointer-events-none flex items-center gap-1.5 border border-white/30 z-20 animate-fadeIn whitespace-nowrap">
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>2.5x ফেব্রিক জুম (মাউস নাড়িয়ে দেখুন)</span>
               </div>
+            )}
+
+            {/* Reset Button when Zoomed (No +/- buttons) */}
+            {!isVideoMode && scale > 1.05 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  resetZoom();
+                }}
+                className="absolute bottom-3 right-3 z-10 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold text-rose-700 bg-white/95 hover:bg-rose-50 shadow-md border border-rose-200 transition cursor-pointer"
+                title="আগের আকারে ফিরুন (১x)"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>১x রিসেট</span>
+              </button>
+            )}
+
+            {/* Visual Instruction & Zoom Feedback Guide */}
+            {!isVideoMode && (
+              !isHoverZooming && scale <= 1.05 ? (
+                <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[11px] font-medium px-3 py-1.5 rounded-full shadow-lg pointer-events-none flex items-center gap-1.5 whitespace-nowrap border border-white/20">
+                  <ZoomIn className="w-3.5 h-3.5 text-rose-300 shrink-0" />
+                  <span className="hidden sm:inline">ফেব্রিক জুম করুন</span>
+                  <span className="sm:hidden">২ আঙুলে জুম</span>
+                </div>
+              ) : scale > 1.05 && (
+                <div className="absolute bottom-3 left-3 bg-rose-950/85 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 border border-white/20 animate-fadeIn">
+                  <span>{scale.toFixed(1)}x জুম</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      resetZoom();
+                    }}
+                    className="bg-white text-rose-700 hover:bg-rose-50 text-[10px] font-black px-2 py-0.5 rounded-full transition cursor-pointer"
+                  >
+                    রিসেট
+                  </button>
+                </div>
+              )
             )}
           </div>
 
           {/* Thumbnails Row */}
-          {product.images.filter(Boolean).length > 1 && (
-            <div className="flex gap-2.5 w-full justify-center flex-wrap">
+          {(product.images.filter(Boolean).length > 0 || (modelVideo && !videoError)) && (
+            <div className="flex gap-2.5 w-full justify-center flex-wrap px-4 py-3 sm:px-0 sm:py-0 sm:mt-4">
+              {/* 1st Thumbnail: AI Model Video */}
+              {modelVideo && !videoError && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsVideoMode(true);
+                    resetZoom();
+                  }}
+                  className={`relative w-16 h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer group ${
+                    isVideoMode
+                      ? 'border-rose-600 ring-2 ring-rose-300 scale-105 shadow-md'
+                      : 'border-rose-100 opacity-80 hover:opacity-100'
+                  }`}
+                  title="মডেলের ড্রেস পরা এআই ভিডিও দেখুন"
+                >
+                  <img
+                    src={product.images[0] || FALLBACK_IMAGE}
+                    alt="Model Video Thumbnail"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-slate-950/45 flex flex-col items-center justify-center text-white">
+                    <span className="w-6 h-6 rounded-full bg-rose-600 flex items-center justify-center shadow">
+                      <Play className="w-3 h-3 fill-white text-white ml-0.5" />
+                    </span>
+                    <span className="text-[9px] font-black mt-1 bg-black/70 px-1 rounded text-amber-300">
+                      AI ভিডিও
+                    </span>
+                  </div>
+                </button>
+              )}
+
+              {/* Photo Thumbnails */}
               {product.images.filter(Boolean).map((img, idx) => (
                 <button
                   key={idx}
+                  type="button"
                   onClick={() => {
+                    setIsVideoMode(false);
                     setSelectedImg(img);
-                    setIsZooming(false);
-                    setZoomPos({ x: 50, y: 50 });
+                    resetZoom();
                     if (product.colors && product.colors[idx]) {
                       setSelectedColor(product.colors[idx].name);
                     }
                   }}
-                  className={`w-16 h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
-                    activeImage === img ? 'border-rose-600 ring-2 ring-rose-200 scale-105' : 'border-rose-100 opacity-75 hover:opacity-100'
+                  className={`relative w-16 h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
+                    !isVideoMode && activeImage === img
+                      ? 'border-rose-600 ring-2 ring-rose-200 scale-105 shadow-md'
+                      : 'border-rose-100 opacity-75 hover:opacity-100'
                   }`}
+                  title={`ফটো ${idx + 1} - জুম করে ফেব্রিক দেখুন`}
                 >
-                  <img src={img || FALLBACK_IMAGE} alt="thumbnail" className="w-full h-full object-cover" />
+                  <img src={img || FALLBACK_IMAGE} alt={`photo-${idx}`} className="w-full h-full object-cover" />
+                  <span className="absolute bottom-1 right-1 bg-black/70 text-[8px] font-bold text-white px-1 rounded">
+                    ফটো {idx + 1}
+                  </span>
                 </button>
               ))}
             </div>
@@ -378,7 +773,7 @@ export const ProductDetailPage: React.FC = () => {
         </div>
 
         {/* Right Column: Details, Selectors & Actions */}
-        <div className="lg:col-span-6 flex flex-col justify-between space-y-6">
+        <div className="lg:col-span-6 flex flex-col justify-between space-y-6 p-4 sm:p-6 lg:p-8">
           <div className="space-y-4">
             
             {/* Category, SKU & Rating */}
@@ -465,30 +860,40 @@ export const ProductDetailPage: React.FC = () => {
             {product.colors && product.colors.length > 0 && (
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-800">পছন্দের রঙ নির্বাচন করুন:</span>
-                  <span className="text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
+                  <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <span>পছন্দের রঙ নির্বাচন করুন:</span>
+                  </span>
+                  <span className="text-rose-600 font-bold bg-rose-50 px-2.5 py-0.5 rounded-lg border border-rose-200">
                     {selectedColor || product.colors[0]?.name}
                   </span>
                 </div>
                 <div className="flex gap-2.5 flex-wrap">
-                  {product.colors.map((c, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setSelectedColor(c.name)}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 transition-all cursor-pointer ${
-                        selectedColor === c.name
-                          ? 'border-rose-600 bg-rose-50 shadow-xs scale-102'
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
-                      }`}
-                    >
-                      <span
-                        className="w-4 h-4 rounded-full border border-black/20 shrink-0"
-                        style={{ backgroundColor: c.hex }}
-                      />
-                      <span className="text-xs font-bold text-slate-800">{c.name}</span>
-                    </button>
-                  ))}
+                  {product.colors.map((c, idx) => {
+                    const isSelected = selectedColor === c.name;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleColorSelect(c.name, idx)}
+                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border-2 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-rose-600 bg-rose-50 shadow-sm ring-2 ring-rose-200 scale-102 font-bold text-rose-700'
+                            : 'border-slate-200 hover:border-rose-300 bg-white text-slate-700'
+                        }`}
+                        title={`${c.name} রঙ দেখতে ক্লিক করুন`}
+                      >
+                        <span
+                          className="w-4 h-4 rounded-full border border-black/20 shrink-0 flex items-center justify-center shadow-2xs"
+                          style={{ backgroundColor: c.hex }}
+                        >
+                          {isSelected && (
+                            <Check className="w-2.5 h-2.5 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] stroke-[3]" />
+                          )}
+                        </span>
+                        <span className="text-xs">{c.name}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -670,6 +1075,99 @@ export const ProductDetailPage: React.FC = () => {
             {relatedProducts.map((relProduct) => (
               <ProductCard key={relProduct.id} product={relProduct} />
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* 6. Fullscreen Lightbox Modal with 2-Finger Pinch Zoom */}
+      {isFullscreen && (
+        <div 
+          className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col justify-between select-none animate-fadeIn"
+          onClick={() => {
+            setIsFullscreen(false);
+          }}
+        >
+          {/* Top Bar */}
+          <div 
+            className="flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-white">
+              <h3 className="font-bold text-sm sm:text-base font-['Hind_Siliguri'] truncate max-w-xs sm:max-w-md">
+                {product.bengaliName}
+              </h3>
+              <p className="text-xs text-rose-300 font-semibold">
+                ৳{product.price.toLocaleString()} টাকা
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFullscreen(false);
+                }}
+                className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition cursor-pointer"
+                title="বন্ধ করুন (Esc)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Centered Image Canvas with Pinch & Pan - Fits 100% of visible viewport without cutting off */}
+          <div 
+            className="flex-1 min-h-0 min-w-0 w-full flex items-center justify-center p-2 sm:p-4 relative overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{
+              touchAction: scale > 1.05 ? 'none' : 'pan-y',
+            }}
+          >
+            <img
+              src={activeImage}
+              alt={product.bengaliName}
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+                transformOrigin: 'center center',
+                transition: isPinching || isDraggingMouseRef.current ? 'none' : 'transform 0.15s ease-out',
+                maxHeight: '100%',
+                maxWidth: '100%',
+              }}
+              className="w-auto h-auto max-w-full max-h-full object-contain will-change-transform pointer-events-none select-none rounded-lg drop-shadow-2xl"
+              onError={(e) => {
+                e.currentTarget.src = FALLBACK_IMAGE;
+              }}
+            />
+          </div>
+
+          {/* Bottom Floating Bar */}
+          <div 
+            className="px-4 py-3 bg-gradient-to-t from-black/90 to-transparent flex items-center justify-between gap-3 z-10 shrink-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-white/80 text-xs flex items-center gap-1.5 font-medium">
+              <span>✌️ ২ আঙুল দিয়ে জুম বা ডাবল-ট্যাপ করে কাপড় ও কাজ বড় করে দেখুন</span>
+            </div>
+
+            {scale > 1.05 && (
+              <button
+                type="button"
+                onClick={resetZoom}
+                className="px-3 h-8 rounded-xl flex items-center gap-1.5 text-xs font-bold text-rose-300 bg-rose-950/70 hover:bg-rose-900/90 border border-rose-500/30 transition cursor-pointer"
+                title="রিসেট (১x)"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>১x রিসেট</span>
+              </button>
+            )}
           </div>
         </div>
       )}

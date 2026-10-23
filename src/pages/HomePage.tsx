@@ -16,8 +16,7 @@ import {
   SearchX, 
   Loader2, 
   ArrowDownCircle, 
-  CheckCircle2, 
-  Phone 
+  CheckCircle2 
 } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
@@ -28,8 +27,6 @@ export const HomePage: React.FC = () => {
     sortBy, 
     priceRange, 
     resetFilters,
-    setIsDeliveryInfoOpen,
-    setIsFacebookModalOpen,
     settings 
   } = useShop();
 
@@ -124,39 +121,7 @@ export const HomePage: React.FC = () => {
       {/* 2. Official Brand Welcome */}
       <WelcomeStorySection />
 
-      {/* 3. Category Filter Showcase Bar */}
-      <CategoryShowcase />
-
-      {/* 4. Quick Delivery & Trust Notification Strip */}
-      <section className="bg-rose-50/70 border-y border-rose-100 py-3.5 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs text-slate-700">
-          <div className="flex items-center gap-2 font-medium">
-            <Truck className="w-4 h-4 text-rose-600 shrink-0" />
-            <span>
-              ঢাকা সিটিতে ডেলিভারি চার্জ মাত্র <strong>৳{settings.deliveryCharges.insideDhaka}</strong>, সারাদেশে <strong>৳{settings.deliveryCharges.outsideDhaka}</strong>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              to="/delivery-info"
-              className="text-rose-700 hover:text-rose-800 font-bold underline flex items-center gap-0.5 text-xs cursor-pointer"
-            >
-              <span>ডেলিভারি পলিসি ও চার্জ বিবরণী</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-            <span className="text-slate-300">|</span>
-            <Link
-              to="/track"
-              className="text-slate-700 hover:text-rose-600 font-bold flex items-center gap-1 text-xs"
-            >
-              <span>পার্সেল ট্র্যাক করুন</span>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. Main Product Catalog Section */}
+      {/* 3. Main Product Catalog Section (Moved to Section's place) */}
       <main id="products-section" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
         <ProductToolbar totalCount={filteredProducts.length} />
 
@@ -253,49 +218,41 @@ export const HomePage: React.FC = () => {
           </div>
         )}
 
-        {/* 6. Recently Viewed Products Section */}
+        {/* Recently Viewed Products Section */}
         <RecentlyViewedSection />
+      </main>
 
-        {/* 7. Promotional Special Banner */}
-        <div className="rounded-3xl bg-gradient-to-r from-rose-900 via-pink-900 to-rose-950 p-6 sm:p-10 text-white relative overflow-hidden shadow-xl">
-          <div className="relative z-10 max-w-xl space-y-3">
-            <span className="bg-white/20 text-pink-200 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border border-white/20">
-              সোশ্যাল মিডিয়া এক্সক্লুসিভ অফার
+      {/* 4. Quick Delivery & Trust Notification Strip */}
+      <section className="bg-rose-50/70 border-y border-rose-100 py-3.5 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs text-slate-700">
+          <div className="flex items-center gap-2 font-medium">
+            <Truck className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>
+              ঢাকা সিটিতে ডেলিভারি চার্জ মাত্র <strong>৳{settings.deliveryCharges.insideDhaka}</strong>, সারাদেশে <strong>৳{settings.deliveryCharges.outsideDhaka}</strong>
             </span>
-            <h3 className="text-2xl sm:text-3xl font-black font-['Hind_Siliguri'] leading-tight">
-              আমাদের ফেসবুক পেজে যুক্ত হয়ে পান আকর্ষণীয় গিফট ও ডিসকাউন্ট ভাউচার!
-            </h3>
-            <p className="text-xs sm:text-sm text-pink-100">
-              নিয়মিত লাইভ ভিডিওতে নতুন কালেকশন প্রদর্শন এবং কাস্টমারদের জন্য বিশেষ সারপ্রাইজ অফার থাকে আমাদের অফিসিয়াল ফেসবুক পেজে।
-            </p>
-            <div className="pt-2 flex flex-wrap gap-3">
-              <button
-                onClick={() => setIsFacebookModalOpen(true)}
-                className="bg-white hover:bg-rose-50 text-rose-900 font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
-              >
-                <svg className="w-4 h-4 fill-[#1877F2]" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
-                <span>ফেসবুক পেজ ভিজিট করুন</span>
-              </button>
-
-              <a
-                href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`}
-                className="bg-rose-800/80 hover:bg-rose-800 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl border border-rose-700 transition flex items-center gap-2 shadow-xs"
-              >
-                <Phone className="w-4 h-4 text-emerald-300" />
-                <span>সরাসরি ফোন সাপোর্ট: {settings.hotline1 || '09617-541717'}</span>
-              </a>
-            </div>
           </div>
 
-          <div className="absolute right-0 bottom-0 top-0 w-1/3 opacity-20 pointer-events-none hidden md:block">
-            <svg className="w-full h-full fill-white" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M0,0 C30,40 70,60 100,100 L100,0 Z"></path>
-            </svg>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/delivery-info"
+              className="text-rose-700 hover:text-rose-800 font-bold underline flex items-center gap-0.5 text-xs cursor-pointer"
+            >
+              <span>ডেলিভারি পলিসি ও চার্জ বিবরণী</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+            <span className="text-slate-300">|</span>
+            <Link
+              to="/track"
+              className="text-slate-700 hover:text-rose-600 font-bold flex items-center gap-1 text-xs"
+            >
+              <span>পার্সেল ট্র্যাক করুন</span>
+            </Link>
           </div>
         </div>
-      </main>
+      </section>
+
+      {/* 5. Category Filter Showcase Bar (Moved to main's place) */}
+      <CategoryShowcase />
     </div>
   );
 };
