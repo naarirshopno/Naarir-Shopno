@@ -48,12 +48,6 @@ export const ProductDetailPage: React.FC = () => {
 
   const product = products.find((p) => p.id === productId);
 
-  const modelVideo = product?.videoUrl?.trim() || '';
-  const [isVideoMode, setIsVideoMode] = useState<boolean>(Boolean(modelVideo));
-  const [videoError, setVideoError] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
   const [selectedImg, setSelectedImg] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
@@ -100,23 +94,7 @@ export const ProductDetailPage: React.FC = () => {
       setQuantity(1);
       setAddedToast(false);
       setShareToast(null);
-      const hasVideo = Boolean(product?.videoUrl?.trim());
-      setIsVideoMode(hasVideo);
-      setVideoError(false);
-      setIsPlaying(true);
       resetZoom();
-
-      if (hasVideo) {
-        setTimeout(() => {
-          if (videoRef.current) {
-            videoRef.current.play().then(() => {
-              setIsPlaying(true);
-            }).catch(() => {
-              setIsPlaying(false);
-            });
-          }
-        }, 150);
-      }
     }
   }, [product]);
 
@@ -409,161 +387,48 @@ export const ProductDetailPage: React.FC = () => {
         {/* Left Column: Image Gallery with 2-Finger Pinch Zoom */}
         <div className="lg:col-span-6 flex flex-col items-center p-0 sm:p-6 lg:p-8 bg-rose-50/15 sm:border-r border-b lg:border-b-0 border-rose-100">
           {/* Mode Switcher Buttons: AI Model Video vs Fabric Photo & Zoom */}
-          {modelVideo && !videoError && (
-            <div className="w-full flex items-center justify-center gap-2 mb-3 px-4 sm:px-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsVideoMode(true);
-                  resetZoom();
-                }}
-                className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition shadow-xs cursor-pointer ${
-                  isVideoMode
-                    ? 'bg-rose-600 text-white ring-2 ring-rose-300 shadow-sm'
-                    : 'bg-white text-slate-700 hover:bg-rose-50 border border-slate-200'
-                }`}
-              >
-                <Video className="w-3.5 h-3.5 text-amber-300" />
-                <span>মডেল AI ভিডিও</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsVideoMode(false);
-                }}
-                className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition shadow-xs cursor-pointer ${
-                  !isVideoMode
-                    ? 'bg-rose-600 text-white ring-2 ring-rose-300 shadow-sm'
-                    : 'bg-white text-slate-700 hover:bg-rose-50 border border-slate-200'
-                }`}
-              >
-                <ZoomIn className="w-3.5 h-3.5" />
-                <span>ফেব্রিক ফটো ও জুম</span>
-              </button>
-            </div>
-          )}
-
           <div 
             ref={imageContainerRef}
-            onMouseEnter={isVideoMode ? undefined : handleMouseEnter}
-            onMouseMove={isVideoMode ? undefined : handleMouseMove}
-            onMouseLeave={isVideoMode ? undefined : handleMouseLeave}
-            onTouchStart={isVideoMode ? undefined : handleTouchStart}
-            onTouchMove={isVideoMode ? undefined : handleTouchMove}
-            onTouchEnd={isVideoMode ? undefined : handleTouchEnd}
-            onTouchCancel={isVideoMode ? undefined : handleTouchEnd}
-            onMouseDown={isVideoMode ? undefined : handleMouseDown}
-            onMouseUp={isVideoMode ? undefined : handleMouseUp}
+            onMouseEnter={handleMouseEnter}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
             style={{
-              touchAction: !isVideoMode && scale > 1.05 ? 'none' : 'pan-y',
+              touchAction: scale > 1.05 ? 'none' : 'pan-y',
             }}
             className={`relative w-full aspect-[3/4] max-w-xl sm:rounded-2xl rounded-t-3xl sm:rounded-3xl overflow-hidden bg-rose-50/30 sm:shadow-sm sm:border border-rose-100 select-none group/zoom ${
-              isVideoMode
-                ? 'cursor-default'
-                : scale > 1.05
+              scale > 1.05
                 ? 'cursor-grab active:cursor-grabbing'
                 : 'cursor-crosshair'
             }`}
-            title={isVideoMode ? 'মডেলের পোশাক পরা এআই ভিডিও' : 'মাউস নাড়িয়ে কাপড়ের নিখুঁত বুনন ও ফেব্রিক ডিটেইলস জুম করুন'}
+            title="মাউস নাড়িয়ে কাপড়ের নিখুঁত বুনন ও ফেব্রিক ডিটেইলস জুম করুন"
           >
-            {isVideoMode && modelVideo && !videoError ? (
-              <div 
-                className="relative w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden cursor-pointer"
-                onClick={() => {
-                  if (videoRef.current) {
-                    if (videoRef.current.paused) {
-                      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
-                    } else {
-                      videoRef.current.pause();
-                      setIsPlaying(false);
-                    }
-                  }
-                }}
-              >
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  preload="auto"
-                  crossOrigin="anonymous"
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
-                  onError={() => setVideoError(true)}
-                  className="w-full h-full object-cover object-top"
-                >
-                  <source src={modelVideo} type="video/mp4" />
-                  <source src="https://assets.mixkit.co/videos/preview/mixkit-stylish-woman-walking-on-a-street-41584-large.mp4" type="video/mp4" />
-                </video>
-
-                {/* Center Play Button Overlay if paused */}
-                {!isPlaying && (
-                  <div className="absolute inset-0 bg-black/40 backdrop-blur-3xs flex flex-col items-center justify-center z-20 pointer-events-none">
-                    <div className="w-16 h-16 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-2xl animate-bounce">
-                      <Play className="w-8 h-8 fill-white ml-1" />
-                    </div>
-                    <span className="text-white text-xs font-bold mt-2 bg-black/70 px-3 py-1 rounded-full border border-white/20">
-                      ট্যাপ করে ভিডিও প্লে করুন
-                    </span>
-                  </div>
-                )}
-
-                {/* AI Model Dress Overlay */}
-                <div className="absolute top-3 right-3 z-10 bg-slate-950/85 backdrop-blur-md text-amber-300 text-[11px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-amber-400/40 shadow-lg pointer-events-none">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin" />
-                  <span>AI মডেল ড্রেস শোকেস</span>
-                </div>
-
-                {/* Play/Pause Button */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (videoRef.current) {
-                      if (videoRef.current.paused) {
-                        videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
-                      } else {
-                        videoRef.current.pause();
-                        setIsPlaying(false);
-                      }
-                    }
-                  }}
-                  className="absolute bottom-3 right-3 z-20 p-2.5 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-xs transition border border-white/20 shadow-md cursor-pointer"
-                  title={isPlaying ? 'ভিডিও থামান' : 'ভিডিও প্লে করুন'}
-                >
-                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-white" />}
-                </button>
-
-                <div className="absolute bottom-3 left-3 bg-slate-950/80 backdrop-blur-xs text-white text-[11px] font-medium px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/20 pointer-events-none">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span>৫ সেকেন্ড এআই ভিডিও</span>
-                </div>
-              </div>
-            ) : (
-              <img
-                src={activeImage}
-                alt={product.bengaliName}
-                style={{
-                  transformOrigin: isHoverZooming ? `${hoverPos.x}% ${hoverPos.y}%` : 'center center',
-                  transform: isHoverZooming
-                    ? 'scale(2.5)'
-                    : scale > 1.05
-                    ? `translate(${pan.x}px, ${pan.y}px) scale(${scale})`
-                    : 'scale(1)',
-                  transition: isHoverZooming
-                    ? 'transform 0.08s ease-out'
-                    : isPinching || isDraggingMouseRef.current
-                    ? 'none'
-                    : 'transform 0.2s ease-out',
-                }}
-                className="w-full h-full object-cover object-top will-change-transform pointer-events-none select-none"
-                onError={(e) => {
-                  e.currentTarget.src = FALLBACK_IMAGE;
-                }}
-              />
-            )}
+            <img
+              src={activeImage}
+              alt={product.bengaliName}
+              style={{
+                transformOrigin: isHoverZooming ? `${hoverPos.x}% ${hoverPos.y}%` : 'center center',
+                transform: isHoverZooming
+                  ? 'scale(2.5)'
+                  : scale > 1.05
+                  ? `translate(${pan.x}px, ${pan.y}px) scale(${scale})`
+                  : 'scale(1)',
+                transition: isHoverZooming
+                  ? 'transform 0.08s ease-out'
+                  : isPinching || isDraggingMouseRef.current
+                  ? 'none'
+                  : 'transform 0.2s ease-out',
+              }}
+              className="w-full h-full object-cover object-top will-change-transform pointer-events-none select-none"
+              onError={(e) => {
+                e.currentTarget.src = FALLBACK_IMAGE;
+              }}
+            />
 
             {/* Badges Container */}
             <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 pointer-events-none">

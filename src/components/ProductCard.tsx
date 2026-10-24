@@ -33,14 +33,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     (product.images && product.images.length > 0 && product.images[0]) || FALLBACK_IMAGE
   );
 
-  const [videoError, setVideoError] = useState(false);
-  const modelVideo = product.videoUrl?.trim() || '';
-
   useEffect(() => {
     if (product.images && product.images.length > 0) {
       setActiveImg(product.images[0]);
     }
-    setVideoError(false);
   }, [product]);
 
   // Local state for wishlist status of this item
@@ -221,34 +217,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             e.currentTarget.src = FALLBACK_IMAGE;
           }}
         />
-
-        {/* 1st Thumbnail AI Video: Female model wearing and showcasing clothes */}
-        {modelVideo && !videoError && !isOutOfStock && (
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="auto"
-            crossOrigin="anonymous"
-            onError={() => setVideoError(true)}
-            className="absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-500 pointer-events-none group-hover:scale-105"
-          >
-            <source src={modelVideo} type="video/mp4" />
-            <source src="https://assets.mixkit.co/videos/preview/mixkit-stylish-woman-walking-on-a-street-41584-large.mp4" type="video/mp4" />
-          </video>
-        )}
-
-        {/* Model Look Badge on Product First Thumbnail */}
-        {modelVideo && !videoError && !isOutOfStock && (
-          <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
-            <span className="inline-flex items-center gap-1 bg-black/60 backdrop-blur-xs text-white text-[9px] font-bold px-2 py-0.5 rounded-full border border-white/20 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping inline-block shrink-0" />
-              <Sparkles className="w-2.5 h-2.5 text-pink-300 shrink-0" />
-              <span>মডেল লুক</span>
-            </span>
-          </div>
-        )}
 
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors" />
 
