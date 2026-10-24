@@ -513,7 +513,7 @@ export const ProductDetailPage: React.FC = () => {
             )}
 
             {/* Magnifier Lens Guide when Hover Zooming */}
-            {!isVideoMode && isHoverZooming && (
+            {isHoverZooming && (
               <div 
                 className="absolute pointer-events-none w-28 h-28 rounded-full border-2 border-white/95 shadow-[0_0_25px_rgba(0,0,0,0.35)] -translate-x-1/2 -translate-y-1/2 ring-2 ring-rose-500/60 bg-white/10 z-20 backdrop-contrast-125"
                 style={{
@@ -524,7 +524,7 @@ export const ProductDetailPage: React.FC = () => {
             )}
 
             {/* Hover Zoom Active Banner */}
-            {!isVideoMode && isHoverZooming && (
+            {isHoverZooming && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-rose-600/95 backdrop-blur-xs text-white text-[11px] font-bold px-3.5 py-1 rounded-full shadow-lg pointer-events-none flex items-center gap-1.5 border border-white/30 z-20 animate-fadeIn whitespace-nowrap">
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                 <span>2.5x ফেব্রিক জুম (মাউস নাড়িয়ে দেখুন)</span>
@@ -532,7 +532,7 @@ export const ProductDetailPage: React.FC = () => {
             )}
 
             {/* Reset Button when Zoomed (No +/- buttons) */}
-            {!isVideoMode && scale > 1.05 && (
+            {scale > 1.05 && (
               <button
                 type="button"
                 onClick={(e) => {
@@ -548,72 +548,38 @@ export const ProductDetailPage: React.FC = () => {
             )}
 
             {/* Visual Instruction & Zoom Feedback Guide */}
-            {!isVideoMode && (
-              !isHoverZooming && scale <= 1.05 ? (
-                <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[11px] font-medium px-3 py-1.5 rounded-full shadow-lg pointer-events-none flex items-center gap-1.5 whitespace-nowrap border border-white/20">
-                  <ZoomIn className="w-3.5 h-3.5 text-rose-300 shrink-0" />
-                  <span className="hidden sm:inline">ফেব্রিক জুম করুন</span>
-                  <span className="sm:hidden">২ আঙুলে জুম</span>
-                </div>
-              ) : scale > 1.05 && (
-                <div className="absolute bottom-3 left-3 bg-rose-950/85 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 border border-white/20 animate-fadeIn">
-                  <span>{scale.toFixed(1)}x জুম</span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      resetZoom();
-                    }}
-                    className="bg-white text-rose-700 hover:bg-rose-50 text-[10px] font-black px-2 py-0.5 rounded-full transition cursor-pointer"
-                  >
-                    রিসেট
-                  </button>
-                </div>
-              )
+            {!isHoverZooming && scale <= 1.05 ? (
+              <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[11px] font-medium px-3 py-1.5 rounded-full shadow-lg pointer-events-none flex items-center gap-1.5 whitespace-nowrap border border-white/20">
+                <ZoomIn className="w-3.5 h-3.5 text-rose-300 shrink-0" />
+                <span className="hidden sm:inline">ফেব্রিক জুম করুন</span>
+                <span className="sm:hidden">২ আঙুলে জুম</span>
+              </div>
+            ) : scale > 1.05 && (
+              <div className="absolute bottom-3 left-3 bg-rose-950/85 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 border border-white/20 animate-fadeIn">
+                <span>{scale.toFixed(1)}x জুম</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetZoom();
+                  }}
+                  className="bg-white text-rose-700 hover:bg-rose-50 text-[10px] font-black px-2 py-0.5 rounded-full transition cursor-pointer"
+                >
+                  রিসেট
+                </button>
+              </div>
             )}
           </div>
 
           {/* Thumbnails Row */}
-          {(product.images.filter(Boolean).length > 0 || (modelVideo && !videoError)) && (
+          {product.images.filter(Boolean).length > 0 && (
             <div className="flex gap-2.5 w-full justify-center flex-wrap px-4 py-3 sm:px-0 sm:py-0 sm:mt-4">
-              {/* 1st Thumbnail: AI Model Video */}
-              {modelVideo && !videoError && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsVideoMode(true);
-                    resetZoom();
-                  }}
-                  className={`relative w-16 h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer group ${
-                    isVideoMode
-                      ? 'border-rose-600 ring-2 ring-rose-300 scale-105 shadow-md'
-                      : 'border-rose-100 opacity-80 hover:opacity-100'
-                  }`}
-                  title="মডেলের ড্রেস পরা এআই ভিডিও দেখুন"
-                >
-                  <img
-                    src={product.images[0] || FALLBACK_IMAGE}
-                    alt="Model Video Thumbnail"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-slate-950/45 flex flex-col items-center justify-center text-white">
-                    <span className="w-6 h-6 rounded-full bg-rose-600 flex items-center justify-center shadow">
-                      <Play className="w-3 h-3 fill-white text-white ml-0.5" />
-                    </span>
-                    <span className="text-[9px] font-black mt-1 bg-black/70 px-1 rounded text-amber-300">
-                      AI ভিডিও
-                    </span>
-                  </div>
-                </button>
-              )}
-
               {/* Photo Thumbnails */}
               {product.images.filter(Boolean).map((img, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => {
-                    setIsVideoMode(false);
                     setSelectedImg(img);
                     resetZoom();
                     if (product.colors && product.colors[idx]) {
@@ -621,7 +587,7 @@ export const ProductDetailPage: React.FC = () => {
                     }
                   }}
                   className={`relative w-16 h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
-                    !isVideoMode && activeImage === img
+                    activeImage === img
                       ? 'border-rose-600 ring-2 ring-rose-200 scale-105 shadow-md'
                       : 'border-rose-100 opacity-75 hover:opacity-100'
                   }`}

@@ -215,7 +215,6 @@ export const AdminPanel: React.FC = () => {
     price: 1500,
     regularPrice: 2000,
     images: [] as string[],
-    videoUrl: '',
     fabric: '',
     sizes: 'M (৩৮), L (৪০), XL (৪২)',
     colors: [
@@ -501,7 +500,6 @@ export const AdminPanel: React.FC = () => {
       isNew: true,
       isTrending: false,
       featured: false,
-      videoUrl: '',
     });
     setNewImageInput('');
     setBulkImageInput('');
@@ -522,7 +520,6 @@ export const AdminPanel: React.FC = () => {
       price: prod.price,
       regularPrice: prod.regularPrice,
       images: prod.images && prod.images.length > 0 ? [...prod.images] : ['https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80'],
-      videoUrl: prod.videoUrl || '',
       fabric: prod.fabric,
       sizes: prod.sizes.join(', '),
       colors: prod.colors && prod.colors.length > 0 ? [...prod.colors] : [{ name: 'গোলাপি', hex: '#ec4899' }],
@@ -680,7 +677,6 @@ export const AdminPanel: React.FC = () => {
         price: Number(productForm.price),
         regularPrice: Number(productForm.regularPrice),
         images: finalImages,
-        videoUrl: productForm.videoUrl?.trim() || undefined,
         fabric: productForm.fabric,
         sizes: sizesArr,
         colors: finalColors,
@@ -700,7 +696,6 @@ export const AdminPanel: React.FC = () => {
         price: Number(productForm.price),
         regularPrice: Number(productForm.regularPrice),
         images: finalImages,
-        videoUrl: productForm.videoUrl?.trim() || undefined,
         rating: 5.0,
         reviewsCount: 1,
         isNew: productForm.isNew,
@@ -3840,44 +3835,7 @@ export const AdminPanel: React.FC = () => {
                   </div>
                 </div>
 
-                {/* SECTION 3.5: AI মডেল ভিডিও (১ম থাম্বনেইল ভিডিও) */}
-                <div className="p-4 bg-gradient-to-r from-rose-50/80 to-pink-50/80 rounded-2xl border border-rose-200/90 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="block font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 text-rose-600" />
-                      <span>পোশাকের ১ম থাম্বনেইল AI ভিডিও (Model Showcase Video)</span>
-                    </label>
-                    <span className="text-[10px] text-rose-700 font-bold bg-white px-2 py-0.5 rounded-full border border-rose-200">
-                      মেয়ে মডেলের পোশাক পরিহিত মোশন
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    প্রোডাক্টের ১ম থাম্বনেইল ও ডিটেইলস পেজে মেয়ে মডেলের এই ড্রেস পরা ৫ সেকেন্ডের ফ্যাশন ভিডিও প্রদর্শিত হবে।
-                  </p>
-                  <input
-                    type="text"
-                    placeholder="যেমন: /videos/products/prod_ns-0081.mp4 অথবা যেকোনো MP4 ভিডিও লিংক"
-                    value={productForm.videoUrl || ''}
-                    onChange={(e) => setProductForm({ ...productForm, videoUrl: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-rose-300 font-mono text-xs bg-white focus:ring-2 focus:ring-rose-500"
-                  />
-                  {productForm.videoUrl && (
-                    <div className="pt-1 flex items-center justify-between">
-                      <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
-                        <Check className="w-3 h-3" />
-                        <span>১ম থাম্বনেইল ভিডিও যুক্ত করা আছে</span>
-                      </span>
-                      <a
-                        href={productForm.videoUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[10px] text-rose-600 underline font-semibold hover:text-rose-800"
-                      >
-                        ভিডিও প্রিভিউ দেখুন
-                      </a>
-                    </div>
-                  )}
-                </div>
+
 
                 {/* SECTION 4: বিস্তারিত বিবরণ (Full Description) */}
                 <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-2">
