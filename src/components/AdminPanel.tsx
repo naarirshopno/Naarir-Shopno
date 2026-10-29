@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useShop } from '../context/ShopContext';
-import { Product, Order, OrderStatus, CategoryType, StoreSettings, CustomCategoryItem } from '../types';
+import { Product, Order, OrderStatus, CategoryType, StoreSettings, CustomCategoryItem, DropshippingApiSettings } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/initialData';
+import { testDropshippingConnection, sendOrderToDropshipping, DropshippingTestResult } from '../services/dropshippingService';
 import { 
   X, 
   LayoutDashboard, 
@@ -53,7 +54,14 @@ import {
   Activity,
   Cpu,
   Server,
-  ShieldAlert
+  ShieldAlert,
+  Boxes,
+  PackageCheck,
+  Wifi,
+  WifiOff,
+  Copy,
+  CheckCheck,
+  Zap
 } from 'lucide-react';
 import { InvoiceModal } from './InvoiceModal';
 
@@ -86,6 +94,7 @@ export const AdminPanel: React.FC = () => {
     deleteProduct, 
     orders, 
     updateOrderStatus, 
+    updateOrderDropshipping,
     deleteOrder,
     settings, 
     updateSettings, 
@@ -113,7 +122,40 @@ export const AdminPanel: React.FC = () => {
   const [isConfirmDeleteDemosOpen, setIsConfirmDeleteDemosOpen] = useState(false);
   const [demoDeleteToast, setDemoDeleteToast] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'delivery' | 'social' | 'messages' | 'categories' | 'database'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'delivery' | 'social' | 'messages' | 'categories' | 'database' | 'dropshipping'>('dashboard');
+  
+  // Dropshipping API Configuration State
+  const [dropshippingForm, setDropshippingForm] = useState<DropshippingApiSettings>(() => {
+    return settings.dropshippingApi || {
+      enabled: false,
+      apiKey: '',
+      apiSecret: '',
+      baseUrl: 'https://www.dropshipping.com.bd/api/v1',
+      resellerId: '',
+      resellerPhone: '01911-541717',
+      autoForwardOrders: false,
+      testMode: true,
+      defaultCourier: 'Steadfast Courier',
+      webhookUrl: 'https://naarirshopno.vercel.app/api/dropshipping/webhook',
+      connectionStatus: 'disconnected',
+      lastStatusMessage: 'এখনো কোনো API কানেকশন কনফিগার করা হয়নি',
+    };
+  });
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showApiSecret, setShowApiSecret] = useState(false);
+  const [isTestingApi, setIsTestingApi] = useState(false);
+  const [apiTestResult, setApiTestResult] = useState<DropshippingTestResult | null>(null);
+  const [apiSaveToast, setApiSaveToast] = useState<string | null>(null);
+  const [forwardingOrderId, setForwardingOrderId] = useState<string | null>(null);
+  const [orderForwardToast, setOrderForwardToast] = useState<string | null>(null);
+  const [webhookCopied, setWebhookCopied] = useState(false);
+
+  useEffect(() => {
+    if (settings.dropshippingApi) {
+      setDropshippingForm(settings.dropshippingApi);
+    }
+  }, [settings.dropshippingApi]);
+
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategoryItem, setEditingCategoryItem] = useState<CustomCategoryItem | null>(null);
   const [categoryFormTitle, setCategoryFormTitle] = useState('');
@@ -775,6 +817,72 @@ export const AdminPanel: React.FC = () => {
     setSelectedOrderForCourier(null);
   };
 
+  // Dropshipping API Handlers
+  const handleTestDropshippingConnection = async () => {
+    setIsTestingApi(true);
+    setApiTestResult(null);
+    try {
+      const res = await testDropshippingConnection(dropshippingForm);
+      setApiTestResult(res);
+      setDropshippingForm((prev) => ({
+        ...prev,
+        connectionStatus: res.success ? 'connected' : 'error',
+        lastConnectedAt: new Date().toISOString(),
+        lastStatusMessage: res.message,
+      }));
+    } catch {
+      setApiTestResult({
+        success: false,
+        message: 'কানেকশন টেস্টের সময় অপ্রত্যাশিত সমস্যা হয়েছে।',
+      });
+    } finally {
+      setIsTestingApi(false);
+    }
+  };
+
+  const handleSaveDropshippingSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    const updatedApiSettings: DropshippingApiSettings = {
+      ...dropshippingForm,
+      apiKey: dropshippingForm.apiKey.trim(),
+      apiSecret: dropshippingForm.apiSecret?.trim() || '',
+      baseUrl: dropshippingForm.baseUrl?.trim() || 'https://www.dropshipping.com.bd/api/v1',
+      resellerId: dropshippingForm.resellerId?.trim() || '',
+      resellerPhone: dropshippingForm.resellerPhone?.trim() || '',
+      webhookUrl: dropshippingForm.webhookUrl?.trim() || 'https://naarirshopno.vercel.app/api/dropshipping/webhook',
+    };
+    updateSettings({
+      ...settings,
+      dropshippingApi: updatedApiSettings,
+    });
+    setApiSaveToast('ড্রপশিপিং API কনফিগারেশন সফলভাবে সংরক্ষিত হয়েছে!');
+    setTimeout(() => setApiSaveToast(null), 3500);
+  };
+
+  const handleForwardOrderToDropshipping = async (ord: Order) => {
+    setForwardingOrderId(ord.id);
+    try {
+      const currentApi = settings.dropshippingApi || dropshippingForm;
+      const res = await sendOrderToDropshipping(ord, currentApi);
+      if (res.success) {
+        updateOrderDropshipping(ord.id, {
+          synced: true,
+          syncedAt: new Date().toISOString(),
+          dropshippingOrderId: res.dropshippingOrderId || `DS-${Math.floor(100000 + Math.random() * 900000)}`,
+          status: 'ড্রপশিপিং সিস্টেমে প্রেরিত',
+        });
+        setOrderForwardToast(`অর্ডার #${ord.id} সফলভাবে Dropshipping.com.bd-তে পাঠানো হয়েছে!`);
+      } else {
+        setOrderForwardToast(`ব্যর্থ: ${res.message}`);
+      }
+    } catch {
+      setOrderForwardToast('অর্ডার প্রেরণে সমস্যা হয়েছে, অনুগ্রহ করে API সেটিংস পরীক্ষা করুন।');
+    } finally {
+      setForwardingOrderId(null);
+      setTimeout(() => setOrderForwardToast(null), 4000);
+    }
+  };
+
   // Calculations for overview
   const totalSales = orders
     .filter((o) => o.status !== 'cancelled')
@@ -1219,6 +1327,26 @@ export const AdminPanel: React.FC = () => {
                   <span className={`w-2 h-2 rounded-full shrink-0 ${
                     dbHealth.status === 'healthy' ? 'bg-emerald-400' : dbHealth.status === 'warning' ? 'bg-amber-400' : 'bg-rose-500'
                   }`} />
+                )}
+              </button>
+
+              <button
+                id="admin-tab-dropshipping"
+                onClick={() => setActiveTab('dropshipping')}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all ${
+                  activeTab === 'dropshipping'
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'text-slate-700 hover:bg-rose-50 hover:text-rose-700'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Boxes className="w-4 h-4 shrink-0 text-amber-500" />
+                  <span>ড্রপশিপিং API সেটিংস</span>
+                </div>
+                {settings.dropshippingApi?.enabled ? (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="API সক্রিয়" />
+                ) : (
+                  <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0" title="API নিষ্ক্রিয়" />
                 )}
               </button>
             </div>
@@ -1880,7 +2008,7 @@ export const AdminPanel: React.FC = () => {
 
                         {/* Courier Details & Actions */}
                         <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-                          <div>
+                          <div className="flex items-center gap-2 flex-wrap">
                             {ord.courier ? (
                               <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-200">
                                 <Truck className="w-3.5 h-3.5" />
@@ -1890,9 +2018,31 @@ export const AdminPanel: React.FC = () => {
                             ) : (
                               <span className="text-slate-400 italic">কুরিয়ার তথ্য এখনও যোগ করা হয়নি</span>
                             )}
+
+                            {ord.dropshipping?.synced ? (
+                              <div className="flex items-center gap-1.5 bg-amber-50 text-amber-900 px-2.5 py-1 rounded-lg border border-amber-300 shadow-2xs">
+                                <Boxes className="w-3.5 h-3.5 text-amber-600" />
+                                <span>ড্রপশিপিং: <strong>{ord.dropshipping.dropshippingOrderId}</strong></span>
+                                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.2 rounded">প্রেরিত</span>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-amber-700 bg-amber-50/70 border border-amber-200 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                                <Boxes className="w-3 h-3 text-amber-500" />
+                                <span>ড্রপশিপিং বাকি</span>
+                              </span>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                              onClick={() => handleForwardOrderToDropshipping(ord)}
+                              disabled={forwardingOrderId === ord.id}
+                              className="bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold px-3 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1 transition disabled:opacity-50 cursor-pointer shadow-2xs"
+                              title="Dropshipping.com.bd-তে পাঠান"
+                            >
+                              <Boxes className={`w-3.5 h-3.5 text-amber-700 ${forwardingOrderId === ord.id ? 'animate-spin' : ''}`} />
+                              <span>{forwardingOrderId === ord.id ? 'পাঠানো হচ্ছে...' : (ord.dropshipping?.synced ? 'পুনরায় ড্রপশিপিং' : 'ড্রপশিপিংয়ে পাঠান')}</span>
+                            </button>
                             <button
                               onClick={() => {
                                 setSelectedOrderForCourier(ord);
@@ -3008,6 +3158,467 @@ export const AdminPanel: React.FC = () => {
                         <span>ডাটাবেস কানেকশন, কালেকশন রিড এবং রাইট পারমিশন সম্পূর্ণ নির্ভুলভাবে কাজ করছে। কোনো সমস্যা পাওয়া যায়নি!</span>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: DROPSHIPPING API SETTINGS */}
+              {activeTab === 'dropshipping' && (
+                <div className="space-y-6">
+                  {/* Header Banner */}
+                  <div className="bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 rounded-3xl p-6 text-white shadow-xl border border-rose-900/40 relative overflow-hidden">
+                    <div className="absolute right-0 top-0 w-96 h-96 bg-rose-600/10 rounded-full blur-3xl pointer-events-none" />
+                    
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-bold text-[10px] uppercase tracking-wider">
+                            Reseller API
+                          </span>
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                            dropshippingForm.enabled 
+                              ? (dropshippingForm.connectionStatus === 'connected' 
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/30')
+                              : 'bg-slate-700/60 text-slate-300 border border-slate-600'
+                          }`}>
+                            <span className={`w-2 h-2 rounded-full ${
+                              dropshippingForm.enabled 
+                                ? (dropshippingForm.connectionStatus === 'connected' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400')
+                                : 'bg-slate-400'
+                            }`} />
+                            <span>
+                              {dropshippingForm.enabled 
+                                ? (dropshippingForm.connectionStatus === 'connected' ? 'এপিআই কানেক্টেড' : 'সক্রিয় (কানেকশন টেস্ট বাকি)') 
+                                : 'এপিআই নিষ্ক্রিয়'}
+                            </span>
+                          </span>
+                        </div>
+                        <h4 className="text-xl sm:text-2xl font-black font-['Hind_Siliguri'] flex items-center gap-2 text-white">
+                          <Boxes className="w-6 h-6 text-amber-400" />
+                          <span>Dropshipping.com.bd এপিআই ইন্টিগ্রেশন</span>
+                        </h4>
+                        <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                          আপনার ই-কমার্স স্টোরের কাস্টমার অর্ডার স্বয়ংক্রিয়ভাবে dropshipping.com.bd পোর্টালে ড্রপশিপার অ্যাকাউন্টে পাঠাতে API Key ও সিক্রেট টোকেন কনফিগার করুন।
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
+                        <a
+                          href="https://www.dropshipping.com.bd/dropshipper/documentation/api"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 border border-white/15 backdrop-blur-sm cursor-pointer"
+                        >
+                          <ExternalLink className="w-4 h-4 text-amber-300" />
+                          <span>অফিসিয়াল ডকুমেন্টেশন</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSaveDropshippingSettings} className="space-y-6">
+                    {/* Top Switch Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* 1. Master Enable Switch */}
+                      <div className="bg-white p-5 rounded-2xl border border-rose-100 shadow-sm flex flex-col justify-between space-y-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800 text-sm">১. এপিআই স্ট্যাটাস</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              dropshippingForm.enabled ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              {dropshippingForm.enabled ? 'সক্রিয় (Active)' : 'বন্ধ (Disabled)'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500">
+                            সার্ভিস অন থাকলে সিস্টেমে ড্রপশিপিং ফিচার কার্যকর থাকবে
+                          </p>
+                        </div>
+
+                        <label className="relative inline-flex items-center cursor-pointer pt-2 border-t border-slate-100">
+                          <input
+                            type="checkbox"
+                            checked={dropshippingForm.enabled}
+                            onChange={(e) => setDropshippingForm({ ...dropshippingForm, enabled: e.target.checked })}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[10px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                          <span className="ml-3 text-xs font-bold text-slate-700">
+                            {dropshippingForm.enabled ? 'সার্ভিস চালু আছে' : 'সার্ভিস বন্ধ করুন'}
+                          </span>
+                        </label>
+                      </div>
+
+                      {/* 2. Auto-Forward Orders */}
+                      <div className="bg-white p-5 rounded-2xl border border-rose-100 shadow-sm flex flex-col justify-between space-y-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800 text-sm">২. অটো-ফরওয়ার্ড অর্ডার</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              dropshippingForm.autoForwardOrders ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              {dropshippingForm.autoForwardOrders ? 'অটোমেটিক' : 'ম্যানুয়াল'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500">
+                            নতুন গ্রাহক অর্ডার দিলে সাথে সাথে dropshipping.com.bd-তে পুশ হবে
+                          </p>
+                        </div>
+
+                        <label className="relative inline-flex items-center cursor-pointer pt-2 border-t border-slate-100">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(dropshippingForm.autoForwardOrders)}
+                            onChange={(e) => setDropshippingForm({ ...dropshippingForm, autoForwardOrders: e.target.checked })}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[10px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          <span className="ml-3 text-xs font-bold text-slate-700">
+                            {dropshippingForm.autoForwardOrders ? 'অটো-ফরওয়ার্ড চালু' : 'শুধু ম্যানুয়ালি পাঠান'}
+                          </span>
+                        </label>
+                      </div>
+
+                      {/* 3. Test / Sandbox Mode */}
+                      <div className="bg-white p-5 rounded-2xl border border-rose-100 shadow-sm flex flex-col justify-between space-y-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800 text-sm">৩. টেস্ট মোড (Sandbox)</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              dropshippingForm.testMode ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                            }`}>
+                              {dropshippingForm.testMode ? 'Sandbox' : 'Live Production'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500">
+                            টেস্টিং চলাকালে ব্যালেন্স না কেটে ড্রাফট হিসেবে অর্ডার জমা হবে
+                          </p>
+                        </div>
+
+                        <label className="relative inline-flex items-center cursor-pointer pt-2 border-t border-slate-100">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(dropshippingForm.testMode)}
+                            onChange={(e) => setDropshippingForm({ ...dropshippingForm, testMode: e.target.checked })}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[10px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                          <span className="ml-3 text-xs font-bold text-slate-700">
+                            {dropshippingForm.testMode ? 'টেস্ট মোড সক্রিয়' : 'লাইভ প্রোডাকশন মোড'}
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* API Credentials Configuration Card */}
+                    <div className="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm space-y-5">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                            <Key className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h5 className="font-bold text-slate-900 text-base">API ক্রেডেনশিয়ালস ও সংযোগ তথ্য</h5>
+                            <p className="text-xs text-slate-500">dropshipping.com.bd রিসেলার ড্যাশবোর্ড থেকে প্রাপ্ত তথ্য প্রদান করুন</p>
+                          </div>
+                        </div>
+                        <span className="text-xs text-rose-600 font-bold bg-rose-50 px-2.5 py-1 rounded-full border border-rose-100">
+                          ২৫৬-বিট সুরক্ষিত
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Base API URL */}
+                        <div className="md:col-span-2">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-xs font-bold text-slate-700">
+                              API Base URL (এন্ডপয়েন্ট বেস ইউআরএল) *
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setDropshippingForm({ ...dropshippingForm, baseUrl: 'https://www.dropshipping.com.bd/api/v1' })}
+                              className="text-[11px] font-semibold text-rose-600 hover:underline cursor-pointer"
+                            >
+                              ডিফল্ট URL রিসেট করুন
+                            </button>
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="url"
+                              required
+                              value={dropshippingForm.baseUrl || 'https://www.dropshipping.com.bd/api/v1'}
+                              onChange={(e) => setDropshippingForm({ ...dropshippingForm, baseUrl: e.target.value })}
+                              placeholder="https://www.dropshipping.com.bd/api/v1"
+                              className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white font-mono focus:ring-2 focus:ring-rose-500"
+                            />
+                            <Globe className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-1">
+                            Dropshipping.com.bd এর স্ট্যান্ডার্ড API এন্ডপয়েন্ট: <code className="text-rose-600">https://www.dropshipping.com.bd/api/v1</code>
+                          </p>
+                        </div>
+
+                        {/* API Key */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                            ড্রপশিপার API কী (API Key / Client ID) *
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={showApiKey ? 'text' : 'password'}
+                              required
+                              value={dropshippingForm.apiKey}
+                              onChange={(e) => setDropshippingForm({ ...dropshippingForm, apiKey: e.target.value })}
+                              placeholder="drp_live_xxxxxxxxxxxxxxxxxxxxxxxx"
+                              className="w-full text-xs sm:text-sm px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 bg-white font-mono focus:ring-2 focus:ring-rose-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowApiKey(!showApiKey)}
+                              className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                              title={showApiKey ? 'লুকান' : 'দেখুন'}
+                            >
+                              {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-1">
+                            আপনার dropshipping.com.bd প্রোফাইলের ইউনিক এপিআই কী
+                          </p>
+                        </div>
+
+                        {/* API Secret / Bearer Token */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                            API সিক্রেট / Bearer টোকেন (API Secret / Auth Token)
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={showApiSecret ? 'text' : 'password'}
+                              value={dropshippingForm.apiSecret || ''}
+                              onChange={(e) => setDropshippingForm({ ...dropshippingForm, apiSecret: e.target.value })}
+                              placeholder="drp_sec_xxxxxxxxxxxxxxxxxxxxxxxx"
+                              className="w-full text-xs sm:text-sm px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 bg-white font-mono focus:ring-2 focus:ring-rose-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowApiSecret(!showApiSecret)}
+                              className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                              title={showApiSecret ? 'লুকান' : 'দেখুন'}
+                            >
+                              {showApiSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-1">
+                            ডকুমেন্টেশন অনুযায়ী রিকোয়েস্ট হেডারে প্রেরিত সিক্রেট কি
+                          </p>
+                        </div>
+
+                        {/* Reseller Account Phone */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                            রেজিস্টার্ড ড্রপশিপার ফোন নম্বর (Phone)
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={dropshippingForm.resellerPhone || ''}
+                              onChange={(e) => setDropshippingForm({ ...dropshippingForm, resellerPhone: e.target.value })}
+                              placeholder="01911541717"
+                              className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-rose-500"
+                            />
+                            <Phone className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-1">
+                            dropshipping.com.bd অ্যাকাউন্টের ভেরিফায়েড মোবাইল নম্বর
+                          </p>
+                        </div>
+
+                        {/* Preferred Courier */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                            ডিফল্ট কুরিয়ার সার্ভিস নির্বাচন
+                          </label>
+                          <div className="relative">
+                            <select
+                              value={dropshippingForm.defaultCourier || 'Steadfast Courier'}
+                              onChange={(e) => setDropshippingForm({ ...dropshippingForm, defaultCourier: e.target.value })}
+                              className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-rose-500"
+                            >
+                              <option value="Steadfast Courier">Steadfast Courier (স্টেডফাস্ট কুরিয়ার)</option>
+                              <option value="Pathao Courier">Pathao Courier (পাঠাও এক্সপ্রেস)</option>
+                              <option value="RedX Logistics">RedX Logistics (রেডএক্স)</option>
+                              <option value="Paperfly">Paperfly (পেপারফ্লাই)</option>
+                              <option value="eCourier">eCourier (ই-কুরিয়ার)</option>
+                              <option value="Sundarban Courier">Sundarban Courier (সুন্দরবন)</option>
+                            </select>
+                            <Truck className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-1">
+                            ড্রপশিপিং প্ল্যাটফর্মে যে কুরিয়ারের মাধ্যমে পার্সেল পাঠানো হবে
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Live Test Results Feedback Box */}
+                      {apiTestResult && (
+                        <div className={`p-4 rounded-2xl border transition-all ${
+                          apiTestResult.success 
+                            ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900' 
+                            : 'bg-red-50/80 border-red-200 text-red-900'
+                        }`}>
+                          <div className="flex items-start gap-3">
+                            {apiTestResult.success ? (
+                              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                            ) : (
+                              <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                            )}
+                            <div className="space-y-1 flex-1">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <h6 className="font-bold text-xs sm:text-sm">
+                                  {apiTestResult.success ? 'কানেকশন সফল হয়েছে!' : 'কানেকশন ব্যর্থ হয়েছে'}
+                                </h6>
+                                <div className="flex items-center gap-2 text-[11px] font-mono">
+                                  {apiTestResult.statusCode && (
+                                    <span className="bg-white px-2 py-0.5 rounded border border-slate-200 font-bold">
+                                      Status: {apiTestResult.statusCode}
+                                    </span>
+                                  )}
+                                  {apiTestResult.latencyMs !== undefined && (
+                                    <span className="bg-white px-2 py-0.5 rounded border border-slate-200 font-bold text-rose-600">
+                                      {apiTestResult.latencyMs}ms
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <p className="text-xs leading-relaxed">{apiTestResult.message}</p>
+
+                              {apiTestResult.accountInfo && (
+                                <div className="mt-2 pt-2 border-t border-emerald-200/60 grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                                  <div>
+                                    <span className="text-emerald-700 block text-[10px]">অ্যাকাউন্টের নাম:</span>
+                                    <span className="font-bold">{apiTestResult.accountInfo.resellerName}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-emerald-700 block text-[10px]">উপলব্ধ ব্যালেন্স:</span>
+                                    <span className="font-bold font-['Outfit']">৳{apiTestResult.accountInfo.balance?.toLocaleString()}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-emerald-700 block text-[10px]">সক্রিয় ড্রপশিপ অর্ডার:</span>
+                                    <span className="font-bold font-mono">{apiTestResult.accountInfo.activeOrders} টি</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={handleTestDropshippingConnection}
+                          disabled={isTestingApi || !dropshippingForm.apiKey.trim()}
+                          className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs sm:text-sm transition flex items-center gap-2 shadow-md hover:shadow-lg cursor-pointer"
+                        >
+                          <Wifi className={`w-4 h-4 text-emerald-400 ${isTestingApi ? 'animate-pulse' : ''}`} />
+                          <span>{isTestingApi ? 'কানেকশন টেস্ট হচ্ছে...' : 'কানেকশন টেস্ট করুন (Test Connection)'}</span>
+                        </button>
+
+                        <button
+                          type="submit"
+                          className="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm transition flex items-center gap-2 shadow-md hover:shadow-lg cursor-pointer active:scale-98"
+                        >
+                          <Save className="w-4 h-4" />
+                          <span>API সেটিংস সেভ করুন (Save Settings)</span>
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+
+                  {/* Webhook & Callback URL Guide Card */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Webhook Box - 100% Optional */}
+                    <div className="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-slate-800">
+                          <Zap className="w-5 h-5 text-amber-500" />
+                          <h5 className="font-bold text-sm">ওয়েবহুক URL (সম্পূর্ণ ঐচ্ছিক / Optional)</h5>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                          প্রয়োজন নেই (Optional)
+                        </span>
+                      </div>
+
+                      {/* Helpful Banner explaining why user doesn't need to look for Webhook */}
+                      <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200/80 text-xs text-amber-900 space-y-1">
+                        <p className="font-bold flex items-center gap-1.5 text-amber-800">
+                          <span>💡 চিন্তা করবেন না, এটি আপনার খুঁজতে হবে না!</span>
+                        </p>
+                        <p className="text-[11px] leading-relaxed text-amber-950">
+                          dropshipping.com.bd পোর্টালে Webhook অপশন দেওয়া থাকে না বা প্রয়োজন হয় না। <strong>শুধুমাত্র উপরের "API কী" বসালেই আপনার শপ থেকে সব অর্ডার স্বয়ংক্রিয়ভাবে dropshipping.com.bd-তে চলে যাবে।</strong>
+                        </p>
+                      </div>
+
+                      <div className="space-y-2 pt-1">
+                        <p className="text-[11px] text-slate-500">
+                          ভবিষ্যতে যদি dropshipping.com.bd কখনো Webhook URL চায়, তখন নিচের লিঙ্কটি ব্যবহার করতে পারেন:
+                        </p>
+                        <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 focus-within:border-rose-400">
+                          <input
+                            type="text"
+                            value={dropshippingForm.webhookUrl || 'https://naarirshopno.vercel.app/api/dropshipping/webhook'}
+                            onChange={(e) => setDropshippingForm({ ...dropshippingForm, webhookUrl: e.target.value })}
+                            className="text-xs font-mono text-rose-700 bg-transparent flex-1 focus:outline-none min-w-0"
+                            placeholder="https://naarirshopno.vercel.app/api/dropshipping/webhook"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const targetUrl = dropshippingForm.webhookUrl || 'https://naarirshopno.vercel.app/api/dropshipping/webhook';
+                              navigator.clipboard?.writeText(targetUrl);
+                              setWebhookCopied(true);
+                              setTimeout(() => setWebhookCopied(false), 2500);
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs active:scale-95"
+                          >
+                            {webhookCopied ? <CheckCheck className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            <span>{webhookCopied ? 'কপি হয়েছে' : 'কপি করুন'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Step Guide - Focus on what matters: API Key */}
+                    <div className="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm space-y-3">
+                      <div className="flex items-center gap-2 text-slate-800">
+                        <PackageCheck className="w-5 h-5 text-emerald-600" />
+                        <h5 className="font-bold text-sm">সহজে API Key পাওয়ার নিয়ম (মাত্র ১টি কাজ):</h5>
+                      </div>
+                      
+                      <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-900 space-y-1.5 leading-relaxed">
+                        <p className="font-bold text-emerald-800 flex items-center gap-1">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>আপনার শুধু ১টি তথ্য লাগবে: "API Key"</span>
+                        </p>
+                        <ol className="text-[11px] text-emerald-950 space-y-1 list-decimal pl-4">
+                          <li>
+                            <a href="https://www.dropshipping.com.bd" target="_blank" rel="noreferrer" className="text-rose-700 underline font-bold">
+                              dropshipping.com.bd
+                            </a>
+                            -তে লগইন করে <strong>ড্যাশবোর্ড (Reseller Dashboard)</strong>-এ যান।
+                          </li>
+                          <li>মেনু থেকে <strong>"API"</strong> অথবা <strong>"Profile / Settings"</strong> অপশনে ক্লিক করুন।</li>
+                          <li>সেখানে প্রদর্শিত <strong>API Key</strong> টি কপি করুন।</li>
+                          <li>উপরের <strong>"ড্রপশিপার API কী"</strong> বক্সে পেস্ট করে <strong>"কানেকশন টেস্ট করুন"</strong> এবং <strong>"সেভ করুন"</strong> চাপুন।</li>
+                        </ol>
+                      </div>
+
+                      <p className="text-[11px] text-slate-500 italic">
+                        💡 আর কোনো কনফিগারেশন বা Webhook করা লাগবে না। API Key বসালেই অর্ডার স্বয়ংক্রিয়ভাবে যেতে শুরু করবে!
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -4148,6 +4759,28 @@ export const AdminPanel: React.FC = () => {
             <div>
               <p className="font-bold">{demoDeleteToast}</p>
               <p className="text-[11px] text-slate-300">ডেটাবেজ ও হোমপেজ থেকে ডেমো পণ্যগুলো স্থায়ীভাবে মুছে গেছে।</p>
+            </div>
+          </div>
+        )}
+
+        {/* Dropshipping Settings Saved Toast */}
+        {apiSaveToast && (
+          <div className="fixed bottom-6 right-6 z-60 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-emerald-500/50 flex items-center gap-2.5 text-xs animate-slideUp">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <p className="font-bold">{apiSaveToast}</p>
+              <p className="text-[11px] text-slate-300">ক্লাউড ফায়ারবেসে Dropshipping.com.bd সেটিংস আপডেট হয়েছে।</p>
+            </div>
+          </div>
+        )}
+
+        {/* Dropshipping Order Forward Toast */}
+        {orderForwardToast && (
+          <div className="fixed bottom-6 left-6 z-60 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-amber-500/50 flex items-center gap-2.5 text-xs animate-slideUp">
+            <Boxes className="w-5 h-5 text-amber-400 shrink-0" />
+            <div>
+              <p className="font-bold">{orderForwardToast}</p>
+              <p className="text-[11px] text-slate-300">অর্ডার স্ট্যাটাস ও ট্র্যাকিং স্বয়ংক্রিয়ভাবে সিঙ্ক হচ্ছে।</p>
             </div>
           </div>
         )}

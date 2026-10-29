@@ -90,6 +90,28 @@ export interface Order {
     estimatedDelivery?: string;
     trackingUrl?: string;
   };
+  dropshipping?: {
+    synced: boolean;
+    syncedAt?: string;
+    dropshippingOrderId?: string;
+    status?: string;
+  };
+}
+
+export interface DropshippingApiSettings {
+  enabled: boolean;
+  apiKey: string;
+  apiSecret?: string;
+  baseUrl?: string;
+  resellerId?: string;
+  resellerPhone?: string;
+  autoForwardOrders?: boolean;
+  testMode?: boolean;
+  defaultCourier?: string;
+  webhookUrl?: string;
+  lastConnectedAt?: string;
+  connectionStatus?: 'disconnected' | 'connected' | 'error';
+  lastStatusMessage?: string;
 }
 
 export interface StoreSettings {
@@ -119,6 +141,7 @@ export interface StoreSettings {
   footerBgImage?: string;
   categories?: CustomCategoryItem[];
   categoryImages?: Record<string, string>;
+  dropshippingApi?: DropshippingApiSettings;
   backgroundMusic?: {
     enabled?: boolean;
     audioUrl?: string;

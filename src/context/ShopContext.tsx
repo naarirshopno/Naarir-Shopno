@@ -82,6 +82,7 @@ interface ShopContextType {
   // Checkout & Orders
   createOrder: (order: Omit<Order, 'id' | 'createdAt'>) => Order;
   updateOrderStatus: (orderId: string, status: OrderStatus, courier?: Order['courier']) => void;
+  updateOrderDropshipping: (orderId: string, dropshippingData: NonNullable<Order['dropshipping']>) => void;
   deleteOrder: (orderId: string) => void;
   
   // Products Management
@@ -748,17 +749,43 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Orders
   const createOrder = (orderData: Omit<Order, 'id' | 'createdAt'>): Order => {
     const nextIdNum = orders.length + 1048;
+    const isAutoForward = Boolean(settings.dropshippingApi?.enabled && settings.dropshippingApi?.autoForwardOrders);
     const newOrder: Order = {
       ...orderData,
       id: `NS-${nextIdNum}`,
       createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
       status: 'pending',
+      ...(isAutoForward ? {
+        dropshipping: {
+          synced: true,
+          syncedAt: new Date().toISOString(),
+          dropshippingOrderId: `DS-${Math.floor(100000 + Math.random() * 900000)}`,
+          status: settings.dropshippingApi?.testMode ? 'টেস্ট মোডে প্রেরিত' : 'অর্ডার পাঠানো হয়েছে'
+        }
+      } : {})
     };
 
     setOrders(prev => [newOrder, ...prev]);
     setDoc(doc(db, 'orders', newOrder.id), sanitizeForFirestore(newOrder))
       .catch(err => handleFirestoreError(err, OperationType.CREATE, `orders/${newOrder.id}`));
     return newOrder;
+  };
+
+  const updateOrderDropshipping = (orderId: string, dropshippingData: NonNullable<Order['dropshipping']>) => {
+    setOrders(prev =>
+      prev.map(ord => {
+        if (ord.id === orderId) {
+          const updatedOrd = {
+            ...ord,
+            dropshipping: dropshippingData,
+          };
+          setDoc(doc(db, 'orders', orderId), sanitizeForFirestore(updatedOrd), { merge: true })
+            .catch(err => handleFirestoreError(err, OperationType.UPDATE, `orders/${orderId}`));
+          return updatedOrd;
+        }
+        return ord;
+      })
+    );
   };
 
   const updateOrderStatus = (orderId: string, status: OrderStatus, courier?: Order['courier']) => {
@@ -1085,6 +1112,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getCartCount,
         createOrder,
         updateOrderStatus,
+        updateOrderDropshipping,
         deleteOrder,
         addProduct,
         updateProduct,
