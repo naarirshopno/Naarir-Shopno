@@ -16,6 +16,8 @@ export interface CustomCategoryItem {
   image: string;
 }
 
+export type ProductFulfillmentType = 'own' | 'dropshipping';
+
 export interface Product {
   id: string;
   name: string;
@@ -24,6 +26,8 @@ export interface Product {
   categoryBengali: string;
   price: number;
   regularPrice: number;
+  wholesalePrice?: number;
+  fulfillmentType?: ProductFulfillmentType; // 'own' (দোকানের নিজস্ব স্টক) or 'dropshipping' (ড্রপশিপিং সরবরাহকারী)
   images: string[];
   rating: number;
   reviewsCount: number;

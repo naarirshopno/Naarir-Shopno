@@ -155,20 +155,22 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     runDbHealthCheck();
   }, []);
 
-  // Local storage initialized states (defaulting to empty arrays, filtering out demo IDs)
+  // Local storage initialized states (defaulting to INITIAL_PRODUCTS)
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem('ns_products');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed.filter((p: Product) => !p.id.startsWith('ns-0') && p.id !== 'ns-10');
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const filtered = parsed.filter((p: Product) => !p.id.startsWith('ns-0') && p.id !== 'ns-10');
+          const has13022 = filtered.some((p: Product) => p.id === 'ds-13022' || p.sku === 'DS-13022');
+          return has13022 ? filtered : [...INITIAL_PRODUCTS, ...filtered];
         }
       }
     } catch {
       // fallback
     }
-    return [];
+    return INITIAL_PRODUCTS;
   });
 
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -381,7 +383,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         snapshot.forEach((docSnap) => {
           remoteList.push(docSnap.data() as Product);
         });
-        setProducts(remoteList);
+        
+        const has13022 = remoteList.some((p: Product) => p.id === 'ds-13022' || p.sku === 'DS-13022');
+        if (!has13022 && INITIAL_PRODUCTS.length > 0) {
+          INITIAL_PRODUCTS.forEach((initProd) => {
+            setDoc(doc(db, 'products', initProd.id), sanitizeForFirestore(initProd)).catch(() => {});
+          });
+          setProducts([...INITIAL_PRODUCTS, ...remoteList]);
+        } else {
+          setProducts(remoteList.length > 0 ? remoteList : INITIAL_PRODUCTS);
+        }
         setCloudSyncStatus('synced');
       },
       (error) => {

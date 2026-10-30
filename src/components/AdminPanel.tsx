@@ -1,8 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useShop } from '../context/ShopContext';
-import { Product, Order, OrderStatus, CategoryType, StoreSettings, CustomCategoryItem, DropshippingApiSettings } from '../types';
+import { Product, Order, OrderStatus, CategoryType, StoreSettings, CustomCategoryItem, DropshippingApiSettings, ProductFulfillmentType } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/initialData';
-import { testDropshippingConnection, sendOrderToDropshipping, DropshippingTestResult } from '../services/dropshippingService';
+import { 
+  testDropshippingConnection, 
+  sendOrderToDropshipping, 
+  getOrderFulfillmentSummary,
+  DropshippingTestResult,
+  generateProductFromDropshippingInput,
+  DropshippingCatalogProduct
+} from '../services/dropshippingService';
 import { 
   X, 
   LayoutDashboard, 
@@ -61,7 +68,10 @@ import {
   WifiOff,
   Copy,
   CheckCheck,
-  Zap
+  Zap,
+  Download,
+  TrendingUp,
+  Percent
 } from 'lucide-react';
 import { InvoiceModal } from './InvoiceModal';
 
@@ -155,6 +165,16 @@ export const AdminPanel: React.FC = () => {
       setDropshippingForm(settings.dropshippingApi);
     }
   }, [settings.dropshippingApi]);
+
+  // Dropshipping Link-to-Post Auto Description & Profits State
+  const [isLinkPostModalOpen, setIsLinkPostModalOpen] = useState(false);
+  const [linkInput, setLinkInput] = useState('https://www.dropshipping.com.bd/product/imported-maternity-bra-for-newborn-baby-feeding-cotton-bra-13022');
+  const [linkProfitMarginType, setLinkProfitMarginType] = useState<'fixed' | 'percent'>('fixed');
+  const [linkProfitMargin, setLinkProfitMargin] = useState<number>(300);
+  const [extractedProduct, setExtractedProduct] = useState<(DropshippingCatalogProduct & { calculatedPrice: number; calculatedRegularPrice: number; calculatedProfit: number }) | null>(null);
+  const [linkExtractToast, setLinkExtractToast] = useState<string | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [quickLinkInputInProductModal, setQuickLinkInputInProductModal] = useState('');
 
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategoryItem, setEditingCategoryItem] = useState<CustomCategoryItem | null>(null);
@@ -254,6 +274,8 @@ export const AdminPanel: React.FC = () => {
     sku: '',
     category: (initialCat?.id || 'all') as CategoryType,
     categoryBengali: initialCat?.title || 'পোশাক',
+    fulfillmentType: 'own' as ProductFulfillmentType,
+    wholesalePrice: 0,
     price: 1500,
     regularPrice: 2000,
     images: [] as string[],
@@ -279,6 +301,7 @@ export const AdminPanel: React.FC = () => {
   // Product management dashboard filter & search
   const [productSearch, setProductSearch] = useState('');
   const [productCategoryFilter, setProductCategoryFilter] = useState<CategoryType | 'all'>('all');
+  const [productSourceFilter, setProductSourceFilter] = useState<'all' | 'own' | 'dropshipping'>('all');
 
   // Delivery charge settings local state
   const [deliveryForm, setDeliveryForm] = useState({
@@ -528,6 +551,8 @@ export const AdminPanel: React.FC = () => {
       sku: `NS-${Math.floor(1000 + Math.random() * 9000)}`,
       category: (defaultCat?.id || 'all') as CategoryType,
       categoryBengali: defaultCat?.title || 'পোশাক',
+      fulfillmentType: 'own',
+      wholesalePrice: 0,
       price: 1800,
       regularPrice: 2400,
       images: ['https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80'],
@@ -559,6 +584,8 @@ export const AdminPanel: React.FC = () => {
       sku: prod.sku || `NS-${prod.id}`,
       category: prod.category,
       categoryBengali: prod.categoryBengali,
+      fulfillmentType: prod.fulfillmentType || (prod.sku?.startsWith('DS-') ? 'dropshipping' : 'own'),
+      wholesalePrice: prod.wholesalePrice || 0,
       price: prod.price,
       regularPrice: prod.regularPrice,
       images: prod.images && prod.images.length > 0 ? [...prod.images] : ['https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80'],
@@ -708,6 +735,9 @@ export const AdminPanel: React.FC = () => {
       ? productForm.colors 
       : [{ name: 'গোলাপি', hex: '#ec4899' }];
 
+    const finalFulfillmentType = productForm.fulfillmentType || (productForm.sku?.startsWith('DS-') ? 'dropshipping' : 'own');
+    const finalWholesalePrice = Number(productForm.wholesalePrice) || 0;
+
     if (editingProduct) {
       updateProduct({
         ...editingProduct,
@@ -716,6 +746,8 @@ export const AdminPanel: React.FC = () => {
         sku: productForm.sku || editingProduct.sku,
         category: productForm.category,
         categoryBengali: resolvedCategoryBengali,
+        fulfillmentType: finalFulfillmentType,
+        wholesalePrice: finalWholesalePrice,
         price: Number(productForm.price),
         regularPrice: Number(productForm.regularPrice),
         images: finalImages,
@@ -735,6 +767,8 @@ export const AdminPanel: React.FC = () => {
         bengaliName: productForm.bengaliName,
         category: productForm.category,
         categoryBengali: resolvedCategoryBengali,
+        fulfillmentType: finalFulfillmentType,
+        wholesalePrice: finalWholesalePrice,
         price: Number(productForm.price),
         regularPrice: Number(productForm.regularPrice),
         images: finalImages,
@@ -749,7 +783,7 @@ export const AdminPanel: React.FC = () => {
         description: productForm.description,
         inStock: Number(productForm.stockCount) > 0,
         stockCount: Number(productForm.stockCount),
-        sku: productForm.sku || `NS-${Date.now().toString().slice(-4)}`,
+        sku: productForm.sku || (finalFulfillmentType === 'dropshipping' ? `DS-${Date.now().toString().slice(-5)}` : `NS-${Date.now().toString().slice(-4)}`),
       });
     }
     setIsProductModalOpen(false);
@@ -883,7 +917,100 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
-  // Calculations for overview
+  // Dropshipping Link Extract & Auto-Post Handlers
+  const handleExtractFromLink = (overrideLink?: string) => {
+    const targetLink = overrideLink || linkInput;
+    if (!targetLink.trim()) {
+      setLinkExtractToast('অনুগ্রহ করে ড্রপশিপিং প্রোডাক্ট লিংক বা কোড দিন');
+      setTimeout(() => setLinkExtractToast(null), 3000);
+      return;
+    }
+    setIsExtracting(true);
+    const res = generateProductFromDropshippingInput(
+      targetLink, 
+      linkProfitMarginType, 
+      linkProfitMargin
+    );
+    setIsExtracting(false);
+    if (res.success && res.product) {
+      setExtractedProduct(res.product);
+      setLinkExtractToast('✅ বিবরণ, ছবি, দাম ও লাভ স্বয়ংক্রিয়ভাবে লোড হয়েছে!');
+      setTimeout(() => setLinkExtractToast(null), 3000);
+    } else {
+      setLinkExtractToast(res.message || 'প্রোডাক্ট লোড করা সম্ভব হয়নি');
+      setTimeout(() => setLinkExtractToast(null), 3000);
+    }
+  };
+
+  const handlePostExtractedProductToShop = () => {
+    if (!extractedProduct) return;
+    
+    const storeCategories = Array.isArray(settings.categories) && settings.categories.length > 0
+      ? settings.categories
+      : DEFAULT_CATEGORIES;
+    const catMatch = storeCategories.find(c => c.id === extractedProduct.category);
+    
+    addProduct({
+      name: extractedProduct.name,
+      bengaliName: extractedProduct.bengaliName,
+      sku: extractedProduct.sku,
+      category: extractedProduct.category as CategoryType,
+      categoryBengali: catMatch?.title || extractedProduct.categoryBengali || 'ইনার & নাইটি',
+      fulfillmentType: 'dropshipping',
+      wholesalePrice: extractedProduct.wholesalePrice,
+      price: extractedProduct.calculatedPrice,
+      regularPrice: extractedProduct.calculatedRegularPrice,
+      images: extractedProduct.images,
+      fabric: extractedProduct.fabric,
+      sizes: extractedProduct.sizes,
+      colors: extractedProduct.colors,
+      description: extractedProduct.description,
+      inStock: true,
+      stockCount: extractedProduct.stockCount || 40,
+      rating: 5.0,
+      reviewsCount: Math.floor(25 + Math.random() * 20),
+      isNew: true,
+      isTrending: true,
+      featured: true,
+    });
+
+    setLinkExtractToast(`"${extractedProduct.bengaliName}" সফলভাবে ড্রপশিপিং গ্রুপে পোস্ট করা হয়েছে!`);
+    setTimeout(() => {
+      setLinkExtractToast(null);
+      setIsLinkPostModalOpen(false);
+    }, 2200);
+  };
+
+  const handleApplyExtractedToFullForm = () => {
+    if (!extractedProduct) return;
+    const storeCategories = Array.isArray(settings.categories) && settings.categories.length > 0
+      ? settings.categories
+      : DEFAULT_CATEGORIES;
+    const catMatch = storeCategories.find(c => c.id === extractedProduct.category);
+    
+    setProductForm({
+      name: extractedProduct.name,
+      bengaliName: extractedProduct.bengaliName,
+      sku: extractedProduct.sku,
+      category: extractedProduct.category as CategoryType,
+      categoryBengali: catMatch?.title || extractedProduct.categoryBengali || 'ইনার & নাইটি',
+      fulfillmentType: 'dropshipping',
+      wholesalePrice: extractedProduct.wholesalePrice,
+      price: extractedProduct.calculatedPrice,
+      regularPrice: extractedProduct.calculatedRegularPrice,
+      images: extractedProduct.images,
+      fabric: extractedProduct.fabric,
+      sizes: extractedProduct.sizes.join(', '),
+      colors: extractedProduct.colors,
+      description: extractedProduct.description,
+      stockCount: extractedProduct.stockCount || 40,
+      isNew: true,
+      isTrending: true,
+      featured: true,
+    });
+    setIsLinkPostModalOpen(false);
+    setIsProductModalOpen(true);
+  };
   const totalSales = orders
     .filter((o) => o.status !== 'cancelled')
     .reduce((sum, o) => sum + o.total, 0);
@@ -1556,8 +1683,20 @@ export const AdminPanel: React.FC = () => {
                         <RefreshCw className={`w-3.5 h-3.5 ${isSyncingAll ? 'animate-spin' : ''}`} />
                         <span>{isSyncingAll ? 'ক্লাউডে সিঙ্ক হচ্ছে...' : 'ক্লাউড সিঙ্ক করুন'}</span>
                       </button>
-
                       <button
+                        id="btn-admin-dropshipping-link-post"
+                        onClick={() => {
+                          setIsLinkPostModalOpen(true);
+                          if (!extractedProduct) {
+                            handleExtractFromLink('https://www.dropshipping.com.bd/product/imported-maternity-bra-for-newborn-baby-feeding-cotton-bra-13022');
+                          }
+                        }}
+                        title="Dropshipping.com.bd-এর যেকোনো লিঙ্ক পেস্ট করে বিবরণ, ছবি, দাম ও লাভসহ স্বয়ংক্রিয়ভাবে শপে পোস্ট করুন"
+                        className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs px-3.5 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer active:scale-98"
+                      >
+                        <LinkIcon className="w-4 h-4 text-slate-950" />
+                        <span>🔗 ড্রপশিপিং লিংক থেকে পোস্ট</span>
+                      </button>                      <button
                         id="btn-admin-add-product"
                         onClick={handleOpenAddProduct}
                         className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer"
@@ -1588,6 +1727,58 @@ export const AdminPanel: React.FC = () => {
                             ×
                           </button>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Product Group / Source Filter Bar */}
+                    <div className="flex items-center gap-2 pb-2 border-b border-slate-100 flex-wrap">
+                      <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5 shrink-0">
+                        <Boxes className="w-3.5 h-3.5 text-rose-600" />
+                        <span>পণ্যের গ্রুপ:</span>
+                      </span>
+                      <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => setProductSourceFilter('all')}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                            productSourceFilter === 'all'
+                              ? 'bg-white text-slate-900 shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          <span>সব গ্রুপ</span>
+                          <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full">{products.length}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setProductSourceFilter('own')}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                            productSourceFilter === 'own'
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'text-emerald-700 hover:bg-emerald-50'
+                          }`}
+                        >
+                          <span>📦 নিজস্ব স্টক পণ্য</span>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${productSourceFilter === 'own' ? 'bg-white/30 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
+                            {products.filter(p => p.fulfillmentType !== 'dropshipping' && !p.sku?.startsWith('DS-')).length}
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setProductSourceFilter('dropshipping')}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                            productSourceFilter === 'dropshipping'
+                              ? 'bg-amber-600 text-white shadow-xs'
+                              : 'text-amber-900 hover:bg-amber-50'
+                          }`}
+                        >
+                          <span>🌐 ড্রপশিপিং পণ্য</span>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${productSourceFilter === 'dropshipping' ? 'bg-white/30 text-white' : 'bg-amber-100 text-amber-900'}`}>
+                            {products.filter(p => p.fulfillmentType === 'dropshipping' || p.sku?.startsWith('DS-')).length}
+                          </span>
+                        </button>
                       </div>
                     </div>
 
@@ -1632,7 +1823,13 @@ export const AdminPanel: React.FC = () => {
                         p.sku.toLowerCase().includes(productSearch.toLowerCase()) ||
                         p.fabric.toLowerCase().includes(productSearch.toLowerCase());
                       const matchesCategory = productCategoryFilter === 'all' || p.category === productCategoryFilter;
-                      return matchesSearch && matchesCategory;
+                      
+                      const isDs = p.fulfillmentType === 'dropshipping' || p.sku?.startsWith('DS-');
+                      const matchesSource = productSourceFilter === 'all' ||
+                        (productSourceFilter === 'dropshipping' && isDs) ||
+                        (productSourceFilter === 'own' && !isDs);
+
+                      return matchesSearch && matchesCategory && matchesSource;
                     });
 
                     if (filtered.length === 0) {
@@ -1640,9 +1837,9 @@ export const AdminPanel: React.FC = () => {
                         <div className="bg-white p-10 rounded-2xl border border-rose-100 text-center space-y-3">
                           <Package className="w-12 h-12 text-rose-300 mx-auto" />
                           <h5 className="font-bold text-slate-700 text-sm">কোনো পোশাক খুঁজে পাওয়া যায়নি</h5>
-                          <p className="text-xs text-slate-400">অনুগ্রহ করে সার্চ কীওয়ার্ড অথবা ক্যাটাগরি ফিল্টার পরিবর্তন করুন</p>
+                          <p className="text-xs text-slate-400">অনুগ্রহ করে সার্চ কীওয়ার্ড অথবা ক্যাটাগরি / গ্রুপ ফিল্টার পরিবর্তন করুন</p>
                           <button
-                            onClick={() => { setProductSearch(''); setProductCategoryFilter('all'); }}
+                            onClick={() => { setProductSearch(''); setProductCategoryFilter('all'); setProductSourceFilter('all'); }}
                             className="text-xs text-rose-600 font-bold hover:underline"
                           >
                             ফিল্টার রিসেট করুন
@@ -1658,6 +1855,7 @@ export const AdminPanel: React.FC = () => {
                           const discountPercent = prod.regularPrice > prod.price 
                             ? Math.round(((prod.regularPrice - prod.price) / prod.regularPrice) * 100)
                             : 0;
+                          const isDropshipItem = prod.fulfillmentType === 'dropshipping' || prod.sku?.startsWith('DS-');
 
                           return (
                             <div key={prod.id} className="bg-white p-3.5 rounded-2xl border border-rose-100 shadow-sm flex flex-col justify-between space-y-3 hover:border-rose-300 transition-all group">
@@ -1693,10 +1891,21 @@ export const AdminPanel: React.FC = () => {
                                   {/* Basic Info */}
                                   <div className="flex-1 min-w-0 flex flex-col justify-between">
                                     <div>
-                                      <div className="flex items-center justify-between gap-1">
-                                        <span className="text-[10px] font-bold text-rose-600 uppercase bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
-                                          {(Array.isArray(settings.categories) ? settings.categories : DEFAULT_CATEGORIES).find(c => c.id === prod.category)?.title || prod.categoryBengali || 'পোশাক'}
-                                        </span>
+                                      <div className="flex items-center justify-between gap-1 flex-wrap">
+                                        <div className="flex items-center gap-1 flex-wrap">
+                                          <span className="text-[10px] font-bold text-rose-600 uppercase bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
+                                            {(Array.isArray(settings.categories) ? settings.categories : DEFAULT_CATEGORIES).find(c => c.id === prod.category)?.title || prod.categoryBengali || 'পোশাক'}
+                                          </span>
+                                          {isDropshipItem ? (
+                                            <span className="text-[10px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-2xs">
+                                              🌐 ড্রপশিপিং
+                                            </span>
+                                          ) : (
+                                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-2xs">
+                                              📦 নিজস্ব স্টক
+                                            </span>
+                                          )}
+                                        </div>
                                         <span className="text-[10px] font-mono text-slate-400 font-semibold">
                                           {prod.sku}
                                         </span>
@@ -1723,6 +1932,14 @@ export const AdminPanel: React.FC = () => {
                                           </span>
                                         )}
                                       </div>
+
+                                      {/* Dropshipping wholesale & profit pill */}
+                                      {isDropshipItem && (prod.wholesalePrice || 0) > 0 && (
+                                        <div className="flex items-center justify-between text-[10px] bg-amber-50/90 border border-amber-200/90 px-2 py-0.5 rounded-md mt-1">
+                                          <span className="text-slate-600 font-medium">পাইকারি: ৳{prod.wholesalePrice}</span>
+                                          <span className="font-bold text-emerald-700">লাভ: +৳{prod.price - (prod.wholesalePrice || 0)}</span>
+                                        </div>
+                                      )}
                                     </div>
 
                                     {/* Stock Controls */}
@@ -1863,186 +2080,240 @@ export const AdminPanel: React.FC = () => {
                         </div>
                       </div>
                     ) : (
-                      orders.map((ord) => (
-                      <div key={ord.id} className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm space-y-3">
-                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 pb-3 border-b border-rose-50">
-                          <div>
+                      orders.map((ord) => {
+                        const fulfillmentSum = getOrderFulfillmentSummary(ord);
+
+                        return (
+                        <div key={ord.id} className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm space-y-3">
+                          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 pb-3 border-b border-rose-50">
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-mono text-sm font-bold text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-lg border border-rose-200">
+                                  #{ord.id}
+                                </span>
+
+                                {/* Order Group Fulfillment Badge */}
+                                {fulfillmentSum.type === 'own' && (
+                                  <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
+                                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>📦 নিজস্ব স্টক অর্ডার (দোকানের মালামাল)</span>
+                                  </span>
+                                )}
+                                {fulfillmentSum.type === 'dropshipping' && (
+                                  <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
+                                    <Boxes className="w-3.5 h-3.5 text-amber-600" />
+                                    <span>🌐 ড্রপশিপিং অর্ডার ({fulfillmentSum.dropshipCount}টি)</span>
+                                  </span>
+                                )}
+                                {fulfillmentSum.type === 'mixed' && (
+                                  <span className="bg-purple-100 text-purple-900 border border-purple-300 text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
+                                    <Boxes className="w-3.5 h-3.5 text-purple-600" />
+                                    <span>⚠️ মিশ্র অর্ডার (নিজস্ব: {fulfillmentSum.ownCount} + ড্রপশিপিং: {fulfillmentSum.dropshipCount})</span>
+                                  </span>
+                                )}
+
+                                <span className="text-xs text-slate-500">{ord.createdAt}</span>
+                                <span className="text-xs font-bold text-slate-800">
+                                  {ord.customerName} ({ord.phone})
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-600 mt-1">
+                                <span className="font-medium text-slate-700">ঠিকানা:</span> {ord.address} | <span className="font-semibold text-rose-700">থানা:</span> <span className="font-bold text-slate-900">{ord.thana || 'প্রযোজ্য নয়'}</span> | <span className="font-medium text-slate-700">জেলা:</span> {ord.district} (জোন: {ord.deliveryZone})
+                              </p>
+                            </div>
+
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-sm font-bold text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-lg border border-rose-200">
-                                #{ord.id}
-                              </span>
-                              <span className="text-xs text-slate-500">{ord.createdAt}</span>
-                              <span className="text-xs font-bold text-slate-800">
-                                {ord.customerName} ({ord.phone})
-                              </span>
+                              <span className="text-xs font-bold text-slate-700">স্ট্যাটাস:</span>
+                              <select
+                                value={ord.status}
+                                onChange={(e) => updateOrderStatus(ord.id, e.target.value as OrderStatus)}
+                                className="text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-300 bg-slate-50 focus:ring-2 focus:ring-rose-500"
+                              >
+                                <option value="pending">পেন্ডিং (Pending)</option>
+                                <option value="confirmed">কনফার্মড (Confirmed)</option>
+                                <option value="processing">প্রসেসিং (Processing)</option>
+                                <option value="shipped">কুরিয়ারে হস্তান্তর (Shipped)</option>
+                                <option value="delivered">ডেলিভারি সম্পন্ন (Delivered)</option>
+                                <option value="cancelled">বাতিল (Cancelled)</option>
+                              </select>
+                              <button
+                                onClick={() => setOrderToDelete(ord)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 hover:border-red-200 transition"
+                                title="অর্ডারটি মুছুন"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             </div>
-                            <p className="text-xs text-slate-600 mt-1">
-                              <span className="font-medium text-slate-700">ঠিকানা:</span> {ord.address} | <span className="font-semibold text-rose-700">থানা:</span> <span className="font-bold text-slate-900">{ord.thana || 'প্রযোজ্য নয়'}</span> | <span className="font-medium text-slate-700">জেলা:</span> {ord.district} (জোন: {ord.deliveryZone})
-                            </p>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-700">স্ট্যাটাস:</span>
-                            <select
-                              value={ord.status}
-                              onChange={(e) => updateOrderStatus(ord.id, e.target.value as OrderStatus)}
-                              className="text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-300 bg-slate-50 focus:ring-2 focus:ring-rose-500"
-                            >
-                              <option value="pending">পেন্ডিং (Pending)</option>
-                              <option value="confirmed">কনফার্মড (Confirmed)</option>
-                              <option value="processing">প্রসেসিং (Processing)</option>
-                              <option value="shipped">কুরিয়ারে হস্তান্তর (Shipped)</option>
-                              <option value="delivered">ডেলিভারি সম্পন্ন (Delivered)</option>
-                              <option value="cancelled">বাতিল (Cancelled)</option>
-                            </select>
-                            <button
-                              onClick={() => setOrderToDelete(ord)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 hover:border-red-200 transition"
-                              title="অর্ডারটি মুছুন"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
+                          {/* Items Section with Pictures & Colors */}
+                          <div className="space-y-2 pt-1">
+                            <div className="flex items-center justify-between text-[11px] font-bold text-slate-600">
+                              <span>অর্ডারকৃত পণ্য ({ord.items.length} টি আইটেম):</span>
+                              <span className="text-[10px] text-rose-600 font-medium">ছবিতে ক্লিক করে বড় দেখুন</span>
+                            </div>
 
-                        {/* Items Section with Pictures & Colors */}
-                        <div className="space-y-2 pt-1">
-                          <div className="flex items-center justify-between text-[11px] font-bold text-slate-600">
-                            <span>অর্ডারকৃত পণ্য ({ord.items.length} টি আইটেম):</span>
-                            <span className="text-[10px] text-rose-600 font-medium">ছবিতে ক্লিক করে বড় দেখুন</span>
-                          </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                              {ord.items.map((it, i) => {
+                                const itemImg = it.selectedImage || (it.product.images && it.product.images.length > 0 && it.product.images[0]) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80';
+                                const colorHex = it.product.colors?.find(c => c.name === it.selectedColor)?.hex;
+                                const displayColor = it.selectedColor || (it.product.colors && it.product.colors[0]?.name) || 'ডিফল্ট';
+                                const isItemDs = it.product.fulfillmentType === 'dropshipping' || it.product.sku?.startsWith('DS-');
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            {ord.items.map((it, i) => {
-                              const itemImg = it.selectedImage || (it.product.images && it.product.images.length > 0 && it.product.images[0]) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80';
-                              const colorHex = it.product.colors?.find(c => c.name === it.selectedColor)?.hex;
-                              const displayColor = it.selectedColor || (it.product.colors && it.product.colors[0]?.name) || 'ডিফল্ট';
-
-                              return (
-                                <div key={i} className="flex gap-3 p-3 bg-rose-50/40 rounded-2xl border border-rose-100 hover:border-rose-300 transition items-center shadow-2xs">
-                                  {/* Product Picture */}
-                                  <div 
-                                    onClick={() => setPreviewImageModal({ 
-                                      src: itemImg, 
-                                      title: it.product.bengaliName, 
-                                      color: displayColor, 
-                                      size: it.selectedSize 
-                                    })}
-                                    className="relative w-16 h-20 rounded-xl overflow-hidden border border-rose-200 shrink-0 bg-white shadow-xs cursor-pointer group"
-                                    title="ছবি বড় করে দেখতে ক্লিক করুন"
-                                  >
-                                    <img
-                                      src={itemImg}
-                                      alt={it.product.bengaliName}
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                      onError={(e) => {
-                                        e.currentTarget.src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80';
-                                      }}
-                                    />
-                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                      <Eye className="w-5 h-5 text-white drop-shadow" />
+                                return (
+                                  <div key={i} className="flex gap-3 p-3 bg-rose-50/40 rounded-2xl border border-rose-100 hover:border-rose-300 transition items-center shadow-2xs">
+                                    {/* Product Picture */}
+                                    <div 
+                                      onClick={() => setPreviewImageModal({ 
+                                        src: itemImg, 
+                                        title: it.product.bengaliName, 
+                                        color: displayColor, 
+                                        size: it.selectedSize 
+                                      })}
+                                      className="relative w-16 h-20 rounded-xl overflow-hidden border border-rose-200 shrink-0 bg-white shadow-xs cursor-pointer group"
+                                      title="ছবি বড় করে দেখতে ক্লিক করুন"
+                                    >
+                                      <img
+                                        src={itemImg}
+                                        alt={it.product.bengaliName}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                        onError={(e) => {
+                                          e.currentTarget.src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80';
+                                        }}
+                                      />
+                                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <Eye className="w-5 h-5 text-white drop-shadow" />
+                                      </div>
                                     </div>
-                                  </div>
 
-                                  {/* Item Details */}
-                                  <div className="flex-1 min-w-0 space-y-1.5 text-xs">
-                                    <h6 className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-1" title={it.product.bengaliName}>
-                                      {it.product.bengaliName}
-                                    </h6>
-
-                                    <div className="flex flex-wrap items-center gap-1.5">
-                                      {/* Color Badge - Highly Prominent */}
-                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-rose-900 border border-rose-200 shadow-2xs">
-                                        {colorHex && (
-                                          <span
-                                            className="w-3 h-3 rounded-full border border-black/20 shrink-0 shadow-2xs"
-                                            style={{ backgroundColor: colorHex }}
-                                          />
+                                    {/* Item Details */}
+                                    <div className="flex-1 min-w-0 space-y-1.5 text-xs">
+                                      <div className="flex items-center justify-between gap-1">
+                                        <h6 className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-1" title={it.product.bengaliName}>
+                                          {it.product.bengaliName}
+                                        </h6>
+                                        {isItemDs ? (
+                                          <span className="text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 rounded shrink-0 shadow-2xs">
+                                            🌐 ড্রপশিপিং
+                                          </span>
+                                        ) : (
+                                          <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.2 rounded shrink-0 shadow-2xs">
+                                            📦 নিজস্ব স্টক
+                                          </span>
                                         )}
-                                        <span>🎨 রঙ: {displayColor}</span>
-                                      </span>
+                                      </div>
 
-                                      {/* Size Badge */}
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-white text-slate-700 border border-slate-200 shadow-2xs">
-                                        সাইজ: {it.selectedSize}
-                                      </span>
-                                    </div>
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        {/* Color Badge - Highly Prominent */}
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-rose-900 border border-rose-200 shadow-2xs">
+                                          {colorHex && (
+                                            <span
+                                              className="w-3 h-3 rounded-full border border-black/20 shrink-0 shadow-2xs"
+                                              style={{ backgroundColor: colorHex }}
+                                            />
+                                          )}
+                                          <span>🎨 রঙ: {displayColor}</span>
+                                        </span>
 
-                                    <div className="flex items-center justify-between pt-0.5">
-                                      <span className="text-[11px] text-slate-600 font-medium">
-                                        পরিমাণ: <strong className="text-slate-900 font-bold">{it.quantity} টি</strong>
-                                      </span>
-                                      <span className="font-black text-rose-700 font-['Outfit'] text-sm">
-                                        ৳{(it.product.price * it.quantity).toLocaleString()}
-                                      </span>
+                                        {/* Size Badge */}
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-white text-slate-700 border border-slate-200 shadow-2xs">
+                                          সাইজ: {it.selectedSize}
+                                        </span>
+                                      </div>
+
+                                      <div className="flex items-center justify-between pt-0.5">
+                                        <span className="text-[11px] text-slate-600 font-medium">
+                                          পরিমাণ: <strong className="text-slate-900 font-bold">{it.quantity} টি</strong>
+                                        </span>
+                                        <span className="font-black text-rose-700 font-['Outfit'] text-sm">
+                                          ৳{(it.product.price * it.quantity).toLocaleString()}
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          {ord.orderNote && (
-                            <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 flex items-start gap-1.5 mt-1">
-                              <span className="font-bold shrink-0">📝 কাস্টমার নোট:</span>
-                              <span className="italic">{ord.orderNote}</span>
+                                );
+                              })}
                             </div>
-                          )}
-                        </div>
 
-                        {/* Order Calculation & Payment Info */}
-                        <div className="pt-2 border-t border-rose-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-                          <div className="text-slate-600">
-                            ডেলিভারি চার্জ: <strong>৳{ord.deliveryCharge}</strong> | পেমেন্ট: <strong className="uppercase text-slate-800">{ord.paymentMethod}</strong>
-                            {ord.paymentDetails?.trxId && (
-                              <span className="ml-1 text-rose-600 font-mono font-bold">({ord.paymentDetails.trxId})</span>
+                            {ord.orderNote && (
+                              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 flex items-start gap-1.5 mt-1">
+                                <span className="font-bold shrink-0">📝 কাস্টমার নোট:</span>
+                                <span className="italic">{ord.orderNote}</span>
+                              </div>
                             )}
                           </div>
-                          <div className="text-right">
-                            <span className="text-xs text-slate-500 mr-2">সর্বমোট:</span>
-                            <span className="text-base sm:text-lg font-black text-rose-700 font-['Outfit']">
-                              ৳{ord.total.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
 
-                        {/* Courier Details & Actions */}
-                        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {ord.courier ? (
-                              <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-200">
-                                <Truck className="w-3.5 h-3.5" />
-                                <span>কুরিয়ার: <strong>{ord.courier.name}</strong></span>
-                                <span className="font-mono">কোড: <strong>{ord.courier.trackingId}</strong></span>
-                              </div>
-                            ) : (
-                              <span className="text-slate-400 italic">কুরিয়ার তথ্য এখনও যোগ করা হয়নি</span>
-                            )}
-
-                            {ord.dropshipping?.synced ? (
-                              <div className="flex items-center gap-1.5 bg-amber-50 text-amber-900 px-2.5 py-1 rounded-lg border border-amber-300 shadow-2xs">
-                                <Boxes className="w-3.5 h-3.5 text-amber-600" />
-                                <span>ড্রপশিপিং: <strong>{ord.dropshipping.dropshippingOrderId}</strong></span>
-                                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.2 rounded">প্রেরিত</span>
-                              </div>
-                            ) : (
-                              <span className="text-[11px] text-amber-700 bg-amber-50/70 border border-amber-200 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                                <Boxes className="w-3 h-3 text-amber-500" />
-                                <span>ড্রপশিপিং বাকি</span>
+                          {/* Order Calculation & Payment Info */}
+                          <div className="pt-2 border-t border-rose-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <div className="text-slate-600">
+                              ডেলিভারি চার্জ: <strong>৳{ord.deliveryCharge}</strong> | পেমেন্ট: <strong className="uppercase text-slate-800">{ord.paymentMethod}</strong>
+                              {ord.paymentDetails?.trxId && (
+                                <span className="ml-1 text-rose-600 font-mono font-bold">({ord.paymentDetails.trxId})</span>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs text-slate-500 mr-2">সর্বমোট:</span>
+                              <span className="text-base sm:text-lg font-black text-rose-700 font-['Outfit']">
+                                ৳{ord.total.toLocaleString()}
                               </span>
-                            )}
+                            </div>
                           </div>
 
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <button
-                              onClick={() => handleForwardOrderToDropshipping(ord)}
-                              disabled={forwardingOrderId === ord.id}
-                              className="bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold px-3 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1 transition disabled:opacity-50 cursor-pointer shadow-2xs"
-                              title="Dropshipping.com.bd-তে পাঠান"
-                            >
-                              <Boxes className={`w-3.5 h-3.5 text-amber-700 ${forwardingOrderId === ord.id ? 'animate-spin' : ''}`} />
-                              <span>{forwardingOrderId === ord.id ? 'পাঠানো হচ্ছে...' : (ord.dropshipping?.synced ? 'পুনরায় ড্রপশিপিং' : 'ড্রপশিপিংয়ে পাঠান')}</span>
-                            </button>
+                          {/* Courier Details & Actions */}
+                          <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {ord.courier ? (
+                                <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-200">
+                                  <Truck className="w-3.5 h-3.5" />
+                                  <span>কুরিয়ার: <strong>{ord.courier.name}</strong></span>
+                                  <span className="font-mono">কোড: <strong>{ord.courier.trackingId}</strong></span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 italic">কুরিয়ার তথ্য এখনও যোগ করা হয়নি</span>
+                              )}
+
+                              {fulfillmentSum.hasDropship ? (
+                                ord.dropshipping?.synced ? (
+                                  <div className="flex items-center gap-1.5 bg-amber-50 text-amber-900 px-2.5 py-1 rounded-lg border border-amber-300 shadow-2xs">
+                                    <Boxes className="w-3.5 h-3.5 text-amber-600" />
+                                    <span>ড্রপশিপিং: <strong>{ord.dropshipping.dropshippingOrderId}</strong></span>
+                                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.2 rounded">প্রেরিত</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-amber-700 bg-amber-50/70 border border-amber-200 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                                    <Boxes className="w-3 h-3 text-amber-500" />
+                                    <span>ড্রপশিপিং বাকি ({fulfillmentSum.dropshipCount}টি আইটেম)</span>
+                                  </span>
+                                )
+                              ) : (
+                                <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-200 text-xs font-semibold">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>দোকানের নিজস্ব ডেলিভারি</span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {/* SAFETY GATE: Only show dropship forwarding button if order contains dropship items */}
+                              {fulfillmentSum.hasDropship ? (
+                                <button
+                                  onClick={() => handleForwardOrderToDropshipping(ord)}
+                                  disabled={forwardingOrderId === ord.id}
+                                  className="bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold px-3 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1 transition disabled:opacity-50 cursor-pointer shadow-2xs"
+                                  title="Dropshipping.com.bd-তে পাঠান"
+                                >
+                                  <Boxes className={`w-3.5 h-3.5 text-amber-700 ${forwardingOrderId === ord.id ? 'animate-spin' : ''}`} />
+                                  <span>{forwardingOrderId === ord.id ? 'পাঠানো হচ্ছে...' : (ord.dropshipping?.synced ? 'পুনরায় ড্রপশিপিং' : (fulfillmentSum.type === 'mixed' ? 'ড্রপশিপিং অংশ পাঠান' : 'ড্রপশিপিংয়ে পাঠান'))}</span>
+                                </button>
+                              ) : (
+                                <div 
+                                  className="bg-emerald-50 text-emerald-800 font-bold px-3 py-1.5 rounded-lg border border-emerald-200 flex items-center gap-1.5 text-xs shadow-2xs cursor-default"
+                                  title="এই অর্ডারের সব পণ্য আপনার নিজস্ব স্টকের মালামাল। এটি সম্পূর্ণ সুরক্ষিত এবং ড্রপশিপিং এপিআইতে পাঠানো যাবে না।"
+                                >
+                                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                                  <span>🔒 নিজস্ব পণ্য (ড্রপশিপিংয়ে যাবে না - নিরাপদ)</span>
+                                </div>
+                              )}
                             <button
                               onClick={() => {
                                 setSelectedOrderForCourier(ord);
@@ -2094,8 +2365,9 @@ export const AdminPanel: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                    ))
-                  )}
+                    );
+                  })
+                )}
                   </div>
                 </div>
               )}
@@ -3204,6 +3476,7 @@ export const AdminPanel: React.FC = () => {
                       </div>
 
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
+
                         <a
                           href="https://www.dropshipping.com.bd/dropshipper/documentation/api"
                           target="_blank"
@@ -3626,7 +3899,301 @@ export const AdminPanel: React.FC = () => {
           </div>
         )}
 
-        {/* Add/Edit Category Modal */}
+        {/* Dropshipping Link to Post Auto Description, Pictures, Selling Price & Profits Modal */}
+        {isLinkPostModalOpen && (
+          <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+            <div className="bg-white rounded-3xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto border border-amber-300">
+              
+              {/* Header */}
+              <div className="flex justify-between items-center pb-3 border-b border-amber-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 font-bold flex items-center justify-center shadow-xs">
+                    <LinkIcon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
+                      <span>ড্রপশিপিং লিংক থেকে অটো-পোস্ট</span>
+                      <span className="text-[10px] font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-300">
+                        বিবরণ • ছবি • বিক্রয়মূল্য • লাভ
+                      </span>
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      dropshipping.com.bd-এর পণ্যের লিংক দিলে অটো ডেসক্রিপশন, ছবি, সাইজ ও বিক্রয়মূল্য তৈরি হয়ে যাবে
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsLinkPostModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Toast Notification inside modal */}
+              {linkExtractToast && (
+                <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-2xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn font-semibold">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{linkExtractToast}</span>
+                </div>
+              )}
+
+              {/* Link Input & Action Bar */}
+              <div className="p-4 bg-gradient-to-br from-amber-50/90 to-rose-50/50 rounded-2xl border border-amber-200/90 space-y-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-800">
+                      ১. dropshipping.com.bd এর পণ্যের লিংক বা SKU কোড পেস্ট করুন:
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sample = 'https://www.dropshipping.com.bd/product/imported-maternity-bra-for-newborn-baby-feeding-cotton-bra-13022';
+                        setLinkInput(sample);
+                        handleExtractFromLink(sample);
+                      }}
+                      className="text-[11px] text-rose-700 hover:text-rose-800 font-bold underline cursor-pointer"
+                    >
+                      ম্যাটার্নিটি বেবি ফিডিং ব্রা লিংক দিন (#13022)
+                    </button>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1">
+                      <LinkIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="https://www.dropshipping.com.bd/product/... অথবা কোড: 13022"
+                        value={linkInput}
+                        onChange={(e) => setLinkInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleExtractFromLink();
+                          }
+                        }}
+                        className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleExtractFromLink()}
+                      disabled={isExtracting}
+                      className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-300" />
+                      <span>{isExtracting ? 'লোড হচ্ছে...' : 'তথ্য ও ছবি অটো-লোড করুন'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Profit Margin Controls */}
+                <div className="pt-2 border-t border-amber-200/70 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-slate-800">২. আপনার লাভের মার্জিন (Profit Margin):</span>
+                    <label className="flex items-center gap-1 cursor-pointer font-medium">
+                      <input
+                        type="radio"
+                        name="linkMarginType"
+                        checked={linkProfitMarginType === 'fixed'}
+                        onChange={() => {
+                          setLinkProfitMarginType('fixed');
+                          if (linkInput.trim()) {
+                            const res = generateProductFromDropshippingInput(linkInput, 'fixed', linkProfitMargin);
+                            if (res.product) setExtractedProduct(res.product);
+                          }
+                        }}
+                        className="text-rose-600 focus:ring-rose-500"
+                      />
+                      <span>নির্দিষ্ট টাকা (+৳)</span>
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer font-medium">
+                      <input
+                        type="radio"
+                        name="linkMarginType"
+                        checked={linkProfitMarginType === 'percent'}
+                        onChange={() => {
+                          setLinkProfitMarginType('percent');
+                          if (linkInput.trim()) {
+                            const res = generateProductFromDropshippingInput(linkInput, 'percent', linkProfitMargin);
+                            if (res.product) setExtractedProduct(res.product);
+                          }
+                        }}
+                        className="text-rose-600 focus:ring-rose-500"
+                      />
+                      <span>শতকরা লাভ (+%)</span>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-600 font-medium">লাভের পরিমাণ:</span>
+                    <div className="flex items-center bg-white px-2 py-1 rounded-xl border border-slate-300">
+                      <span className="font-bold text-slate-500 mr-1">
+                        {linkProfitMarginType === 'fixed' ? '৳' : '%'}
+                      </span>
+                      <input
+                        type="number"
+                        min="50"
+                        step="50"
+                        value={linkProfitMargin}
+                        onChange={(e) => {
+                          const val = Number(e.target.value) || 0;
+                          setLinkProfitMargin(val);
+                          if (linkInput.trim()) {
+                            const res = generateProductFromDropshippingInput(linkInput, linkProfitMarginType, val);
+                            if (res.product) setExtractedProduct(res.product);
+                          }
+                        }}
+                        className="w-16 font-bold text-slate-900 text-xs sm:text-sm focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Extracted Product Live Preview Card */}
+              {extractedProduct ? (
+                <div className="p-4 bg-white rounded-2xl border-2 border-amber-300/80 shadow-md space-y-4 animate-scaleUp">
+                  
+                  {/* Top Status & Price Matrix */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                      <span className="text-[10px] text-slate-500 block">পাইকারি ক্রয়মূল্য</span>
+                      <span className="text-base font-black text-slate-800 font-['Outfit']">
+                        ৳{extractedProduct.wholesalePrice}
+                      </span>
+                      <span className="text-[9px] text-slate-400 block">dropshipping.com.bd</span>
+                    </div>
+
+                    <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200">
+                      <span className="text-[10px] text-emerald-700 block font-bold">আপনার নিট লাভ</span>
+                      <span className="text-base font-black text-emerald-700 font-['Outfit']">
+                        +৳{extractedProduct.calculatedProfit}
+                      </span>
+                      <span className="text-[9px] text-emerald-600 block font-semibold">প্রতি পিস অর্ডারে</span>
+                    </div>
+
+                    <div className="p-2.5 bg-rose-50 rounded-xl border border-rose-300">
+                      <span className="text-[10px] text-rose-700 block font-bold">আপনার বিক্রয়মূল্য</span>
+                      <span className="text-base font-black text-rose-700 font-['Outfit']">
+                        ৳{extractedProduct.calculatedPrice}
+                      </span>
+                      <span className="text-[9px] text-rose-600 block font-semibold">কাস্টমার যে দামে কিনবে</span>
+                    </div>
+
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                      <span className="text-[10px] text-slate-400 block">পূর্বের কাটা মূল্য</span>
+                      <span className="text-base font-bold text-slate-400 line-through font-['Outfit']">
+                        ৳{extractedProduct.calculatedRegularPrice}
+                      </span>
+                      <span className="text-[9px] text-emerald-600 font-bold block">
+                        {Math.round(((extractedProduct.calculatedRegularPrice - extractedProduct.calculatedPrice) / extractedProduct.calculatedRegularPrice) * 100)}% ছাড় ডিসপ্লে
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Product Details Columns */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 pt-2">
+                    {/* Pictures */}
+                    <div className="md:col-span-4 space-y-2">
+                      <div className="aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner">
+                        <img
+                          src={extractedProduct.images[0]}
+                          alt={extractedProduct.bengaliName}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {extractedProduct.images.length > 1 && (
+                        <div className="grid grid-cols-3 gap-2">
+                          {extractedProduct.images.map((img, i) => (
+                            <div key={i} className="aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+                              <img src={img} alt="Thumb" className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Meta & Descriptions */}
+                    <div className="md:col-span-8 space-y-3">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold">
+                            {extractedProduct.categoryBengali}
+                          </span>
+                          <span className="text-[11px] font-mono font-bold text-slate-400">
+                            কোড: {extractedProduct.sku}
+                          </span>
+                        </div>
+                        <h5 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+                          {extractedProduct.bengaliName}
+                        </h5>
+                        <p className="text-xs text-slate-500 font-medium">
+                          {extractedProduct.name}
+                        </p>
+                      </div>
+
+                      {/* Fabric, Sizes & Colors */}
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 text-xs text-slate-700">
+                        <p><strong>ফেব্রিক ও উপাদান:</strong> {extractedProduct.fabric}</p>
+                        <p><strong>উপলব্ধ সাইজ:</strong> {extractedProduct.sizes.join(', ')}</p>
+                        <div className="flex items-center gap-2 pt-0.5">
+                          <span className="font-bold">কালার অপশন:</span>
+                          <div className="flex items-center gap-1.5">
+                            {extractedProduct.colors.map((c, i) => (
+                              <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[11px]">
+                                <span className="w-2.5 h-2.5 rounded-full border border-slate-300" style={{ backgroundColor: c.hex }} />
+                                <span>{c.name}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div className="text-xs text-slate-600 bg-amber-50/40 p-3 rounded-xl border border-amber-200/50 leading-relaxed">
+                        <strong className="text-slate-900 block mb-1">বিস্তারিত বিবরণ:</strong>
+                        <p>{extractedProduct.description}</p>
+                      </div>
+
+                      {/* Bottom Action Buttons */}
+                      <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
+                        <button
+                          type="button"
+                          onClick={handleApplyExtractedToFullForm}
+                          className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <Edit3 className="w-4 h-4 text-slate-500" />
+                          <span>এডিট ফর্মে ওপেন করুন</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handlePostExtractedProductToShop}
+                          className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                        >
+                          <Check className="w-4 h-4" />
+                          <span>পোশাকটি আপনার ওয়েবসাইটে পোস্ট করুন</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-300 text-slate-500 text-xs space-y-2">
+                  <LinkIcon className="w-8 h-8 mx-auto text-amber-500" />
+                  <p className="font-bold text-slate-700 text-sm">
+                    উপরে লিংক দিয়ে "তথ্য ও ছবি অটো-লোড করুন" বাটনে চাপুন
+                  </p>
+                  <p className="text-[11px] text-slate-400 max-w-md mx-auto">
+                    সিস্টেমটি dropshipping.com.bd থেকে ছবি, বিবরণ, সাইজ, পাইকারি কেনা মূল্য ও আপনার নির্ধারিত লাভ হিসাব করে সম্পূর্ণ বিক্রয়মূল্য তৈরি করে দেবে।
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {isCategoryModalOpen && (
           <div className="fixed inset-0 z-60 bg-black/60 flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
             <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto border border-rose-100">
@@ -3924,12 +4491,152 @@ export const AdminPanel: React.FC = () => {
               </div>
 
               <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
+                {/* Dropshipping Quick-Fill Bar */}
+                <div className="p-3 bg-gradient-to-r from-amber-50 to-rose-50 rounded-2xl border border-amber-200/90 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-1.5 text-xs text-amber-950 font-bold">
+                    <LinkIcon className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>ড্রপশিপিং লিংক দিয়ে অটো-পূরণ:</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-1">
+                    <input
+                      type="text"
+                      placeholder="যেমন: dropshipping.com.bd পণ্যের লিংক বা কোড..."
+                      value={quickLinkInputInProductModal}
+                      onChange={(e) => setQuickLinkInputInProductModal(e.target.value)}
+                      className="flex-1 px-3 py-1.5 rounded-xl border border-amber-300 bg-white text-xs font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = quickLinkInputInProductModal.trim() || 'https://www.dropshipping.com.bd/product/imported-maternity-bra-for-newborn-baby-feeding-cotton-bra-13022';
+                        const res = generateProductFromDropshippingInput(target, 'fixed', 300);
+                        if (res.product) {
+                          setProductForm({
+                            name: res.product.name,
+                            bengaliName: res.product.bengaliName,
+                            sku: res.product.sku,
+                            category: res.product.category as CategoryType,
+                            categoryBengali: res.product.categoryBengali,
+                            fulfillmentType: 'dropshipping',
+                            wholesalePrice: res.product.wholesalePrice,
+                            price: res.product.calculatedPrice,
+                            regularPrice: res.product.calculatedRegularPrice,
+                            images: res.product.images,
+                            fabric: res.product.fabric,
+                            sizes: res.product.sizes.join(', '),
+                            colors: res.product.colors,
+                            description: res.product.description,
+                            stockCount: res.product.stockCount,
+                            isNew: true,
+                            isTrending: true,
+                            featured: true,
+                          });
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs whitespace-nowrap cursor-pointer transition shadow-xs flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>অটো-লোড</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* SECTION 1: মূল বিবরণ (Basic Info) */}
                 <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-3">
                   <h5 className="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
                     <Package className="w-4 h-4 text-rose-600" />
-                    <span>১. মূল বিবরণ ও পরিচিতি</span>
+                    <span>১. পণ্যের গ্রুপ ও পরিচিতি</span>
                   </h5>
+
+                  {/* Product Fulfillment Group Selector */}
+                  <div className="p-3 bg-white rounded-xl border border-rose-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                        <Boxes className="w-4 h-4 text-rose-600" />
+                        <span>পণ্যের গ্রুপ ও ডেলিভারির উৎস (Fulfillment Group):</span>
+                      </label>
+                      <span className="text-[10px] text-slate-500 font-medium">অর্ডার আসার পর ডেলিভারি কে করবে</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {/* Own Stock Option */}
+                      <div 
+                        onClick={() => setProductForm({ ...productForm, fulfillmentType: 'own' })}
+                        className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-2.5 ${
+                          productForm.fulfillmentType === 'own'
+                            ? 'bg-emerald-50/80 border-emerald-500 shadow-xs'
+                            : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="fulfillmentType"
+                          checked={productForm.fulfillmentType === 'own'}
+                          onChange={() => setProductForm({ ...productForm, fulfillmentType: 'own' })}
+                          className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-slate-900 text-xs">📦 নিজস্ব স্টক পণ্য</span>
+                            <span className="text-[9px] font-bold bg-emerald-200 text-emerald-900 px-1.5 py-0.2 rounded">দোকানের নিজস্ব</span>
+                          </div>
+                          <p className="text-[10px] text-slate-600 mt-0.5 leading-snug">
+                            দোকানের ইন-হাউজ মালামাল। কাস্টমার অর্ডার করলে <strong>আপনি নিজে কুরিয়ারের মাধ্যমে পাঠাবেন</strong> (ড্রপশিপিং API-তে যাবে না, সুরক্ষিত থাকবে)।
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Dropshipping Option */}
+                      <div 
+                        onClick={() => setProductForm({ ...productForm, fulfillmentType: 'dropshipping' })}
+                        className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-2.5 ${
+                          productForm.fulfillmentType === 'dropshipping'
+                            ? 'bg-amber-50/80 border-amber-500 shadow-xs'
+                            : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="fulfillmentType"
+                          checked={productForm.fulfillmentType === 'dropshipping'}
+                          onChange={() => setProductForm({ ...productForm, fulfillmentType: 'dropshipping' })}
+                          className="mt-0.5 text-amber-600 focus:ring-amber-500"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-slate-900 text-xs">🌐 ড্রপশিপিং পণ্য</span>
+                            <span className="text-[9px] font-bold bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded">Dropshipping.com.bd</span>
+                          </div>
+                          <p className="text-[10px] text-slate-600 mt-0.5 leading-snug">
+                            পাইকারি সরবরাহকারীর পণ্য। কাস্টমার অর্ডার করলে আপনি <strong>Dropshipping.com.bd API</strong>-তে পাঠাতে পারবেন।
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Wholesale Price Input when Dropshipping */}
+                    {productForm.fulfillmentType === 'dropshipping' && (
+                      <div className="mt-2 pt-2 border-t border-amber-200 flex items-center justify-between gap-2 text-xs bg-amber-50/50 p-2 rounded-lg">
+                        <span className="font-semibold text-amber-900">পাইকারি ক্রয়মূল্য (Wholesale Price ৳):</span>
+                        <div className="flex items-center gap-1">
+                          <span className="font-bold text-slate-500">৳</span>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="যেমন: 350"
+                            value={productForm.wholesalePrice || ''}
+                            onChange={(e) => setProductForm({ ...productForm, wholesalePrice: Number(e.target.value) || 0 })}
+                            className="w-24 px-2 py-1 rounded-lg border border-amber-300 bg-white font-bold text-slate-800 text-xs"
+                          />
+                          {Number(productForm.wholesalePrice) > 0 && Number(productForm.price) > Number(productForm.wholesalePrice) && (
+                            <span className="text-[10px] text-emerald-700 font-bold ml-1.5">
+                              নিট লাভ: +৳{Number(productForm.price) - Number(productForm.wholesalePrice)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -4784,6 +5491,8 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
         )}
+
+
       </div>
     </div>
   );

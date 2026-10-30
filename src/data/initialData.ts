@@ -143,7 +143,7 @@ export const INITIAL_SETTINGS: StoreSettings = {
   },
 };
 
-export const DEMO_SAMPLE_PRODUCTS: Product[] = [
+const RAW_DEMO_SAMPLE_PRODUCTS: Product[] = [
   {
     id: "ns-01",
     name: "Luxury Embroidered Georgette Three Piece",
@@ -438,7 +438,44 @@ export const DEMO_SAMPLE_PRODUCTS: Product[] = [
   },
 ];
 
-export const INITIAL_PRODUCTS: Product[] = [];
+export const DEMO_SAMPLE_PRODUCTS: Product[] = RAW_DEMO_SAMPLE_PRODUCTS.map((p) => ({
+  ...p,
+  fulfillmentType: 'own' as const,
+}));
+
+export const MATERNITY_BRA_PRODUCT: Product = {
+  id: "ds-13022",
+  name: "Imported Maternity Bra For Newborn Baby Feeding Cotton Bra",
+  bengaliName: "ইম্পোর্টেড ম্যাটার্নিটি ও বেবি ফিডিং সফট কটন ব্রা (নবজাতক শিশুর জন্য)",
+  category: "cat_1791041103747",
+  categoryBengali: "ইনার & নাইটি",
+  price: 650,
+  regularPrice: 850,
+  wholesalePrice: 350,
+  fulfillmentType: 'dropshipping',
+  images: [
+    "/src/assets/images/maternity_feeding_bra_1793349941390.jpg",
+    "/src/assets/images/nursing_clip_detail_1793349956497.jpg",
+  ],
+  rating: 5.0,
+  reviewsCount: 38,
+  isNew: true,
+  isTrending: true,
+  featured: true,
+  fabric: "১০০% পিওর সফট ব্রেথেবল কটন, ওয়্যার-ফ্রি (তারহীন) আরামদায়ক ফিটিং",
+  sizes: ["৩৪ (75B/C)", "৩৬ (80B/C)", "৩৮ (85B/C)", "৪০ (90B/C)", "৪২ (95B/C)"],
+  colors: [
+    { name: "বেইজ / স্কিন", hex: "#e8cca8" },
+    { name: "সফট পিঙ্ক", hex: "#f9a8d4" },
+    { name: "লাইট গ্রে", hex: "#9ca3af" },
+  ],
+  description: "নবজাতক শিশুর মায়েদের জন্য বিশেষভাবে তৈরি প্রিমিয়াম কোয়ালিটি ইম্পোর্টেড ম্যাটার্নিটি ও বেবি ফিডিং ব্রা। সামনের ওয়ান-হ্যান্ড ড্রপ-ডাউন ক্লিপ থাকায় শিশুকে যেকোনো সময় অতি সহজে ও আরামদায়কভাবে বুকের দুধ পান করানো যায়। ১০০% কোমল ও নরম সুতি কাপড় যা স্পর্শকাতর ত্বকের জন্য শতভাগ আরামদায়ক ও ঘাম-প্রতিরোধক। কোনো ধাতব তার (Underwire) নেই, ফলে দিন-রাত ২৪ ঘণ্টা স্বাচ্ছন্দ্যে পরা যায়। চওড়া শোল্ডার স্ট্র্যাপ ও ৪-স্টেপ ব্যাক হুক যা পিঠের চাপ কমাতে সাহায্য করে।",
+  inStock: true,
+  stockCount: 45,
+  sku: "DS-13022",
+};
+
+export const INITIAL_PRODUCTS: Product[] = [MATERNITY_BRA_PRODUCT];
 export const INITIAL_ORDERS: Order[] = [];
 export const INITIAL_MESSAGES: CustomerMessage[] = [];
 
