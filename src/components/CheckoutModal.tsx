@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { BANGLADESH_DISTRICTS, getThanasForDistrict } from '../data/bangladeshData';
 import { DeliveryZoneId, PaymentMethodType, CartItem, Order } from '../types';
@@ -13,9 +14,11 @@ import {
   MapPin, 
   Phone, 
   FileText,
-  Sparkles
+  Sparkles,
+  Mail
 } from 'lucide-react';
 import { PostPurchaseReviewSection } from './PostPurchaseReviewSection';
+import { OrderProgressTracker } from './OrderProgressTracker';
 
 export const CheckoutModal: React.FC = () => {
   const { 
@@ -24,7 +27,7 @@ export const CheckoutModal: React.FC = () => {
     cart, 
     clearCart, 
     directCheckoutItem, 
-    setDirectCheckoutItem,
+    setDirectCheckoutItem, 
     settings, 
     createOrder,
     setIsOrderTrackingOpen,
@@ -34,14 +37,59 @@ export const CheckoutModal: React.FC = () => {
   // Active items being checked out
   const checkoutItems: CartItem[] = directCheckoutItem ? [directCheckoutItem] : cart;
 
-  // Form states
-  const [customerName, setCustomerName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [altPhone, setAltPhone] = useState('');
-  const [district, setDistrict] = useState('ঢাকা');
-  const [thana, setThana] = useState('');
+  const navigate = useNavigate();
+
+  // Form states initialized from saved customer profile
+  const [customerName, setCustomerName] = useState(() => {
+    try {
+      const p = localStorage.getItem('ns_customer_profile');
+      if (p) return JSON.parse(p).name || '';
+    } catch {}
+    return '';
+  });
+  const [customerEmail, setCustomerEmail] = useState(() => {
+    try {
+      const p = localStorage.getItem('ns_customer_profile');
+      if (p) return JSON.parse(p).email || '';
+    } catch {}
+    return '';
+  });
+  const [phone, setPhone] = useState(() => {
+    try {
+      const p = localStorage.getItem('ns_customer_profile');
+      if (p) return JSON.parse(p).phone || '';
+    } catch {}
+    return '';
+  });
+  const [altPhone, setAltPhone] = useState(() => {
+    try {
+      const p = localStorage.getItem('ns_customer_profile');
+      if (p) return JSON.parse(p).altPhone || '';
+    } catch {}
+    return '';
+  });
+  const [district, setDistrict] = useState(() => {
+    try {
+      const p = localStorage.getItem('ns_customer_profile');
+      if (p) return JSON.parse(p).district || 'ঢাকা';
+    } catch {}
+    return 'ঢাকা';
+  });
+  const [thana, setThana] = useState(() => {
+    try {
+      const p = localStorage.getItem('ns_customer_profile');
+      if (p) return JSON.parse(p).thana || '';
+    } catch {}
+    return '';
+  });
   const [isCustomThana, setIsCustomThana] = useState(false);
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState(() => {
+    try {
+      const p = localStorage.getItem('ns_customer_profile');
+      if (p) return JSON.parse(p).address || '';
+    } catch {}
+    return '';
+  });
   const [deliveryZone, setDeliveryZone] = useState<DeliveryZoneId>('inside_dhaka');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('cod');
   const [senderAccount, setSenderAccount] = useState('');
@@ -95,6 +143,9 @@ export const CheckoutModal: React.FC = () => {
     } else if (!/^01[3-9]\d{8}$/.test(phone.trim().replace(/-/g, ''))) {
       newErrors.phone = 'সঠিক ১১ ডিজিটের মোবাইল নাম্বার দিন (যেমন: 017XXXXXXXX)';
     }
+    if (customerEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+      newErrors.customerEmail = 'সঠিক ইমেইল ঠিকানা দিন (যেমন: name@example.com)';
+    }
     if (!thana.trim()) {
       newErrors.thana = 'অনুগ্রহ করে আপনার থানা বা উপজেলা লিখুন';
     }
@@ -115,6 +166,7 @@ export const CheckoutModal: React.FC = () => {
 
     const newOrder = createOrder({
       customerName,
+      customerEmail: customerEmail.trim() || undefined,
       phone: phone.trim(),
       altPhone: altPhone.trim() || undefined,
       district,
@@ -140,6 +192,22 @@ export const CheckoutModal: React.FC = () => {
       setDirectCheckoutItem(null);
     } else {
       clearCart();
+    }
+
+    // Save customer profile for future checkout prefill & order history
+    try {
+      localStorage.setItem('ns_customer_profile', JSON.stringify({
+        name: customerName.trim(),
+        email: customerEmail.trim() || undefined,
+        phone: phone.trim(),
+        altPhone: altPhone.trim() || undefined,
+        district,
+        thana: thana.trim() || 'সদর',
+        address: address.trim(),
+        updatedAt: new Date().toISOString()
+      }));
+    } catch {
+      // ignore
     }
 
     setPlacedOrder(newOrder);
@@ -202,6 +270,11 @@ export const CheckoutModal: React.FC = () => {
               </p>
             </div>
 
+            {/* Visual Step-by-Step Progress Tracker */}
+            <div className="max-w-xl mx-auto text-left">
+              <OrderProgressTracker order={placedOrder} compact={true} />
+            </div>
+
             {/* Order Summary Receipt Box */}
             <div className="max-w-md mx-auto bg-rose-50/40 rounded-2xl p-4 sm:p-5 border border-rose-100 text-left text-xs space-y-3">
               <div className="flex justify-between items-center pb-2 border-b border-rose-100 font-bold text-slate-800">
@@ -211,9 +284,22 @@ export const CheckoutModal: React.FC = () => {
               <div className="space-y-1 text-slate-600">
                 <p><strong>নাম:</strong> {placedOrder.customerName}</p>
                 <p><strong>মোবাইল:</strong> {placedOrder.phone}</p>
+                {placedOrder.customerEmail && (
+                  <p><strong>ইমেইল:</strong> {placedOrder.customerEmail}</p>
+                )}
                 <p><strong>ডেলিভারি ঠিকানা:</strong> {placedOrder.address}, থানা: {placedOrder.thana}, জেলা: {placedOrder.district}</p>
                 <p><strong>পেমেন্ট মেথড:</strong> {placedOrder.paymentMethod === 'cod' ? 'ক্যাশ অন ডেলিভারি (COD)' : placedOrder.paymentMethod.toUpperCase()}</p>
               </div>
+
+              {placedOrder.customerEmail ? (
+                <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 p-2.5 rounded-xl text-[11px]">
+                  <Mail className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">অটোমেটেড কনফার্মেশন ইমেইল পাঠানো হয়েছে:</span>
+                    <p className="text-emerald-700 mt-0.5">{placedOrder.customerEmail} ঠিকানায় আপনার সম্পূর্ণ ইনভয়েস ও ট্র্যাকিং লিংক পাঠানো হয়েছে।</p>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="pt-2 border-t border-rose-100 space-y-2">
                 <p className="text-[11px] font-bold text-slate-700">অর্ডারকৃত পণ্যসমূহ:</p>
@@ -272,15 +358,26 @@ export const CheckoutModal: React.FC = () => {
             <div className="flex flex-wrap justify-center gap-3 pt-2">
               <button
                 onClick={handleTrackNewOrder}
-                className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl shadow-md transition flex items-center gap-2"
+                className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
               >
                 <Truck className="w-4 h-4" />
                 <span>আপনার অর্ডার ট্র্যাক করুন</span>
               </button>
 
               <button
+                onClick={() => {
+                  handleClose();
+                  navigate('/profile');
+                }}
+                className="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs sm:text-sm px-6 py-3 rounded-xl border border-rose-200 transition flex items-center gap-2 cursor-pointer"
+              >
+                <ShoppingBag className="w-4 h-4 text-rose-600" />
+                <span>অর্ডার হিস্টোরি ও প্রোফাইল</span>
+              </button>
+
+              <button
                 onClick={handleClose}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm px-6 py-3 rounded-xl transition"
+                className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm px-6 py-3 rounded-xl transition cursor-pointer"
               >
                 আরও কেনাকাটা করুন
               </button>
@@ -350,6 +447,26 @@ export const CheckoutModal: React.FC = () => {
                           className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-rose-500 bg-slate-50/50 focus:outline-none focus:ring-2"
                         />
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        ইমেইল এড্রেস <span className="text-slate-400 font-normal">(অর্ডার কনফার্মেশন ও ইনভয়েস ইমেইলে পেতে)</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="input-customer-email"
+                          type="email"
+                          placeholder="আপনার ইমেইল দিন (যেমন: customer@example.com)"
+                          value={customerEmail}
+                          onChange={(e) => setCustomerEmail(e.target.value)}
+                          className={`w-full text-xs sm:text-sm pl-9 pr-3.5 py-2.5 rounded-xl border focus:outline-none focus:ring-2 ${
+                            errors.customerEmail ? 'border-red-400 focus:ring-red-400 bg-red-50/20' : 'border-slate-200 focus:ring-rose-500 bg-slate-50/50'
+                          }`}
+                        />
+                        <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                      </div>
+                      {errors.customerEmail && <p className="text-[11px] text-red-500 mt-1">{errors.customerEmail}</p>}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

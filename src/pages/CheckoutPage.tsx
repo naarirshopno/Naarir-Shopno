@@ -17,7 +17,8 @@ import {
   ChevronRight, 
   Sparkles,
   ShieldCheck,
-  Lock
+  Lock,
+  Mail
 } from 'lucide-react';
 
 export const CheckoutPage: React.FC = () => {
@@ -34,14 +35,57 @@ export const CheckoutPage: React.FC = () => {
 
   const checkoutItems: CartItem[] = directCheckoutItem ? [directCheckoutItem] : cart;
 
-  // Form states
-  const [customerName, setCustomerName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [altPhone, setAltPhone] = useState('');
-  const [district, setDistrict] = useState('ঢাকা');
-  const [thana, setThana] = useState('');
+  // Form states initialized with saved customer profile if available
+  const [customerName, setCustomerName] = useState(() => {
+    try {
+      const p = localStorage.getItem('ns_customer_profile');
+      if (p) return JSON.parse(p).name || '';
+    } catch {}
+    return '';
+  });
+  const [phone, setPhone] = useState(() => {
+    try {
+      const p = localStorage.getItem('ns_customer_profile');
+      if (p) return JSON.parse(p).phone || '';
+    } catch {}
+    return '';
+  });
+  const [customerEmail, setCustomerEmail] = useState(() => {
+    try {
+      const p = localStorage.getItem('ns_customer_profile');
+      if (p) return JSON.parse(p).email || '';
+    } catch {}
+    return '';
+  });
+  const [altPhone, setAltPhone] = useState(() => {
+    try {
+      const p = localStorage.getItem('ns_customer_profile');
+      if (p) return JSON.parse(p).altPhone || '';
+    } catch {}
+    return '';
+  });
+  const [district, setDistrict] = useState(() => {
+    try {
+      const p = localStorage.getItem('ns_customer_profile');
+      if (p) return JSON.parse(p).district || 'ঢাকা';
+    } catch {}
+    return 'ঢাকা';
+  });
+  const [thana, setThana] = useState(() => {
+    try {
+      const p = localStorage.getItem('ns_customer_profile');
+      if (p) return JSON.parse(p).thana || '';
+    } catch {}
+    return '';
+  });
   const [isCustomThana, setIsCustomThana] = useState(false);
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState(() => {
+    try {
+      const p = localStorage.getItem('ns_customer_profile');
+      if (p) return JSON.parse(p).address || '';
+    } catch {}
+    return '';
+  });
   const [orderNote, setOrderNote] = useState('');
   const [selectedZone, setSelectedZone] = useState<DeliveryZoneId>('inside_dhaka');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('cod');
@@ -126,6 +170,7 @@ export const CheckoutPage: React.FC = () => {
     setTimeout(() => {
       const order = createOrder({
         customerName: customerName.trim(),
+        customerEmail: customerEmail.trim() || undefined,
         phone: phone.trim(),
         altPhone: altPhone.trim() || undefined,
         district,
@@ -145,6 +190,22 @@ export const CheckoutPage: React.FC = () => {
 
       setPlacedOrder(order);
       setIsSubmitting(false);
+
+      // Save customer profile for future checkout prefill & order history
+      try {
+        localStorage.setItem('ns_customer_profile', JSON.stringify({
+          name: customerName.trim(),
+          email: customerEmail.trim() || undefined,
+          phone: phone.trim(),
+          altPhone: altPhone.trim() || undefined,
+          district,
+          thana: thana.trim() || 'সদর',
+          address: address.trim(),
+          updatedAt: new Date().toISOString()
+        }));
+      } catch {
+        // ignore
+      }
 
       if (directCheckoutItem) {
         setDirectCheckoutItem(null);
@@ -184,9 +245,22 @@ export const CheckoutPage: React.FC = () => {
             <div className="space-y-1 text-slate-600">
               <p><strong>নাম:</strong> {placedOrder.customerName}</p>
               <p><strong>মোবাইল:</strong> {placedOrder.phone}</p>
+              {placedOrder.customerEmail && (
+                <p><strong>ইমেইল:</strong> {placedOrder.customerEmail}</p>
+              )}
               <p><strong>ডেলিভারি ঠিকানা:</strong> {placedOrder.address}, {placedOrder.thana ? `থানা: ${placedOrder.thana}, ` : ''}জেলা: {placedOrder.district}</p>
               <p><strong>পেমেন্ট মেথড:</strong> {placedOrder.paymentMethod === 'cod' ? 'ক্যাশ অন ডেলিভারি (COD)' : placedOrder.paymentMethod.toUpperCase()}</p>
             </div>
+
+            {placedOrder.customerEmail ? (
+              <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 p-2.5 rounded-xl text-[11px]">
+                <Mail className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">অটোমেটেড কনফার্মেশন ইমেইল পাঠানো হয়েছে:</span>
+                  <p className="text-emerald-700 mt-0.5">{placedOrder.customerEmail} ঠিকানায় আপনার সম্পূর্ণ ইনভয়েস ও ট্র্যাকিং লিংক পাঠানো হয়েছে।</p>
+                </div>
+              </div>
+            ) : null}
 
             <div className="pt-2 border-t border-rose-100 space-y-2">
               <p className="text-[11px] font-bold text-slate-700">অর্ডারকৃত পণ্যসমূহ:</p>
@@ -235,6 +309,14 @@ export const CheckoutPage: React.FC = () => {
             >
               <Truck className="w-4 h-4" />
               <span>আপনার অর্ডার ট্র্যাক করুন</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/profile')}
+              className="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs sm:text-sm px-6 py-3 rounded-xl border border-rose-200 transition flex items-center gap-2 cursor-pointer"
+            >
+              <ShoppingBag className="w-4 h-4 text-rose-600" />
+              <span>অর্ডার হিস্টোরি ও প্রোফাইল</span>
             </button>
 
             <Link
@@ -366,6 +448,22 @@ export const CheckoutPage: React.FC = () => {
                         className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-slate-50/50 font-mono"
                       />
                     </div>
+                  </div>
+
+                  {/* Customer Email Input (for automated email confirmation) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                      <span>ইমেইল ঠিকানা (ঐচ্ছিক)</span>
+                      <span className="text-[10px] text-emerald-600 font-semibold">স্বয়ংক্রিয় অর্ডার কনফার্মেশন ও ইনভয়েস পাবেন</span>
+                    </label>
+                    <input
+                      id="input-customer-email"
+                      type="email"
+                      placeholder="যেমন: customer@example.com"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-slate-50/50"
+                    />
                   </div>
 
                   {/* District & Thana */}

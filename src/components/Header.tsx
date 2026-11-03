@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { CategoryType } from '../types';
@@ -13,12 +13,17 @@ import {
   X, 
   MessageCircle, 
   Settings,
-  ChevronDown,
-  Clock,
-  Calendar,
-  Heart,
-  Lock,
-  Sparkles
+  ChevronDown, 
+  Clock, 
+  Calendar, 
+  Heart, 
+  Lock, 
+  Sparkles, 
+  User,
+  Tag,
+  TrendingUp,
+  ArrowRight,
+  SearchX
 } from 'lucide-react';
 
 const LiveClockBadge: React.FC<{ isMobile?: boolean }> = React.memo(({ isMobile }) => {
@@ -127,6 +132,7 @@ const LiveClockBadge: React.FC<{ isMobile?: boolean }> = React.memo(({ isMobile 
 
 export const Header: React.FC = () => {
   const { 
+    products,
     settings, 
     cart, 
     getCartCount, 
@@ -150,6 +156,37 @@ export const Header: React.FC = () => {
   const location = useLocation();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isDesktopSearchOpen, setIsDesktopSearchOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
+
+  // Close search popovers on click outside or escape key
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (desktopSearchRef.current && !desktopSearchRef.current.contains(event.target as Node)) {
+        setIsDesktopSearchOpen(false);
+      }
+      if (mobileSearchRef.current && !mobileSearchRef.current.contains(event.target as Node)) {
+        setIsMobileSearchOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsDesktopSearchOpen(false);
+        setIsMobileSearchOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   // Dynamic categories synced directly from Admin Panel (settings.categories)
   const categoryItems = Array.isArray(settings.categories) && settings.categories.length > 0
@@ -164,6 +201,266 @@ export const Header: React.FC = () => {
       image: settings.categoryImages?.[cat.id] || cat.image,
     })),
   ];
+
+  // Real-time matched products & categories as user types
+  const trimmedQuery = searchQuery.trim().toLowerCase();
+
+  const matchedCategories = useMemo(() => {
+    if (!trimmedQuery) return [];
+    return categories.filter(c => 
+      c.id !== 'all' && (
+        c.label.toLowerCase().includes(trimmedQuery) ||
+        c.id.toLowerCase().includes(trimmedQuery)
+      )
+    );
+  }, [categories, trimmedQuery]);
+
+  const matchedProducts = useMemo(() => {
+    if (!trimmedQuery) return [];
+    return products.filter(p => {
+      const name = (p.name || '').toLowerCase();
+      const bengaliName = (p.bengaliName || '').toLowerCase();
+      const cat = (p.category || '').toLowerCase();
+      const catBn = (p.categoryBengali || '').toLowerCase();
+      const fabric = (p.fabric || '').toLowerCase();
+      const desc = (p.description || '').toLowerCase();
+
+      return (
+        name.includes(trimmedQuery) ||
+        bengaliName.includes(trimmedQuery) ||
+        cat.includes(trimmedQuery) ||
+        catBn.includes(trimmedQuery) ||
+        fabric.includes(trimmedQuery) ||
+        desc.includes(trimmedQuery)
+      );
+    });
+  }, [products, trimmedQuery]);
+
+  const popularSearches = [
+    { label: 'থ্রি-পিস', category: 'three_piece' },
+    { label: 'কাতান শাড়ি', category: 'saree' },
+    { label: 'কুর্তি কালেকশন', category: 'kurti' },
+    { label: 'জর্জেট গাউন', category: 'gown' },
+    { label: 'ব্রাইডাল লেহেঙ্গা', category: 'lehenga' },
+    { label: 'মাদার ব্রেস্টফিডিং ব্রা', query: 'ব্রা' },
+    { label: 'সুতি পোশাক', query: 'সুতি' },
+  ];
+
+  // Reusable real-time search dropdown component
+  const renderSearchDropdown = (closeDropdown: () => void) => (
+    <div className="absolute left-0 right-0 top-full mt-2 bg-white/98 backdrop-blur-md rounded-2xl border border-rose-200 shadow-2xl z-50 overflow-hidden animate-scaleUp divide-y divide-rose-50 max-h-[75vh] overflow-y-auto">
+      {!trimmedQuery ? (
+        /* Empty Query State: Popular searches & quick categories */
+        <div className="p-3.5 sm:p-4 space-y-3 text-left">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <TrendingUp className="w-3.5 h-3.5 text-rose-600" />
+            <span>জনপ্রিয় সার্চ ও কিওয়ার্ড</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {popularSearches.map((ps, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => {
+                  setSearchQuery(ps.label);
+                  closeDropdown();
+                  if (location.pathname !== '/') navigate('/');
+                }}
+                className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-semibold bg-rose-50/70 hover:bg-rose-100 text-rose-800 rounded-xl border border-rose-200/80 transition cursor-pointer"
+              >
+                <Search className="w-3 h-3 text-rose-500" />
+                <span>{ps.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Quick Categories Bar */}
+          <div className="pt-2.5 border-t border-rose-50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                ক্যাটাগরি ব্রাউজ করুন
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  closeDropdown();
+                  navigate('/categories');
+                }}
+                className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
+              >
+                সকল ({categories.length - 1} টি)
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              {categories.filter(c => c.id !== 'all').slice(0, 6).map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory(cat.id);
+                    closeDropdown();
+                    navigate(`/category/${cat.id}`);
+                  }}
+                  className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 hover:bg-rose-50 border border-slate-100 hover:border-rose-200 transition text-left cursor-pointer group"
+                >
+                  {cat.image && (
+                    <img 
+                      src={cat.image} 
+                      alt="" 
+                      className="w-5 h-5 rounded-md object-cover shrink-0 border border-rose-100" 
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  )}
+                  <span className="text-xs font-semibold text-slate-700 group-hover:text-rose-700 truncate">
+                    {cat.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Real-time Typed Query Results */
+        <div className="text-left">
+          {/* Header Summary */}
+          <div className="px-3.5 sm:px-4 py-2 bg-rose-50/80 flex items-center justify-between text-xs font-bold text-slate-700 border-b border-rose-100">
+            <span className="flex items-center gap-1.5 truncate">
+              <Search className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+              <span className="truncate">‘{searchQuery}’ দিয়ে খোঁজা হচ্ছে</span>
+            </span>
+            <span className="text-[11px] bg-rose-200/80 text-rose-800 px-2.5 py-0.5 rounded-full font-mono shrink-0">
+              {matchedProducts.length} টি পণ্য
+            </span>
+          </div>
+
+          {/* Matched Categories (if any) */}
+          {matchedCategories.length > 0 && (
+            <div className="p-2.5 sm:p-3 bg-amber-50/50 border-b border-amber-100/70 space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1">
+                <Tag className="w-3 h-3 text-amber-600" />
+                <span>সম্পর্কিত ক্যাটাগরি:</span>
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {matchedCategories.map((cat) => {
+                  const catCount = products.filter(p => p.category === cat.id || p.categoryBengali === cat.label).length;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveCategory(cat.id);
+                        closeDropdown();
+                        navigate(`/category/${cat.id}`);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-amber-100 text-slate-800 hover:text-amber-950 border border-amber-200 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer"
+                    >
+                      {cat.image && (
+                        <img src={cat.image} alt="" className="w-4 h-4 rounded-full object-cover shrink-0" />
+                      )}
+                      <span>{cat.label}</span>
+                      <span className="text-[10px] text-amber-700 font-normal">({catCount})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Matched Products List (Live real-time preview) */}
+          {matchedProducts.length > 0 ? (
+            <div className="divide-y divide-rose-50 max-h-72 overflow-y-auto">
+              {matchedProducts.slice(0, 6).map((product) => {
+                const prodImg = (product.images && product.images[0]) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=150&q=80';
+                return (
+                  <div
+                    key={product.id}
+                    onClick={() => {
+                      closeDropdown();
+                      navigate(`/product/${product.id}`);
+                    }}
+                    className="p-2.5 sm:p-3 hover:bg-rose-50/60 flex items-center justify-between gap-3 transition cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <img
+                        src={prodImg}
+                        alt={product.bengaliName}
+                        className="w-11 h-13 sm:w-12 sm:h-14 rounded-xl object-cover border border-rose-100 shrink-0 group-hover:scale-105 transition-transform"
+                      />
+                      <div className="min-w-0 space-y-0.5">
+                        <p className="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-rose-600 transition truncate font-['Hind_Siliguri']">
+                          {product.bengaliName}
+                        </p>
+                        <div className="flex items-center gap-2 flex-wrap text-[10px]">
+                          <span className="text-slate-600 font-medium bg-slate-100 px-1.5 py-0.5 rounded">
+                            {product.categoryBengali || product.category}
+                          </span>
+                          {product.fabric && (
+                            <span className="text-slate-500 hidden sm:inline">
+                              ফেব্রিক: {product.fabric}
+                            </span>
+                          )}
+                          {product.inStock ? (
+                            <span className="text-emerald-700 font-semibold">● স্টকে আছে</span>
+                          ) : (
+                            <span className="text-red-600 font-semibold">● স্টক আউট</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <p className="text-xs sm:text-sm font-black text-rose-700 font-['Outfit']">
+                        ৳{product.price.toLocaleString()}
+                      </p>
+                      {product.regularPrice > product.price && (
+                        <p className="text-[10px] text-slate-400 line-through font-['Outfit']">
+                          ৳{product.regularPrice.toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* No Results Found State */
+            <div className="p-6 text-center space-y-2">
+              <SearchX className="w-8 h-8 text-rose-400 mx-auto" />
+              <p className="text-xs font-bold text-slate-800">
+                ‘{searchQuery}’ দিয়ে কোনো পণ্য পাওয়া যায়নি
+              </p>
+              <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                বানান সঠিক আছে কি না পরীক্ষা করুন অথবা অন্য কোনো পোশাক বা ক্যাটাগরি সার্চ করুন।
+              </p>
+            </div>
+          )}
+
+          {/* View All Matching Products in Catalog Button */}
+          {matchedProducts.length > 0 && (
+            <div className="p-2 sm:p-2.5 bg-rose-50/50 text-center border-t border-rose-100">
+              <button
+                type="button"
+                onClick={() => {
+                  closeDropdown();
+                  if (location.pathname !== '/') navigate('/');
+                  setTimeout(() => {
+                    const catalogEl = document.getElementById('product-catalog-section');
+                    if (catalogEl) {
+                      catalogEl.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }, 100);
+                }}
+                className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>সকল {matchedProducts.length} টি ফলাফল দেখুন</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <header className="w-full bg-white/98 border-b border-rose-100 shadow-xs transition-colors">
@@ -212,30 +509,42 @@ export const Header: React.FC = () => {
             <LiveClockBadge />
 
             {/* Search Bar - Center Desktop */}
-            <div className="hidden lg:flex w-full">
+            <div className="hidden lg:flex w-full relative" ref={desktopSearchRef}>
               <div className="relative w-full">
                 <input
                   id="input-desktop-search"
                   type="text"
                   placeholder="থ্রি-পিস, শাড়ি, কুর্তি, গাউন বা প্রোডাক্ট সার্চ করুন..."
                   value={searchQuery}
+                  onFocus={() => setIsDesktopSearchOpen(true)}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
-                    if (location.pathname !== '/' && e.target.value.trim()) {
-                      navigate('/');
+                    setIsDesktopSearchOpen(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setIsDesktopSearchOpen(false);
+                      if (location.pathname !== '/') navigate('/');
                     }
                   }}
-                  className="w-full pl-10 pr-10 py-1.5 text-xs sm:text-sm bg-rose-50/50 border border-rose-200 rounded-full focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400 shadow-inner"
+                  className="w-full pl-10 pr-10 py-2 text-xs sm:text-sm bg-rose-50/60 border border-rose-200 rounded-full focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400 shadow-inner"
                 />
                 <Search className="w-4 h-4 text-rose-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 {searchQuery && (
                   <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setIsDesktopSearchOpen(true);
+                    }}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 )}
+
+                {/* Real-time search dropdown results popover */}
+                {isDesktopSearchOpen && renderSearchDropdown(() => setIsDesktopSearchOpen(false))}
               </div>
             </div>
           </div>
@@ -251,6 +560,18 @@ export const Header: React.FC = () => {
             >
               <Truck className="w-3.5 h-3.5 text-rose-600" />
               <span>অর্ডার ট্র্যাক</span>
+            </button>
+
+            {/* User Profile & Order History Button */}
+            <button
+              id="btn-profile-header"
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all border border-slate-200 hover:border-rose-300 cursor-pointer"
+              title="গ্রাহক প্রোফাইল ও অর্ডার হিস্টোরি"
+              aria-label="গ্রাহক প্রোফাইল ও অর্ডার হিস্টোরি"
+            >
+              <User className="w-3.5 h-3.5 text-rose-600" />
+              <span className="hidden sm:inline">প্রোফাইল</span>
             </button>
 
             {/* Wishlist Button with Saved Items Count */}
@@ -323,25 +644,42 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Mobile Search Bar */}
-        <div className="mt-2 lg:hidden">
+        <div className="mt-2 lg:hidden relative" ref={mobileSearchRef}>
           <div className="relative w-full">
             <input
               id="input-mobile-search"
               type="text"
               placeholder="থ্রি-পিস, শাড়ি, কুর্তি সার্চ করুন..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-9 py-2 text-xs bg-rose-50/60 border border-rose-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 text-slate-800"
+              onFocus={() => setIsMobileSearchOpen(true)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setIsMobileSearchOpen(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setIsMobileSearchOpen(false);
+                  if (location.pathname !== '/') navigate('/');
+                }
+              }}
+              className="w-full pl-9 pr-9 py-2 text-xs bg-rose-50/60 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white text-slate-800"
             />
             <Search className="w-4 h-4 text-rose-500 absolute left-3 top-1/2 -translate-y-1/2" />
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setIsMobileSearchOpen(true);
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
+
+            {/* Mobile real-time search dropdown results popover */}
+            {isMobileSearchOpen && renderSearchDropdown(() => setIsMobileSearchOpen(false))}
           </div>
         </div>
       </div>
@@ -444,6 +782,23 @@ export const Header: React.FC = () => {
 
           {/* Quick Menu Links */}
           <div className="pt-2 border-t border-rose-100 flex flex-col gap-2">
+            <button
+              id="btn-mobile-drawer-profile"
+              onClick={() => {
+                navigate('/profile');
+                setMobileMenuOpen(false);
+              }}
+              className="flex items-center justify-between px-3 py-2 text-sm font-semibold text-rose-800 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                <User className="w-4 h-4 text-rose-600" />
+                <span>আমার প্রোফাইল ও অর্ডার হিস্টোরি</span>
+              </div>
+              <span className="text-[10px] text-rose-600 font-bold bg-white px-2 py-0.5 rounded-full border border-rose-200">
+                অর্ডার দেখুন
+              </span>
+            </button>
+
             <button
               id="btn-mobile-drawer-wishlist"
               onClick={() => {

@@ -163,6 +163,11 @@ export const Footer: React.FC = () => {
             <h4 className="text-white font-bold text-sm font-['Hind_Siliguri']">জরুরি লিংক</h4>
             <ul className="space-y-2 text-xs text-slate-400">
               <li>
+                <Link to="/profile" className="hover:text-rose-400 font-semibold text-rose-300 transition text-left block">
+                  আমার প্রোফাইল ও অর্ডার হিস্টোরি
+                </Link>
+              </li>
+              <li>
                 <Link to="/track" className="hover:text-rose-400 transition text-left block">
                   পার্সেল ট্র্যাকিং
                 </Link>

@@ -69,6 +69,7 @@ export interface Order {
   id: string; // e.g. NS-1025
   createdAt: string;
   customerName: string;
+  customerEmail?: string;
   phone: string;
   altPhone?: string;
   district: string;
@@ -87,13 +88,25 @@ export interface Order {
   total: number;
   status: OrderStatus;
   orderNote?: string;
+  emailNotification?: {
+    sent: boolean;
+    sentAt?: string;
+    to?: string;
+    error?: string;
+    realDispatched?: boolean;
+    messageId?: string;
+  };
   courier?: {
     name: string;
     trackingId: string;
     shippedDate?: string;
     estimatedDelivery?: string;
     trackingUrl?: string;
+    deliveredDate?: string;
+    latestTimeline?: string;
+    lastSyncedAt?: string;
   };
+  deliveredAt?: string;
   dropshipping?: {
     synced: boolean;
     syncedAt?: string;
@@ -153,6 +166,27 @@ export interface StoreSettings {
     defaultVolume?: number;
     autoplayOnFirstClick?: boolean;
   };
+  emailSettings?: {
+    enabled?: boolean;
+    provider?: 'gmail' | 'custom_smtp' | 'resend' | 'cloud_functions';
+    senderName?: string;
+    senderEmail?: string;
+    supportEmail?: string;
+    smtpHost?: string;
+    smtpPort?: number;
+    smtpUser?: string;
+    smtpPass?: string;
+    smtpSecure?: boolean;
+    apiKey?: string;
+    bccAdminOnOrder?: boolean;
+    orderConfirmationSubject?: string;
+    notifyCustomer?: boolean;
+    notifyAdmin?: boolean;
+    adminNotificationEmail?: string;
+    lastTestedAt?: string;
+    lastTestStatus?: 'success' | 'failed';
+    lastTestMessage?: string;
+  };
 }
 
 export interface CustomerMessage {
@@ -177,3 +211,32 @@ export interface ProductReview {
   location?: string;
   helpfulCount?: number;
 }
+
+export interface CustomerProfile {
+  name: string;
+  phone: string;
+  altPhone?: string;
+  email?: string;
+  district: string;
+  thana: string;
+  address: string;
+  updatedAt?: string;
+}
+
+export interface FirestoreEmailLog {
+  id: string;
+  to: string;
+  cc?: string | null;
+  subject: string;
+  html?: string;
+  orderId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  total?: number;
+  createdAt: string;
+  status: 'delivered' | 'queued' | 'failed';
+  realDispatched?: boolean;
+  error?: string | null;
+  deliveryState?: string;
+}
+

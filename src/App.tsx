@@ -18,6 +18,7 @@ import { DeliveryInfoPage } from './pages/DeliveryInfoPage';
 import { WishlistPage } from './pages/WishlistPage';
 import { AdminPage } from './pages/AdminPage';
 import { CategoryPage } from './pages/CategoryPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 // Auto scroll to top on every page navigation
 const ScrollToTop: React.FC = () => {
@@ -94,6 +95,9 @@ const AppLayout: React.FC = () => {
           <Route path="/track-order" element={<OrderTrackingPage />} />
           <Route path="/delivery-info" element={<DeliveryInfoPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/account" element={<ProfilePage />} />
+          <Route path="/my-orders" element={<ProfilePage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<HomePage />} />
         </Routes>

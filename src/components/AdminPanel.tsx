@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useShop } from '../context/ShopContext';
-import { Product, Order, OrderStatus, CategoryType, StoreSettings, CustomCategoryItem, DropshippingApiSettings, ProductFulfillmentType } from '../types';
+import { Product, Order, OrderStatus, CategoryType, StoreSettings, CustomCategoryItem, DropshippingApiSettings, ProductFulfillmentType, FirestoreEmailLog } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/initialData';
 import { 
   testDropshippingConnection, 
@@ -10,6 +10,7 @@ import {
   generateProductFromDropshippingInput,
   DropshippingCatalogProduct
 } from '../services/dropshippingService';
+import { fetchSteadfastTracking, normalizeSteadfastInput } from '../services/courierTrackingService';
 import { 
   X, 
   LayoutDashboard, 
@@ -71,9 +72,22 @@ import {
   Zap,
   Download,
   TrendingUp,
-  Percent
+  Percent,
+  Send,
+  FileText,
+  Filter,
+  BarChart3,
+  Smartphone,
+  Monitor
 } from 'lucide-react';
 import { InvoiceModal } from './InvoiceModal';
+import { 
+  generateOrderEmailHtml, 
+  triggerOrderEmailNotification, 
+  createGmailDraftUrl,
+  fetchFirestoreEmailLogs,
+  subscribeToFirestoreEmailLogs
+} from '../services/emailNotificationService';
 
 const PRESET_COLORS: { name: string; hex: string }[] = [
   { name: 'গোলাপি', hex: '#ec4899' },
@@ -132,7 +146,78 @@ export const AdminPanel: React.FC = () => {
   const [isConfirmDeleteDemosOpen, setIsConfirmDeleteDemosOpen] = useState(false);
   const [demoDeleteToast, setDemoDeleteToast] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'delivery' | 'social' | 'messages' | 'categories' | 'database' | 'dropshipping'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'delivery' | 'social' | 'messages' | 'categories' | 'database' | 'dropshipping' | 'emails'>('dashboard');
+  
+  // Email Notification & Cloud Functions States
+  const [previewEmailHtml, setPreviewEmailHtml] = useState<string | null>(null);
+  const [previewEmailTitle, setPreviewEmailTitle] = useState<string>('');
+  const [templatePreviewOrder, setTemplatePreviewOrder] = useState<Order | null>(null);
+  const [previewDeviceMode, setPreviewDeviceMode] = useState<'desktop' | 'mobile'>('desktop');
+  const [previewHtmlCopied, setPreviewHtmlCopied] = useState<boolean>(false);
+  const [testEmailAddress, setTestEmailAddress] = useState<string>(settings.emailSettings?.senderEmail || 'NaarirShopno@Gmail.com');
+  const [testEmailLoading, setTestEmailLoading] = useState<boolean>(false);
+  const [testEmailSuccess, setTestEmailSuccess] = useState<string | null>(null);
+  const [testEmailError, setTestEmailError] = useState<string | null>(null);
+  const [showSmtpPass, setShowSmtpPass] = useState<boolean>(false);
+  const [emailSettingsForm, setEmailSettingsForm] = useState(() => ({
+    enabled: true,
+    provider: 'gmail' as const,
+    smtpHost: 'smtp.gmail.com',
+    smtpPort: 465,
+    smtpUser: 'NaarirShopno@Gmail.com',
+    smtpPass: '',
+    smtpSecure: true,
+    senderEmail: 'NaarirShopno@Gmail.com',
+    senderName: 'নারীর স্বপ্ন (Naarir Shopno)',
+    supportEmail: 'NaarirShopno@Gmail.com',
+    bccAdminOnOrder: true,
+    orderConfirmationSubject: 'নারীর স্বপ্ন - আপনার অর্ডারটি সফলভাবে গৃহীত হয়েছে (#{orderId})',
+    ...settings.emailSettings,
+  }));
+  const [emailSettingsSavedToast, setEmailSettingsSavedToast] = useState(false);
+  const [resendingEmailId, setResendingEmailId] = useState<string | null>(null);
+
+  // Real Firestore Email Logs from /mail collection
+  const [firestoreEmailLogs, setFirestoreEmailLogs] = useState<FirestoreEmailLog[]>([]);
+  const [isLoadingEmailLogs, setIsLoadingEmailLogs] = useState<boolean>(true);
+  const [emailLogSearch, setEmailLogSearch] = useState<string>('');
+  const [emailLogStatusFilter, setEmailLogStatusFilter] = useState<'all' | 'delivered' | 'queued' | 'failed'>('all');
+  const [selectedEmailLogModal, setSelectedEmailLogModal] = useState<FirestoreEmailLog | null>(null);
+  const [emailLogCopiedId, setEmailLogCopiedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (settings.emailSettings) {
+      setEmailSettingsForm((prev) => ({
+        ...prev,
+        ...settings.emailSettings,
+      }));
+    }
+  }, [settings.emailSettings]);
+
+  // Real-time listener for Firestore /mail collection
+  useEffect(() => {
+    setIsLoadingEmailLogs(true);
+    const unsubscribe = subscribeToFirestoreEmailLogs((logs) => {
+      setFirestoreEmailLogs(logs);
+      setIsLoadingEmailLogs(false);
+    });
+
+    // Also run initial fetch
+    fetchFirestoreEmailLogs().then((logs) => {
+      if (logs && logs.length > 0) {
+        setFirestoreEmailLogs(logs);
+      }
+      setIsLoadingEmailLogs(false);
+    }).catch(() => {
+      setIsLoadingEmailLogs(false);
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, []);
   
   // Dropshipping API Configuration State
   const [dropshippingForm, setDropshippingForm] = useState<DropshippingApiSettings>(() => {
@@ -198,9 +283,9 @@ export const AdminPanel: React.FC = () => {
   // Persisted admin credentials in localStorage
   const [adminEmail, setAdminEmail] = useState<string>(() => {
     try {
-      return localStorage.getItem('naarir_admin_email') || 'AliIslam01911@gmail.com';
+      return localStorage.getItem('naarir_admin_email') || 'NaarirShopno@Gmail.com';
     } catch {
-      return 'AliIslam01911@gmail.com';
+      return 'NaarirShopno@Gmail.com';
     }
   });
 
@@ -362,6 +447,11 @@ export const AdminPanel: React.FC = () => {
   const [customCourierName, setCustomCourierName] = useState('');
   const [courierTrackingId, setCourierTrackingId] = useState('');
   const [courierEstDelivery, setCourierEstDelivery] = useState('২-৩ দিনের মধ্যে');
+  const [courierStatus, setCourierStatus] = useState<OrderStatus>('shipped');
+  const [isDetectingCourier, setIsDetectingCourier] = useState(false);
+  const [courierSyncNotice, setCourierSyncNotice] = useState<string | null>(null);
+  const [syncingOrderId, setSyncingOrderId] = useState<string | null>(null);
+  const [quickSyncToast, setQuickSyncToast] = useState<string | null>(null);
 
   // Preview Image Lightbox Modal
   const [previewImageModal, setPreviewImageModal] = useState<{
@@ -384,7 +474,7 @@ export const AdminPanel: React.FC = () => {
     const targetEmail = adminEmail.trim().toLowerCase();
 
     // Check email and password against stored admin credentials
-    const isEmailValid = cleanEmail === targetEmail || cleanEmail === 'admin' || cleanEmail === 'aliislam01911@gmail.com';
+    const isEmailValid = cleanEmail === targetEmail || cleanEmail === 'admin' || cleanEmail === 'naarirshopno@gmail.com' || cleanEmail === 'aliislam01911@gmail.com';
     const isPassValid = cleanPass === adminPassword || cleanPass === 'M01911541717m';
 
     if (isEmailValid && isPassValid) {
@@ -841,14 +931,80 @@ export const AdminPanel: React.FC = () => {
       ? (customCourierName.trim() || 'অন্যান্য কুরিয়ার সার্ভিস')
       : courierName;
 
-    updateOrderStatus(selectedOrderForCourier.id, 'shipped', {
+    const cleanInput = courierTrackingId.trim();
+    const isUrl = cleanInput.startsWith('http://') || cleanInput.startsWith('https://');
+    let trackingUrl = isUrl ? cleanInput : selectedOrderForCourier.courier?.trackingUrl;
+    let finalTrkId = cleanInput;
+
+    if (finalCourierName.toLowerCase().includes('steadfast')) {
+      const norm = normalizeSteadfastInput(cleanInput);
+      finalTrkId = norm.cleanCode;
+      trackingUrl = norm.trackingUrl;
+    }
+
+    updateOrderStatus(selectedOrderForCourier.id, courierStatus, {
       name: finalCourierName,
-      trackingId: courierTrackingId || `TRK-${Date.now().toString().slice(-6)}`,
-      shippedDate: new Date().toISOString().substring(0, 10),
-      estimatedDelivery: courierEstDelivery,
+      trackingId: finalTrkId || `TRK-${Date.now().toString().slice(-6)}`,
+      trackingUrl,
+      shippedDate: selectedOrderForCourier.courier?.shippedDate || new Date().toISOString().substring(0, 10),
+      deliveredDate: courierStatus === 'delivered' ? (selectedOrderForCourier.courier?.deliveredDate || new Date().toISOString().substring(0, 10)) : undefined,
+      estimatedDelivery: courierStatus === 'delivered' ? 'ডেলিভারি সম্পন্ন (Delivered)' : courierEstDelivery,
     });
 
     setSelectedOrderForCourier(null);
+  };
+
+  const handleAutoDetectSteadfast = async () => {
+    if (!courierTrackingId.trim()) return;
+    setIsDetectingCourier(true);
+    setCourierSyncNotice(null);
+
+    try {
+      const res = await fetchSteadfastTracking(courierTrackingId.trim());
+      if (res.trackingCode) {
+        setCourierTrackingId(res.trackingCode);
+      }
+      if (res.isDelivered || res.normalizedStatus === 'delivered') {
+        setCourierStatus('delivered');
+        setCourierEstDelivery('ডেলিভারি সম্পন্ন (Delivered)');
+        setCourierSyncNotice('✓ Steadfast কুরিয়ার অনুযায়ী এই পার্সেলটি সফলভাবে ডেলিভারি সম্পন্ন (Delivered) হয়েছে!');
+      } else {
+        setCourierStatus('shipped');
+        setCourierSyncNotice(`Steadfast লাইভ স্ট্যাটাস: ${res.statusText || 'ট্রানজিটে রয়েছে'}`);
+      }
+    } catch {
+      setCourierSyncNotice('Steadfast সার্ভারের সাথে কানেক্ট করা যায়নি।');
+    } finally {
+      setIsDetectingCourier(false);
+    }
+  };
+
+  const handleQuickSyncOrderCourier = async (ord: Order) => {
+    if (!ord.courier) return;
+    setSyncingOrderId(ord.id);
+    const target = ord.courier.trackingUrl || ord.courier.trackingId;
+    try {
+      const res = await fetchSteadfastTracking(target);
+      if (res.isDelivered || res.normalizedStatus === 'delivered') {
+        updateOrderStatus(ord.id, 'delivered', {
+          name: 'Steadfast Courier',
+          trackingId: res.trackingCode || ord.courier.trackingId,
+          trackingUrl: res.trackingUrl || (target.startsWith('http') ? target : undefined),
+          deliveredDate: res.deliveredDate || new Date().toISOString().substring(0, 10),
+          latestTimeline: res.latestTimeline || 'পার্সেল সফলভাবে ডেলিভারি সম্পন্ন হয়েছে',
+          estimatedDelivery: 'ডেলিভারি সম্পন্ন (Delivered)',
+          lastSyncedAt: new Date().toISOString(),
+        });
+        setQuickSyncToast(`অর্ডার #${ord.id} সফলভাবে Steadfast থেকে 'ডেলিভারি সম্পন্ন (Delivered)' আপডেট হয়েছে!`);
+      } else {
+        setQuickSyncToast(`অর্ডার #${ord.id} Steadfast স্ট্যাটাস: ${res.statusText || 'কুরিয়ারে ট্রানজিটে রয়েছে'}`);
+      }
+    } catch {
+      setQuickSyncToast('Steadfast সিঙ্ক করতে সাময়িক সমস্যা হয়েছে।');
+    } finally {
+      setSyncingOrderId(null);
+      setTimeout(() => setQuickSyncToast(null), 4000);
+    }
   };
 
   // Dropshipping API Handlers
@@ -915,6 +1071,239 @@ export const AdminPanel: React.FC = () => {
       setForwardingOrderId(null);
       setTimeout(() => setOrderForwardToast(null), 4000);
     }
+  };
+
+  // Automated Email Notification Handlers
+  const handleSaveEmailSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await updateSettings({
+      ...settings,
+      emailSettings: emailSettingsForm,
+    });
+    setEmailSettingsSavedToast(true);
+    setTimeout(() => setEmailSettingsSavedToast(false), 3000);
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testEmailAddress.trim()) return;
+    setTestEmailLoading(true);
+    setTestEmailSuccess(null);
+    setTestEmailError(null);
+    try {
+      const sampleOrder: Order = orders[0] || {
+        id: `DEMO-${Math.floor(1000 + Math.random() * 9000)}`,
+        customerName: 'সম্মানিত টেস্ট গ্রাহক',
+        customerEmail: testEmailAddress.trim(),
+        phone: '01911-541717',
+        district: 'ঢাকা',
+        thana: 'ধানমন্ডি',
+        address: 'বাড়ি ১২, রোড ৭, ধানমন্ডি, ঢাকা',
+        deliveryZone: 'inside_dhaka',
+        deliveryCharge: 70,
+        paymentMethod: 'cod',
+        items: products.slice(0, 2).map((p) => ({
+          product: p,
+          quantity: 1,
+          selectedSize: p.sizes[0] || 'Free Size',
+          selectedColor: p.colors[0]?.name || 'গোলাপি',
+        })),
+        subtotal: 3500,
+        discount: 0,
+        total: 3570,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
+
+      const liveSettings: StoreSettings = {
+        ...settings,
+        emailSettings: {
+          ...settings.emailSettings,
+          ...emailSettingsForm,
+        },
+      };
+
+      const res = await triggerOrderEmailNotification({
+        ...sampleOrder,
+        customerEmail: testEmailAddress.trim(),
+      }, liveSettings);
+
+      if (res.realDispatched) {
+        setTestEmailSuccess(`✅ অভিনন্দন! টেস্ট ইমেইলটি সফলভাবে ইনবক্সে (${testEmailAddress}) পৌঁছে গেছে! (Message ID: ${res.messageId || 'Delivered'})`);
+      } else if (res.success) {
+        setTestEmailError(`⚠️ ইমেইলটি ফায়ারবেসের /mail কালেকশনে রেকর্ড হয়েছে, কিন্তু সরাসরি ইনবক্সে পৌঁছায়নি কারণ Gmail App Password দেওয়া হয়নি। নিচে ১৬ অক্ষরের Google App Password দিয়ে 'ইমেইল সেটিংস সংরক্ষণ' করুন।`);
+      } else {
+        setTestEmailError(`❌ ইমেইল পাঠাতে ব্যর্থ: ${res.error || 'SMTP সংযোগ ত্রুটি'}`);
+      }
+    } catch (err: any) {
+      setTestEmailError(`টেস্ট ইমেইল সমস্যা: ${err?.message || 'অপ্রত্যাশিত ত্রুটি'}`);
+    } finally {
+      setTestEmailLoading(false);
+    }
+  };
+
+  const getSampleOrderForPreview = (orderOverride?: Order): Order => {
+    if (orderOverride) return orderOverride;
+    if (orders && orders.length > 0) return orders[0];
+    return {
+      id: 'NS-4821',
+      customerName: 'সুমাইয়া আক্তার',
+      customerEmail: testEmailAddress || 'NaarirShopno@Gmail.com',
+      phone: '01819-765432',
+      district: 'ঢাকা',
+      thana: 'উত্তরা',
+      address: 'রোড ৭, সেক্টর ৩, উত্তরা মডেল টাউন, ঢাকা-১২৩০',
+      deliveryZone: 'inside_dhaka',
+      deliveryCharge: 70,
+      paymentMethod: 'cod',
+      items: [
+        {
+          product: products[0] || {
+            id: 'sample-p1',
+            name: 'Katan Silk Saree',
+            bengaliName: 'অভিজাত কাতান সিল্ক শাড়ি',
+            price: 2400,
+            regularPrice: 3200,
+            images: ['https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80'],
+            category: 'saree',
+            categoryBengali: 'শাড়ি',
+            sizes: ['১২ হাত'],
+            colors: [{ name: 'মেরুন', hex: '#881337' }],
+            description: 'এক্সক্লুসিভ কাতান সিল্ক শাড়ি',
+            stockCount: 15,
+            fabric: 'কাতান সিল্ক',
+          },
+          quantity: 1,
+          selectedSize: '১২ হাত',
+          selectedColor: 'মেরুন',
+        },
+        {
+          product: products[1] || {
+            id: 'sample-p2',
+            name: 'Georgette Three Piece',
+            bengaliName: 'সফট জর্জেট এমব্রয়ডারি থ্রি-পিস',
+            price: 1800,
+            regularPrice: 2400,
+            images: ['https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=400&q=80'],
+            category: 'three-piece',
+            categoryBengali: 'থ্রি-পিস',
+            sizes: ['M (৩৮)', 'L (৪০)', 'XL (৪২)'],
+            colors: [{ name: 'গোলাপি', hex: '#ec4899' }],
+            description: 'আরামদায়ক সফট ফেব্রিক',
+            stockCount: 20,
+            fabric: 'সফট জর্জেট',
+          },
+          quantity: 1,
+          selectedSize: 'L (৪০)',
+          selectedColor: 'গোলাপি',
+        },
+      ],
+      subtotal: 4200,
+      discount: 0,
+      total: 4270,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+  };
+
+  const handleOpenEmailPreviewForOrder = (ord: Order) => {
+    setTemplatePreviewOrder(ord);
+    const html = generateOrderEmailHtml(ord, {
+      ...settings,
+      emailSettings: emailSettingsForm,
+    });
+    setPreviewEmailTitle(`অর্ডার #${ord.id} - ${ord.customerName} এর ইমেইল প্রিভিউ`);
+    setPreviewEmailHtml(html);
+  };
+
+  const handleOpenTemplatePreviewModal = (specificOrder?: Order) => {
+    const targetOrder = specificOrder || templatePreviewOrder || getSampleOrderForPreview();
+    setTemplatePreviewOrder(targetOrder);
+    const html = generateOrderEmailHtml(targetOrder, {
+      ...settings,
+      emailSettings: emailSettingsForm,
+    });
+    setPreviewEmailTitle(`অটোমেটেড কনফার্মেশন ইমেইল টেমপ্লেট প্রিভিউ (#${targetOrder.id})`);
+    setPreviewEmailHtml(html);
+  };
+
+  const handleCopyPreviewHtml = () => {
+    if (previewEmailHtml) {
+      try {
+        navigator.clipboard.writeText(previewEmailHtml);
+        setPreviewHtmlCopied(true);
+        setTimeout(() => setPreviewHtmlCopied(false), 2500);
+      } catch {}
+    }
+  };
+
+  const handleResendOrderEmail = async (ord: Order) => {
+    if (!ord.customerEmail) {
+      alert('এই অর্ডারে কোনো গ্রাহকের ইমেইল যুক্ত নেই।');
+      return;
+    }
+    setResendingEmailId(ord.id);
+    try {
+      await triggerOrderEmailNotification(ord, settings);
+      setTestEmailSuccess(`অর্ডার #${ord.id}-এর নোটিফিকেশন ইমেইল পুনরায় পাঠানো হয়েছে!`);
+      setTimeout(() => setTestEmailSuccess(null), 4000);
+    } catch (err: any) {
+      alert(`ইমেইল পাঠাতে সমস্যা: ${err?.message || 'ত্রুটি'}`);
+    } finally {
+      setResendingEmailId(null);
+    }
+  };
+
+  const handleRefreshFirestoreEmailLogs = async () => {
+    setIsLoadingEmailLogs(true);
+    try {
+      const logs = await fetchFirestoreEmailLogs();
+      setFirestoreEmailLogs(logs);
+    } finally {
+      setIsLoadingEmailLogs(false);
+    }
+  };
+
+  const handleCopyEmailLogId = (id: string) => {
+    try {
+      navigator.clipboard.writeText(id);
+      setEmailLogCopiedId(id);
+      setTimeout(() => setEmailLogCopiedId(null), 2500);
+    } catch {}
+  };
+
+  const handleViewEmailLog = (log: FirestoreEmailLog) => {
+    if (log.html) {
+      setPreviewEmailTitle(`ইমেইল লগ - #${log.orderId} (${log.to})`);
+      setPreviewEmailHtml(log.html);
+    } else {
+      setSelectedEmailLogModal(log);
+    }
+  };
+
+  const handleExportFullBackup = () => {
+    const backupData = {
+      exportedAt: new Date().toISOString(),
+      storeName: settings.storeName || 'নারীর স্বপ্ন (Naarir Shopno)',
+      version: '2.0.0',
+      ownerEmail: 'NaarirShopno@Gmail.com',
+      productsCount: products.length,
+      ordersCount: orders.length,
+      products,
+      orders,
+      categories: settings.categories || DEFAULT_CATEGORIES,
+      settings,
+      messages,
+    };
+
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `naarir-shopno-full-backup-${new Date().toISOString().substring(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   // Dropshipping Link Extract & Auto-Post Handlers
@@ -1475,6 +1864,24 @@ export const AdminPanel: React.FC = () => {
                 ) : (
                   <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0" title="API নিষ্ক্রিয়" />
                 )}
+              </button>
+
+              <button
+                id="admin-tab-emails"
+                onClick={() => setActiveTab('emails')}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all ${
+                  activeTab === 'emails'
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'text-slate-700 hover:bg-rose-50 hover:text-rose-700'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Mail className="w-4 h-4 shrink-0 text-emerald-500" />
+                  <span>ইমেইল লগস ও নোটিফিকেশন</span>
+                </div>
+                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {firestoreEmailLogs.length > 0 ? `${firestoreEmailLogs.length} টি লগ` : 'লাইভ'}
+                </span>
               </button>
             </div>
 
@@ -2314,11 +2721,26 @@ export const AdminPanel: React.FC = () => {
                                   <span>🔒 নিজস্ব পণ্য (ড্রপশিপিংয়ে যাবে না - নিরাপদ)</span>
                                 </div>
                               )}
+                            {/* 1-Click Steadfast Sync Button if Steadfast courier is attached */}
+                            {ord.courier?.name?.toLowerCase().includes('steadfast') && (
+                              <button
+                                onClick={() => handleQuickSyncOrderCourier(ord)}
+                                disabled={syncingOrderId === ord.id}
+                                className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold px-3 py-1.5 rounded-lg border border-emerald-300 flex items-center gap-1.5 transition text-xs shadow-2xs cursor-pointer disabled:opacity-50"
+                                title="Steadfast সার্ভার থেকে রিয়েলটাইমে সর্বশেষ ডেলিভারি স্ট্যাটাস চেক ও আপডেট করুন"
+                              >
+                                <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${syncingOrderId === ord.id ? 'animate-spin' : ''}`} />
+                                <span>{syncingOrderId === ord.id ? 'সিঙ্ক হচ্ছে...' : 'Steadfast সিঙ্ক'}</span>
+                              </button>
+                            )}
+
                             <button
                               onClick={() => {
                                 setSelectedOrderForCourier(ord);
-                                setCourierTrackingId(ord.courier?.trackingId || '');
-                                setCourierEstDelivery(ord.courier?.estimatedDelivery || '২-৩ দিনের মধ্যে');
+                                setCourierTrackingId(ord.courier?.trackingUrl || ord.courier?.trackingId || '');
+                                setCourierEstDelivery(ord.courier?.estimatedDelivery || (ord.status === 'delivered' ? 'ডেলিভারি সম্পন্ন (Delivered)' : '২-৩ দিনের মধ্যে'));
+                                setCourierStatus(ord.status === 'delivered' ? 'delivered' : 'shipped');
+                                setCourierSyncNotice(null);
                                 const existing = ord.courier?.name || 'Steadfast Courier';
                                 const presets = [
                                   'Steadfast Courier',
@@ -2340,10 +2762,20 @@ export const AdminPanel: React.FC = () => {
                                   setCustomCourierName(existing);
                                 }
                               }}
-                              className="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-3 py-1.5 rounded-lg border border-blue-200 flex items-center gap-1 transition"
+                              className="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-3 py-1.5 rounded-lg border border-blue-200 flex items-center gap-1 transition cursor-pointer"
                             >
                               <Truck className="w-3.5 h-3.5" />
                               <span>কুরিয়ার তথ্য আপডেট</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEmailPreviewForOrder(ord)}
+                              className="bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold px-3 py-1.5 rounded-lg border border-purple-200 flex items-center gap-1.5 transition text-xs cursor-pointer"
+                              title="এই অর্ডারের জন্য গ্রাহকের কাছে পাঠানো রেসপন্সিভ ইমেইল প্রিভিউ দেখুন"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-purple-600" />
+                              <span>ইমেইল প্রিভিউ</span>
                             </button>
 
                             <button
@@ -3270,6 +3702,16 @@ export const AdminPanel: React.FC = () => {
                         <Cloud className={`w-4 h-4 ${isSyncingAll ? 'animate-spin' : ''}`} />
                         <span>ক্লাউড সিঙ্ক করুন</span>
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={handleExportFullBackup}
+                        className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm transition flex items-center gap-2 cursor-pointer shadow-md active:scale-95"
+                        title="শপের সমস্ত পণ্য, অর্ডার ও সেটিংসের সম্পূর্ণ ব্যাকআপ JSON ডাউনলোড করুন"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>ডাটা ব্যাকআপ ডাউনলোড (.json)</span>
+                      </button>
                     </div>
                   </div>
 
@@ -3430,6 +3872,69 @@ export const AdminPanel: React.FC = () => {
                         <span>ডাটাবেস কানেকশন, কালেকশন রিড এবং রাইট পারমিশন সম্পূর্ণ নির্ভুলভাবে কাজ করছে। কোনো সমস্যা পাওয়া যায়নি!</span>
                       </div>
                     )}
+                  </div>
+
+                  {/* Project & Data Migration Guide to NaarirShopno@Gmail.com */}
+                  <div className="bg-gradient-to-br from-slate-900 via-rose-950 to-slate-950 p-6 rounded-3xl border border-rose-800/40 text-white shadow-xl space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-rose-800/40 gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-400/30 flex items-center justify-center text-rose-400">
+                          <Share2 className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h5 className="font-bold text-base text-white font-['Hind_Siliguri']">
+                            Google AI Studio ও সমস্ত ডাটা NaarirShopno@Gmail.com-এ রাখার নিয়ম
+                          </h5>
+                          <p className="text-xs text-rose-200/80">
+                            বর্তমান একাউন্ট থেকে সম্পূর্ণ প্রজেক্ট ও ডাটাবেসের মালিকানা হস্তান্তর করার সহজ ৩টি উপায়
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-bold text-amber-300 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30 self-start sm:self-auto">
+                        প্রজেক্ট ট্রান্সফার গাইড
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs leading-relaxed">
+                      {/* Step 1: Fork in AI Studio */}
+                      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                        <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                          <span className="w-6 h-6 rounded-full bg-rose-500/20 flex items-center justify-center text-xs text-rose-300">১</span>
+                          <span>AI Studio-তে Fork / Remix</span>
+                        </div>
+                        <p className="text-slate-300 text-[11px]">
+                          ১. ব্রাউজারে <strong className="text-pink-300 font-mono">NaarirShopno@Gmail.com</strong> দিয়ে গুগল একাউন্টে লগইন করুন।<br/>
+                          ২. এই প্রজেক্টের প্রিভিউ লিংকে যান এবং উপরে থাকা <strong>"Fork / Remix"</strong> বা <strong>"Edit in AI Studio"</strong> বাটনে ক্লিক করুন।<br/>
+                          ৩. সাথে সাথে সম্পূর্ণ অ্যাপ NaarirShopno একাউন্টের AI Studio ড্যাশবোর্ডে কপি হয়ে যাবে!
+                        </p>
+                      </div>
+
+                      {/* Step 2: Firebase / GCP IAM Owner */}
+                      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                        <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                          <span className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-xs text-amber-300">২</span>
+                          <span>Firebase ডাটাবেস ওনারশিপ</span>
+                        </div>
+                        <p className="text-slate-300 text-[11px]">
+                          ১. যান: <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="text-rose-400 underline font-mono">console.firebase.google.com</a><br/>
+                          ২. Project Settings &gt; Users &amp; Permissions-এ যান।<br/>
+                          ৩. <strong>Add Member</strong> দিয়ে <code className="text-pink-300">NaarirShopno@Gmail.com</code> লিখে Role দিন <strong>"Owner"</strong> (মালিক)।<br/>
+                          এতে সম্পূর্ণ ফায়ারস্টোর ডাটাবেসের মালিকানা হস্তান্তরিত হবে।
+                        </p>
+                      </div>
+
+                      {/* Step 3: Offline Backup JSON */}
+                      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                        <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                          <span className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs text-emerald-300">৩</span>
+                          <span>সম্পূর্ণ অফলাইন ব্যাকআপ</span>
+                        </div>
+                        <p className="text-slate-300 text-[11px]">
+                          ১. উপরের <strong>"ডাটা ব্যাকআপ ডাউনলোড (.json)"</strong> বাটনে ক্লিক করে পুরো শপের সকল পণ্য, অর্ডার ও কনফিগারেশন নিজের কম্পিউটারে ডাউনলোড করে রাখুন।<br/>
+                          ২. এটি আপনার কাছে নিরাপদ হার্ডকপি হিসেবে সংরক্ষিত থাকবে।
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -3891,6 +4396,1318 @@ export const AdminPanel: React.FC = () => {
                       <p className="text-[11px] text-slate-500 italic">
                         💡 আর কোনো কনফিগারেশন বা Webhook করা লাগবে না। API Key বসালেই অর্ডার স্বয়ংক্রিয়ভাবে যেতে শুরু করবে!
                       </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: AUTOMATED EMAIL NOTIFICATIONS */}
+              {activeTab === 'emails' && (
+                <div className="space-y-6">
+                  {/* Top Header Banner */}
+                  <div className="bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 rounded-3xl p-6 text-white shadow-xl border border-rose-900/40 relative overflow-hidden">
+                    <div className="absolute right-0 top-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                    
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-bold text-[10px] uppercase tracking-wider">
+                            Firebase Cloud Functions v2
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>asia-southeast1 • onOrderCreatedSendEmail</span>
+                          </span>
+                        </div>
+                        <h4 className="text-xl sm:text-2xl font-black font-['Hind_Siliguri'] flex items-center gap-2 text-white">
+                          <Mail className="w-6 h-6 text-emerald-400" />
+                          <span>অটোমেটেড অর্ডার কনফার্মেশন ইমেইল সিস্টেম</span>
+                        </h4>
+                        <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                          যেকোনো কাস্টমার সফলভাবে অর্ডার করার সাথে সাথে স্বয়ংক্রিয়ভাবে ফায়ারবেস ক্লাউড ফাংশন গ্রাহকের ইমেইলে আকর্ষণীয় রসিদ, পণ্যের ছবি, মূল্য তালিকা এবং লাইভ ট্র্যাকিং লিংক পাঠিয়ে দেয়।
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const sampleOrder = orders[0];
+                            if (sampleOrder) {
+                              handleOpenEmailPreviewForOrder(sampleOrder);
+                            } else {
+                              handleOpenEmailPreviewForOrder({
+                                id: 'DEMO-7890',
+                                customerName: 'সম্মানিত টেস্ট গ্রাহক',
+                                customerEmail: settings.emailSettings?.senderEmail || 'AliIslam01911@gmail.com',
+                                phone: '01711000000',
+                                district: 'ঢাকা',
+                                thana: 'ধানমন্ডি',
+                                address: 'বাড়ি ১২, রোড ৭, ধানমন্ডি, ঢাকা',
+                                deliveryZone: 'inside_dhaka',
+                                deliveryCharge: 70,
+                                paymentMethod: 'cod',
+                                items: products.slice(0, 2).map((p) => ({
+                                  product: p,
+                                  quantity: 1,
+                                  selectedSize: p.sizes[0] || 'Free Size',
+                                  selectedColor: p.colors[0]?.name || 'গোলাপি',
+                                })),
+                                subtotal: 3500,
+                                discount: 0,
+                                total: 3570,
+                                status: 'pending',
+                                createdAt: new Date().toISOString(),
+                              });
+                            }
+                          }}
+                          className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 border border-white/15 backdrop-blur-sm cursor-pointer"
+                        >
+                          <Eye className="w-4 h-4 text-emerald-300" />
+                          <span>নমুনা ইমেইল প্রিভিউ</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Top Stats Cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm">
+                      <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                        <span>মোট প্রেরিত ইমেইল</span>
+                        <Send className="w-4 h-4 text-emerald-600" />
+                      </div>
+                      <p className="text-xl sm:text-2xl font-black text-emerald-700 font-['Outfit']">
+                        {orders.filter(o => o.customerEmail).length}
+                      </p>
+                      <p className="text-[11px] text-emerald-600 mt-1">স্বয়ংক্রিয় ক্লাউড কিউড</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm">
+                      <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                        <span>ইমেইলসহ গ্রাহক অর্ডার</span>
+                        <Mail className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <p className="text-xl sm:text-2xl font-black text-slate-900 font-['Outfit']">
+                        {orders.filter(o => o.customerEmail).length} / {orders.length}
+                      </p>
+                      <p className="text-[11px] text-blue-600 mt-1">চেকআউট থেকে সংগৃহীত</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm">
+                      <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                        <span>ক্লাউড ফাংশন ট্রিগার</span>
+                        <Zap className="w-4 h-4 text-amber-500" />
+                      </div>
+                      <p className="text-base sm:text-lg font-black text-slate-900 font-mono">
+                        orders/&#123;id&#125;
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-1">onDocumentCreated</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm">
+                      <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                        <span>অ্যাডমিন কপি (BCC)</span>
+                        <ShieldCheck className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <p className="text-sm font-bold text-slate-900 truncate" title={settings.emailSettings?.senderEmail || 'NaarirShopno@Gmail.com'}>
+                        {settings.emailSettings?.senderEmail || 'NaarirShopno@Gmail.com'}
+                      </p>
+                      <p className="text-[11px] text-purple-600 mt-1">মালিকের ইমেইলে কপি যাবে</p>
+                    </div>
+                  </div>
+
+                  {/* Interactive Test Email Dispatcher & Trigger Box */}
+                  <div className="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-rose-100">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-5 h-5 text-amber-500" />
+                        <div>
+                          <h5 className="font-bold text-slate-900 text-sm">লাইভ টেস্ট ইমেইল ও ডায়াগনস্টিক (Live SMTP & Direct Test)</h5>
+                          <p className="text-[11px] text-slate-500">আপনার নিজস্ব ইমেইল দিয়ে ইনবক্সে রিয়েল-টাইম ডেলিভারি টেস্ট করুন অথবা ১-ক্লিকে জিমেইল ড্রাফট ওপেন করুন</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                          emailSettingsForm.smtpPass ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-amber-700 bg-amber-50 border-amber-200'
+                        }`}>
+                          {emailSettingsForm.smtpPass ? '● SMTP কনফিগারেশন যুক্ত' : '○ অ্যাপ পাসওয়ার্ড বাকি'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="relative flex-1">
+                        <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="email"
+                          placeholder="আপনার ইমেইল দিন (যেমন: NaarirShopno@Gmail.com)"
+                          value={testEmailAddress}
+                          onChange={(e) => setTestEmailAddress(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenTemplatePreviewModal()}
+                        className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-98"
+                        title="গ্রাহকদের কাছে পাঠানোর পূর্বে কনফার্মেশন ইমেইল টেমপ্লেটটির রেন্ডার করা পূর্ণ প্রিভিউ দেখুন"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>ইমেইল প্রিভিউ (Email Preview)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSendTestEmail}
+                        disabled={testEmailLoading || !testEmailAddress.trim()}
+                        className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 active:scale-98"
+                      >
+                        <Send className={`w-3.5 h-3.5 ${testEmailLoading ? 'animate-spin' : ''}`} />
+                        <span>{testEmailLoading ? 'পাঠানো হচ্ছে...' : 'ইনবক্সে পাঠান'}</span>
+                      </button>
+
+                      {orders[0] && (
+                        <a
+                          href={createGmailDraftUrl(orders[0], testEmailAddress)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                          title="ব্রাউজারে সরাসরি Gmail Compose উইন্ডো খুলুন"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 text-rose-400" />
+                          <span>Gmail</span>
+                        </a>
+                      )}
+                    </div>
+
+                    {testEmailSuccess && (
+                      <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-2xl text-xs text-emerald-800 flex items-start gap-2.5 animate-fadeIn font-semibold leading-relaxed">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                        <div>{testEmailSuccess}</div>
+                      </div>
+                    )}
+
+                    {testEmailError && (
+                      <div className="p-3.5 bg-rose-50 border border-rose-300 rounded-2xl text-xs text-rose-800 flex items-start gap-2.5 animate-fadeIn font-semibold leading-relaxed">
+                        <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                        <div>{testEmailError}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Dedicated Email Preview Feature Spotlight Banner */}
+                  <div className="bg-gradient-to-r from-purple-950 via-slate-900 to-slate-950 text-white p-5 sm:p-6 rounded-3xl shadow-sm border border-purple-900/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-1.5 max-w-xl">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-purple-500/20 text-purple-200 border border-purple-400/30">
+                        <Eye className="w-3.5 h-3.5 text-purple-300" />
+                        <span>লাইভ টেমপ্লেট প্রিভিউ ফিচার</span>
+                      </div>
+                      <h4 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                        <span>অটোমেটেড অর্ডার কনফার্মেশন ইমেইল প্রিভিউ</span>
+                      </h4>
+                      <p className="text-xs text-purple-200/90 leading-relaxed">
+                        গ্রাহকদের ইনবক্সে নোটিফিকেশন পৌঁছানোর আগেই অ্যাডমিনরা রেসপন্সিভ ইমেইল টেমপ্লেট, স্টোর লোগো, ইনভয়েস টেবিল ও ট্র্যাকিং লিংক কেমন দেখাবে তা ডেস্কটপ ও মোবাইল উভয় ভিউতে দেখতে পারবেন।
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewDeviceMode('desktop');
+                          handleOpenTemplatePreviewModal();
+                        }}
+                        className="px-4 py-2.5 rounded-2xl bg-white hover:bg-purple-50 text-purple-950 font-bold text-xs sm:text-sm shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95"
+                      >
+                        <Monitor className="w-4 h-4 text-purple-700" />
+                        <span>ডেস্কটপ প্রিভিউ</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewDeviceMode('mobile');
+                          handleOpenTemplatePreviewModal();
+                        }}
+                        className="px-4 py-2.5 rounded-2xl bg-purple-800/90 hover:bg-purple-700 text-purple-100 font-bold text-xs sm:text-sm border border-purple-700 transition flex items-center gap-2 cursor-pointer active:scale-95"
+                        title="সরাসরি মোবাইল স্ক্রিন মকআপে প্রিভিউ দেখুন"
+                      >
+                        <Smartphone className="w-4 h-4 text-purple-300" />
+                        <span>মোবাইল ভিউ</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Settings Form & Google App Password / SMTP Guide */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* Left: Email Config Form */}
+                    <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-rose-100">
+                        <div className="flex items-center gap-2">
+                          <SettingsIcon className="w-5 h-5 text-rose-600" />
+                          <h5 className="font-bold text-slate-900 text-sm sm:text-base">ইমেইল সেন্ডার ও SMTP কনফিগারেশন</h5>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                          {emailSettingsForm.provider === 'custom_smtp' ? 'কাস্টম SMTP' : 'Google Gmail SMTP'}
+                        </span>
+                      </div>
+
+                      <form onSubmit={handleSaveEmailSettings} className="space-y-4 text-xs">
+                        <div className="flex items-center justify-between p-3 bg-rose-50/50 rounded-2xl border border-rose-100">
+                          <div>
+                            <span className="font-bold text-slate-900 text-xs sm:text-sm block">স্বয়ংক্রিয় ইমেইল নোটিফিকেশন চালু রাখুন</span>
+                            <span className="text-[11px] text-slate-500">প্রতিটি সফল অর্ডারে গ্রাহক ও অ্যাডমিনকে ইমেইল পাঠাবে</span>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={emailSettingsForm.enabled}
+                            onChange={(e) => setEmailSettingsForm({ ...emailSettingsForm, enabled: e.target.checked })}
+                            className="w-4 h-4 accent-rose-600 rounded cursor-pointer"
+                          />
+                        </div>
+
+                        {/* Provider Selection */}
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1.5">ইমেইল প্রেরক ইঞ্জিন (Email Sending Provider)</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setEmailSettingsForm({
+                                ...emailSettingsForm,
+                                provider: 'gmail',
+                                smtpHost: 'smtp.gmail.com',
+                                smtpPort: 465,
+                                smtpSecure: true,
+                              })}
+                              className={`p-3 rounded-xl border text-left flex items-center justify-between transition cursor-pointer ${
+                                emailSettingsForm.provider !== 'custom_smtp'
+                                  ? 'border-rose-500 bg-rose-50/60 text-rose-900 font-bold'
+                                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Mail className="w-4 h-4 text-rose-600" />
+                                <div>
+                                  <div className="text-xs">Google Gmail SMTP</div>
+                                  <div className="text-[10px] text-slate-500 font-normal">অটোমেটেড ইনবক্স ডেলিভারি</div>
+                                </div>
+                              </div>
+                              {emailSettingsForm.provider !== 'custom_smtp' && <Check className="w-4 h-4 text-rose-600" />}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setEmailSettingsForm({
+                                ...emailSettingsForm,
+                                provider: 'custom_smtp',
+                              })}
+                              className={`p-3 rounded-xl border text-left flex items-center justify-between transition cursor-pointer ${
+                                emailSettingsForm.provider === 'custom_smtp'
+                                  ? 'border-rose-500 bg-rose-50/60 text-rose-900 font-bold'
+                                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Server className="w-4 h-4 text-slate-700" />
+                                <div>
+                                  <div className="text-xs">Custom SMTP সার্ভার</div>
+                                  <div className="text-[10px] text-slate-500 font-normal">নিজস্ব ডোমেন বা হোস্টিং</div>
+                                </div>
+                              </div>
+                              {emailSettingsForm.provider === 'custom_smtp' && <Check className="w-4 h-4 text-rose-600" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">প্রেরকের নাম (Sender Name) *</label>
+                          <input
+                            type="text"
+                            required
+                            value={emailSettingsForm.senderName}
+                            onChange={(e) => setEmailSettingsForm({ ...emailSettingsForm, senderName: e.target.value })}
+                            placeholder="নারীর স্বপ্ন (Naarir Shopno)"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-rose-500"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block font-bold text-slate-700 mb-1">প্রেরকের ইমেইল (Gmail / From Email) *</label>
+                            <input
+                              type="email"
+                              required
+                              value={emailSettingsForm.senderEmail}
+                              onChange={(e) => setEmailSettingsForm({ 
+                                ...emailSettingsForm, 
+                                senderEmail: e.target.value,
+                                smtpUser: e.target.value,
+                              })}
+                              placeholder="NaarirShopno@Gmail.com"
+                              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-rose-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block font-bold text-slate-700 mb-1">কাস্টমার সাপোর্ট ইমেইল (Reply-To) *</label>
+                            <input
+                              type="email"
+                              required
+                              value={emailSettingsForm.supportEmail}
+                              onChange={(e) => setEmailSettingsForm({ ...emailSettingsForm, supportEmail: e.target.value })}
+                              placeholder="NaarirShopno@Gmail.com"
+                              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-rose-500"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Google App Password or Custom SMTP Credentials */}
+                        {emailSettingsForm.provider !== 'custom_smtp' ? (
+                          <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200 space-y-2.5">
+                            <div className="flex items-center justify-between">
+                              <label className="block font-bold text-slate-800">
+                                Google App Password (১৬ অক্ষরের অ্যাপ পাসওয়ার্ড) *
+                              </label>
+                              <a
+                                href="https://myaccount.google.com/apppasswords"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[11px] font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1"
+                              >
+                                <span>পাসওয়ার্ড তৈরি করুন</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+
+                            <div className="relative">
+                              <Key className="w-4 h-4 text-amber-600 absolute left-3 top-1/2 -translate-y-1/2" />
+                              <input
+                                type={showSmtpPass ? 'text' : 'password'}
+                                value={emailSettingsForm.smtpPass || ''}
+                                onChange={(e) => setEmailSettingsForm({ ...emailSettingsForm, smtpPass: e.target.value })}
+                                placeholder="xxxx xxxx xxxx xxxx (Google App Password)"
+                                className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-amber-300 bg-white font-mono text-xs focus:ring-2 focus:ring-rose-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowSmtpPass(!showSmtpPass)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                              >
+                                {showSmtpPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
+                            <p className="text-[10px] text-amber-900 leading-tight">
+                              💡 <strong>নোট:</strong> আপনার সাধারণ জিমেইল পাসওয়ার্ড কাজ করবে না। জিমেইলে 2-Step Verification অন করে ডান পাশের ৩টি ধাপ ফলো করে ১৬ অক্ষরের Google App Password বসান।
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block font-bold text-slate-700 mb-1">SMTP Host</label>
+                                <input
+                                  type="text"
+                                  value={emailSettingsForm.smtpHost || ''}
+                                  onChange={(e) => setEmailSettingsForm({ ...emailSettingsForm, smtpHost: e.target.value })}
+                                  placeholder="mail.yourdomain.com"
+                                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block font-bold text-slate-700 mb-1">SMTP Port</label>
+                                <input
+                                  type="number"
+                                  value={emailSettingsForm.smtpPort || 465}
+                                  onChange={(e) => setEmailSettingsForm({ ...emailSettingsForm, smtpPort: Number(e.target.value) })}
+                                  placeholder="465"
+                                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs"
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block font-bold text-slate-700 mb-1">SMTP Username</label>
+                                <input
+                                  type="text"
+                                  value={emailSettingsForm.smtpUser || ''}
+                                  onChange={(e) => setEmailSettingsForm({ ...emailSettingsForm, smtpUser: e.target.value })}
+                                  placeholder="info@yourdomain.com"
+                                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs"
+                                />
+                              </div>
+                              <div className="relative">
+                                <label className="block font-bold text-slate-700 mb-1">SMTP Password</label>
+                                <input
+                                  type={showSmtpPass ? 'text' : 'password'}
+                                  value={emailSettingsForm.smtpPass || ''}
+                                  onChange={(e) => setEmailSettingsForm({ ...emailSettingsForm, smtpPass: e.target.value })}
+                                  placeholder="পাসওয়ার্ড"
+                                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs pr-8"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowSmtpPass(!showSmtpPass)}
+                                  className="absolute right-2.5 top-7 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                >
+                                  {showSmtpPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">ইমেইল বিষয় (Subject Line Template) *</label>
+                          <input
+                            type="text"
+                            required
+                            value={emailSettingsForm.orderConfirmationSubject}
+                            onChange={(e) => setEmailSettingsForm({ ...emailSettingsForm, orderConfirmationSubject: e.target.value })}
+                            placeholder="নারীর স্বপ্ন - আপনার অর্ডারটি সফলভাবে গৃহীত হয়েছে (#{orderId})"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-rose-500"
+                          />
+                          <p className="text-[10px] text-slate-400 mt-0.5">টোকেন: &#123;orderId&#125; এবং &#123;customerName&#125; স্বয়ংক্রিয়ভাবে রিপ্লেস হবে</p>
+                        </div>
+
+                        <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                          <input
+                            type="checkbox"
+                            id="bccAdminCheckbox"
+                            checked={emailSettingsForm.bccAdminOnOrder}
+                            onChange={(e) => setEmailSettingsForm({ ...emailSettingsForm, bccAdminOnOrder: e.target.checked })}
+                            className="w-4 h-4 accent-rose-600 rounded cursor-pointer"
+                          />
+                          <label htmlFor="bccAdminCheckbox" className="font-semibold text-slate-700 cursor-pointer">
+                            প্রতিটি অর্ডারে মালিকের ইমেইলে গোপন অনুলিপি (BCC) পাঠান: <strong className="text-rose-700">{emailSettingsForm.senderEmail}</strong>
+                          </label>
+                        </div>
+
+                        <div className="pt-2 flex items-center justify-between flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenTemplatePreviewModal()}
+                            className="px-4 py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs border border-purple-200 transition flex items-center gap-1.5 cursor-pointer active:scale-98"
+                            title="সংরক্ষণ করার আগে এই কনফিগারেশনের লাইভ ইমেইল প্রিভিউ দেখুন"
+                          >
+                            <Eye className="w-4 h-4 text-purple-600" />
+                            <span>টেমপ্লেট প্রিভিউ দেখুন</span>
+                          </button>
+
+                          <div className="flex items-center gap-2 ml-auto">
+                            {emailSettingsSavedToast && (
+                              <span className="text-emerald-700 font-bold flex items-center gap-1">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                <span>ইমেইল সেটিংস সংরক্ষিত হয়েছে!</span>
+                              </span>
+                            )}
+                            <button
+                              type="submit"
+                              className="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-98"
+                            >
+                              <Save className="w-4 h-4" />
+                              <span>ইমেইল সেটিংস সংরক্ষণ করুন</span>
+                            </button>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+
+                    {/* Right: Google App Password 2-Minute Guide */}
+                    <div className="lg:col-span-5 bg-gradient-to-b from-slate-900 to-slate-950 text-white p-5 sm:p-6 rounded-3xl border border-slate-800 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <div className="flex items-center gap-2">
+                          <Key className="w-5 h-5 text-amber-400" />
+                          <h5 className="font-bold text-sm">Google App Password তৈরির গাইড</h5>
+                        </div>
+                        <span className="text-[10px] font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">
+                          ২ মিনিট সময়
+                        </span>
+                      </div>
+
+                      <div className="space-y-3.5 text-xs text-slate-300 leading-relaxed">
+                        <div className="p-3 bg-slate-800/80 rounded-2xl border border-slate-700/80 space-y-1.5">
+                          <div className="font-bold text-amber-300 flex items-center gap-1.5">
+                            <span>ধাপ ১: গুগল সিকিউরিটিতে যান</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300">
+                            যে জিমেইল (<span className="text-pink-300 font-mono">NaarirShopno@Gmail.com</span>) থেকে ইমেইল পাঠাতে চান সেটিতে লগইন রেখে নিচের বাটনে ক্লিক করুন:
+                          </p>
+                          <a
+                            href="https://myaccount.google.com/apppasswords"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] rounded-xl shadow transition"
+                          >
+                            <span>Google App Passwords খুলুন</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+
+                        <div className="p-3 bg-slate-800/80 rounded-2xl border border-slate-700/80 space-y-1.5">
+                          <div className="font-bold text-emerald-300 flex items-center gap-1.5">
+                            <span>ধাপ ২: অ্যাপ তৈরি করুন</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300">
+                            <strong>App name</strong> ঘরে লিখুন <code className="text-pink-300 bg-slate-900 px-1 py-0.5 rounded">Naarir Shopno</code> এবং <strong>Create</strong> বাটনে ক্লিক করুন। (প্রয়োজনে 2-Step Verification অন করুন)
+                          </p>
+                        </div>
+
+                        <div className="p-3 bg-slate-800/80 rounded-2xl border border-slate-700/80 space-y-1.5">
+                          <div className="font-bold text-sky-300 flex items-center gap-1.5">
+                            <span>ধাপ ৩: কোড পেস্ট ও সংরক্ষণ</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300">
+                            গুগল হলুদ বাক্সে ১৬ অক্ষরের একটি কোড দেবে (যেমন: <code className="text-amber-300 font-mono">abcd efgh ijkl mnop</code>)। কোডটি কপি করে বাম পাশের বক্সে দিয়ে <strong>সংরক্ষণ</strong> করুন!
+                          </p>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                          <span>বিকল্প: ক্লাউড ফাংশন ডিপ্লয়</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText('firebase deploy --only functions');
+                              alert('কমান্ড কপি হয়েছে: firebase deploy --only functions');
+                            }}
+                            className="text-pink-400 hover:text-pink-300 flex items-center gap-1 cursor-pointer font-mono"
+                          >
+                            <Copy className="w-3 h-3" />
+                            <span>কমান্ড কপি</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Real-time Firestore Email Logs Section */}
+                  <div className="bg-white rounded-3xl border border-rose-100 p-5 sm:p-6 shadow-sm space-y-5">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-rose-100">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-xs">
+                            <Mail className="w-4 h-4" />
+                          </div>
+                          <h5 className="font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                            <span>গ্রাহক ইমেইল নোটিফিকেশন লগ (Firestore Database Logs)</span>
+                          </h5>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">
+                          ফায়ারবেস ডাটাবেজের <code className="bg-rose-50 text-rose-700 px-1 py-0.5 rounded font-mono font-semibold">/mail</code> কালেকশন থেকে রিয়েলটাইমে গ্রাহকদের পাঠানো নোটিফিকেশন হিস্টোরি, প্রাপক (Recipient), স্ট্যাটাস (Status) ও টাইমস্ট্যাম্প (Timestamp)
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          <span>লাইভ সিঙ্ক চালু</span>
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={handleRefreshFirestoreEmailLogs}
+                          disabled={isLoadingEmailLogs}
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 font-bold text-xs transition border border-slate-200 cursor-pointer flex items-center gap-1.5 active:scale-95 disabled:opacity-60"
+                          title="ফায়ারবেস থেকে লগ রিফ্রেশ করুন"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${isLoadingEmailLogs ? 'animate-spin text-rose-600' : ''}`} />
+                          <span>রিফ্রেশ</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Summary Stats Component with Simple Chart */}
+                    {(() => {
+                      const totalEmailsSent = firestoreEmailLogs.length;
+                      const deliveredEmailsCount = firestoreEmailLogs.filter(l => l.status === 'delivered').length;
+                      const queuedEmailsCount = firestoreEmailLogs.filter(l => l.status === 'queued').length;
+                      const recentFailureCount = firestoreEmailLogs.filter(l => l.status === 'failed').length;
+
+                      const successRate = totalEmailsSent > 0
+                        ? Math.round((deliveredEmailsCount / totalEmailsSent) * 100)
+                        : 100;
+
+                      const deliveredPercent = totalEmailsSent > 0 ? Math.round((deliveredEmailsCount / totalEmailsSent) * 100) : 0;
+                      const queuedPercent = totalEmailsSent > 0 ? Math.round((queuedEmailsCount / totalEmailsSent) * 100) : 0;
+                      const failedPercent = totalEmailsSent > 0 ? Math.max(0, 100 - deliveredPercent - queuedPercent) : 0;
+
+                      // 7-day data aggregation for bar chart
+                      const today = new Date();
+                      const last7DaysChartData = Array.from({ length: 7 }, (_, idx) => {
+                        const d = new Date(today);
+                        d.setDate(today.getDate() - (6 - idx));
+                        const dateStr = d.toISOString().substring(0, 10);
+                        const dayNameBn = d.toLocaleDateString('bn-BD', { weekday: 'short' });
+                        const dayDateBn = d.toLocaleDateString('bn-BD', { day: 'numeric', month: 'short' });
+
+                        let dayTotal = 0;
+                        let dayDelivered = 0;
+                        let dayQueued = 0;
+                        let dayFailed = 0;
+
+                        firestoreEmailLogs.forEach((log) => {
+                          if (log.createdAt && log.createdAt.startsWith(dateStr)) {
+                            dayTotal += 1;
+                            if (log.status === 'delivered') dayDelivered += 1;
+                            else if (log.status === 'failed') dayFailed += 1;
+                            else dayQueued += 1;
+                          }
+                        });
+
+                        return {
+                          dateStr,
+                          dayNameBn,
+                          dayDateBn,
+                          total: dayTotal,
+                          delivered: dayDelivered,
+                          queued: dayQueued,
+                          failed: dayFailed,
+                        };
+                      });
+
+                      const maxDailyEmails = Math.max(1, ...last7DaysChartData.map(d => d.total));
+
+                      // SVG Circle calculations for Donut
+                      const radius = 38;
+                      const circumference = 2 * Math.PI * radius;
+                      const strokeDashoffset = circumference - (successRate / 100) * circumference;
+
+                      return (
+                        <div className="space-y-4">
+                          {/* 3 Prominent Stat Cards: Total Sent, Success Rate, Recent Failure Count */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {/* 1. Total Emails Sent */}
+                            <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-2xl p-4 border border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-semibold text-slate-300">মোট প্রেরিত ইমেইল (Total Sent)</span>
+                                <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-rose-400">
+                                  <Send className="w-4 h-4" />
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <div className="text-2xl sm:text-3xl font-black font-['Outfit'] tracking-tight">
+                                  {totalEmailsSent} <span className="text-xs font-normal text-slate-400">টি নোটিফিকেশন</span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
+                                  <span className="text-emerald-400 font-semibold">{deliveredEmailsCount} সফল</span>
+                                  <span>•</span>
+                                  <span className="text-blue-400 font-semibold">{queuedEmailsCount} কিউড</span>
+                                </div>
+                              </div>
+                              <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                                <span>Firestore Database /mail</span>
+                                <span className="text-emerald-400">রিয়েলটাইম সিঙ্ক</span>
+                              </div>
+                            </div>
+
+                            {/* 2. Success Rate */}
+                            <div className="bg-gradient-to-br from-emerald-50 to-teal-50/60 rounded-2xl p-4 border border-emerald-200 shadow-sm flex flex-col justify-between">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-emerald-950">সাফল্যের হার (Success Rate)</span>
+                                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                                  <TrendingUp className="w-4 h-4" />
+                                </div>
+                              </div>
+                              <div className="mt-3 flex items-center justify-between">
+                                <div>
+                                  <div className="text-2xl sm:text-3xl font-black text-emerald-900 font-['Outfit']">
+                                    {successRate}%
+                                  </div>
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold mt-1 ${
+                                    successRate >= 90
+                                      ? 'bg-emerald-200/70 text-emerald-900'
+                                      : successRate >= 70
+                                      ? 'bg-amber-100 text-amber-900'
+                                      : 'bg-rose-100 text-rose-900'
+                                  }`}>
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                                    <span>{successRate >= 90 ? 'অনুকূল ডেলিভারি' : 'মনোযোগ প্রয়োজন'}</span>
+                                  </span>
+                                </div>
+
+                                {/* Mini Circular Gauge */}
+                                <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
+                                  <svg className="w-14 h-14 -rotate-90" viewBox="0 0 90 90">
+                                    <circle
+                                      cx="45"
+                                      cy="45"
+                                      r={radius}
+                                      stroke="#d1fae5"
+                                      strokeWidth="8"
+                                      fill="transparent"
+                                    />
+                                    <circle
+                                      cx="45"
+                                      cy="45"
+                                      r={radius}
+                                      stroke="#059669"
+                                      strokeWidth="8"
+                                      strokeDasharray={circumference}
+                                      strokeDashoffset={strokeDashoffset}
+                                      strokeLinecap="round"
+                                      fill="transparent"
+                                      className="transition-all duration-700 ease-out"
+                                    />
+                                  </svg>
+                                  <div className="absolute text-[11px] font-black text-emerald-900 font-['Outfit']">
+                                    {successRate}%
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="mt-2 pt-2 border-t border-emerald-200/80 flex items-center justify-between text-[10px] text-emerald-800">
+                                <span>ইনবক্সে প্রাপ্তি অনুপাত</span>
+                                <span className="font-semibold">{deliveredEmailsCount} / {totalEmailsSent || 1} টি নিশ্চিত</span>
+                              </div>
+                            </div>
+
+                            {/* 3. Recent Failure Count */}
+                            <div className={`rounded-2xl p-4 border shadow-sm flex flex-col justify-between ${
+                              recentFailureCount === 0
+                                ? 'bg-gradient-to-br from-slate-50 to-emerald-50/40 border-slate-200'
+                                : 'bg-gradient-to-br from-rose-50 to-rose-100/60 border-rose-200'
+                            }`}>
+                              <div className="flex items-center justify-between">
+                                <span className={`text-xs font-bold ${recentFailureCount === 0 ? 'text-slate-800' : 'text-rose-950'}`}>
+                                  সাম্প্রতিক ব্যর্থ সংখ্যা (Recent Failures)
+                                </span>
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                                  recentFailureCount === 0
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-rose-600 text-white shadow-xs'
+                                }`}>
+                                  {recentFailureCount === 0 ? (
+                                    <CheckCircle2 className="w-4 h-4" />
+                                  ) : (
+                                    <AlertCircle className="w-4 h-4" />
+                                  )}
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <div className={`text-2xl sm:text-3xl font-black font-['Outfit'] ${
+                                  recentFailureCount === 0 ? 'text-emerald-700' : 'text-rose-700'
+                                }`}>
+                                  {recentFailureCount} <span className="text-xs font-normal text-slate-500">টি ত্রুটি</span>
+                                </div>
+                                <div className="mt-1">
+                                  {recentFailureCount === 0 ? (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                      <span>কোনো ব্যর্থতা নেই, সব ডেলিভারি নিরাপদ</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700">
+                                      <AlertCircle className="w-3.5 h-3.5" />
+                                      <span>{recentFailureCount} টি ইমেইল ডেলিভারিতে সমস্যা</span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className={`mt-2 pt-2 border-t text-[10px] flex items-center justify-between ${
+                                recentFailureCount === 0
+                                  ? 'border-slate-200 text-slate-500'
+                                  : 'border-rose-200 text-rose-700 font-semibold'
+                              }`}>
+                                <span>{recentFailureCount === 0 ? 'সিস্টেম স্ট্যাটাস স্বাভাবিক' : 'জিমেইল অ্যাপ পাসওয়ার্ড চেক করুন'}</span>
+                                <span className="font-mono">{recentFailureCount === 0 ? '100% OK' : 'Check Logs'}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Simple Chart Component: Trend & Status Ratio */}
+                          <div className="bg-slate-50/80 rounded-2xl border border-slate-200/90 p-4 sm:p-5">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-200">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center">
+                                  <BarChart3 className="w-4 h-4" />
+                                </div>
+                                <div>
+                                  <h6 className="font-bold text-slate-900 text-xs sm:text-sm">
+                                    ইমেইল নোটিফিকেশন ট্রেন্ড ও ডেলিভারি পারফরম্যান্স চার্ট
+                                  </h6>
+                                  <p className="text-[11px] text-slate-500">
+                                    গত ৭ দিনের দৈনিক প্রেরিত ভলিউম, সফল ডেলিভারি ও ব্যর্থতার ভিজ্যুয়াল গ্রাফ
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Chart Legend */}
+                              <div className="flex items-center gap-3 text-[11px] self-start sm:self-auto font-medium">
+                                <span className="flex items-center gap-1.5 text-emerald-800">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                  <span>সফল ({deliveredEmailsCount})</span>
+                                </span>
+                                <span className="flex items-center gap-1.5 text-blue-800">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                                  <span>কিউড ({queuedEmailsCount})</span>
+                                </span>
+                                <span className="flex items-center gap-1.5 text-rose-800">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                                  <span>ব্যর্থ ({recentFailureCount})</span>
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+                              {/* Left: 7-Day Bar Chart */}
+                              <div className="lg:col-span-7 flex flex-col justify-end">
+                                <div className="h-40 flex items-end justify-between gap-2 sm:gap-3 px-2 pt-4">
+                                  {last7DaysChartData.map((day) => {
+                                    const totalHeightPct = day.total > 0
+                                      ? Math.max(16, Math.round((day.total / maxDailyEmails) * 100))
+                                      : 6;
+
+                                    const deliveredPct = day.total > 0 ? (day.delivered / day.total) * 100 : 0;
+                                    const queuedPct = day.total > 0 ? (day.queued / day.total) * 100 : 0;
+                                    const failedPct = day.total > 0 ? (day.failed / day.total) * 100 : 0;
+
+                                    return (
+                                      <div key={day.dateStr} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                                        {/* Hover Tooltip */}
+                                        <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] px-2 py-1 rounded-md shadow-lg pointer-events-none whitespace-nowrap z-20">
+                                          <p className="font-bold">{day.dayDateBn}</p>
+                                          <p>মোট: {day.total} টি (সফল: {day.delivered}, ব্যর্থ: {day.failed})</p>
+                                        </div>
+
+                                        {/* Value Label above bar */}
+                                        <span className="text-[10px] font-bold text-slate-600 mb-1 font-mono">
+                                          {day.total > 0 ? day.total : ''}
+                                        </span>
+
+                                        {/* Segmented Bar */}
+                                        <div 
+                                          className="w-full max-w-[36px] rounded-t-lg overflow-hidden flex flex-col-reverse bg-slate-200 transition-all duration-300 group-hover:brightness-110 shadow-xs"
+                                          style={{ height: `${totalHeightPct}%` }}
+                                        >
+                                          {day.total > 0 ? (
+                                            <>
+                                              {/* Delivered (Emerald) */}
+                                              {deliveredPct > 0 && (
+                                                <div 
+                                                  style={{ height: `${deliveredPct}%` }} 
+                                                  className="w-full bg-emerald-500 transition-all"
+                                                />
+                                              )}
+                                              {/* Queued (Blue) */}
+                                              {queuedPct > 0 && (
+                                                <div 
+                                                  style={{ height: `${queuedPct}%` }} 
+                                                  className="w-full bg-blue-500 transition-all"
+                                                />
+                                              )}
+                                              {/* Failed (Rose) */}
+                                              {failedPct > 0 && (
+                                                <div 
+                                                  style={{ height: `${failedPct}%` }} 
+                                                  className="w-full bg-rose-500 transition-all"
+                                                />
+                                              )}
+                                            </>
+                                          ) : (
+                                            <div className="w-full h-full bg-slate-200/80 rounded-t" />
+                                          )}
+                                        </div>
+
+                                        {/* Date / Day Label */}
+                                        <div className="mt-2 text-center">
+                                          <p className="text-[11px] font-bold text-slate-700">{day.dayNameBn}</p>
+                                          <p className="text-[9px] text-slate-400 font-mono">{day.dayDateBn.split(' ')[0]}</p>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              {/* Right: Distribution Ratio & Progress Breakdown */}
+                              <div className="lg:col-span-5 bg-white p-4 rounded-xl border border-slate-200/80 space-y-3.5">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-bold text-slate-800">স্ট্যাটাস অনুপাত (Delivery Ratio)</span>
+                                  <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                    {successRate}% সাফল্য
+                                  </span>
+                                </div>
+
+                                {/* Multi-color Segmented Progress Bar */}
+                                <div className="space-y-1.5">
+                                  <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                                    <div 
+                                      style={{ width: `${deliveredPercent}%` }} 
+                                      className="bg-emerald-500 h-full transition-all duration-500" 
+                                      title={`ইনবক্সে ডেলিভার্ড: ${deliveredPercent}%`}
+                                    />
+                                    <div 
+                                      style={{ width: `${queuedPercent}%` }} 
+                                      className="bg-blue-500 h-full transition-all duration-500" 
+                                      title={`কিউড: ${queuedPercent}%`}
+                                    />
+                                    <div 
+                                      style={{ width: `${failedPercent}%` }} 
+                                      className="bg-rose-500 h-full transition-all duration-500" 
+                                      title={`ব্যর্থ: ${failedPercent}%`}
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Status Details Breakdown */}
+                                <div className="space-y-2 text-xs">
+                                  <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50/70 border border-emerald-200/60">
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                                      <span className="font-semibold text-emerald-950">ইনবক্সে ডেলিভার্ড</span>
+                                    </div>
+                                    <span className="font-bold text-emerald-900 font-mono">
+                                      {deliveredEmailsCount} টি ({deliveredPercent}%)
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center justify-between p-2 rounded-lg bg-blue-50/70 border border-blue-200/60">
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                                      <span className="font-semibold text-blue-950">ফায়ারবেস কিউড</span>
+                                    </div>
+                                    <span className="font-bold text-blue-900 font-mono">
+                                      {queuedEmailsCount} টি ({queuedPercent}%)
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center justify-between p-2 rounded-lg bg-rose-50/70 border border-rose-200/60">
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-2.5 h-2.5 rounded-full bg-rose-600"></span>
+                                      <span className="font-semibold text-rose-950">ব্যর্থ বা ত্রুটি</span>
+                                    </div>
+                                    <span className="font-bold text-rose-900 font-mono">
+                                      {recentFailureCount} টি ({failedPercent}%)
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Filter Pills & Search */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+                      {/* Search Input */}
+                      <div className="relative flex-1 max-w-md">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="প্রাপকের ইমেইল, অর্ডার আইডি (#NS-...), নাম অথবা ফোন দিয়ে খুঁজুন..."
+                          value={emailLogSearch}
+                          onChange={(e) => setEmailLogSearch(e.target.value)}
+                          className="w-full text-xs pl-9 pr-8 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-slate-50/50"
+                        />
+                        {emailLogSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setEmailLogSearch('')}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer text-xs"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Status Filter Tabs */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                        <button
+                          type="button"
+                          onClick={() => setEmailLogStatusFilter('all')}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                            emailLogStatusFilter === 'all'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          সব ({firestoreEmailLogs.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEmailLogStatusFilter('delivered')}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 ${
+                            emailLogStatusFilter === 'delivered'
+                              ? 'bg-emerald-700 text-white shadow-xs'
+                              : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                          }`}
+                        >
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>ইনবক্সে ডেলিভার্ড ({firestoreEmailLogs.filter(l => l.status === 'delivered').length})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEmailLogStatusFilter('queued')}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 ${
+                            emailLogStatusFilter === 'queued'
+                              ? 'bg-blue-700 text-white shadow-xs'
+                              : 'bg-blue-50 text-blue-800 hover:bg-blue-100'
+                          }`}
+                        >
+                          <Clock className="w-3 h-3" />
+                          <span>কিউড ({firestoreEmailLogs.filter(l => l.status === 'queued').length})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEmailLogStatusFilter('failed')}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 ${
+                            emailLogStatusFilter === 'failed'
+                              ? 'bg-rose-700 text-white shadow-xs'
+                              : 'bg-rose-50 text-rose-800 hover:bg-rose-100'
+                          }`}
+                        >
+                          <AlertCircle className="w-3 h-3" />
+                          <span>ব্যর্থ ({firestoreEmailLogs.filter(l => l.status === 'failed').length})</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Table View */}
+                    <div className="overflow-x-auto rounded-2xl border border-rose-100">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-rose-50/70 text-slate-700 font-semibold border-b border-rose-100">
+                          <tr>
+                            <th className="p-3">অর্ডার ও ডকুমেন্ট আইডি</th>
+                            <th className="p-3">প্রাপক (Recipient)</th>
+                            <th className="p-3">গ্রাহক ও অর্ডার তথ্য</th>
+                            <th className="p-3">ইমেইল বিষয় (Subject)</th>
+                            <th className="p-3">টাইমস্ট্যাম্প (Timestamp)</th>
+                            <th className="p-3">ডেলিভারি স্ট্যাটাস (Status)</th>
+                            <th className="p-3 text-right">অ্যাকশন</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-rose-50">
+                          {(() => {
+                            const filtered = firestoreEmailLogs.filter((log) => {
+                              if (emailLogStatusFilter !== 'all' && log.status !== emailLogStatusFilter) return false;
+                              if (emailLogSearch.trim()) {
+                                const q = emailLogSearch.toLowerCase().trim();
+                                return (
+                                  (log.to && log.to.toLowerCase().includes(q)) ||
+                                  (log.orderId && log.orderId.toLowerCase().includes(q)) ||
+                                  (log.id && log.id.toLowerCase().includes(q)) ||
+                                  (log.customerName && log.customerName.toLowerCase().includes(q)) ||
+                                  (log.customerPhone && log.customerPhone.toLowerCase().includes(q)) ||
+                                  (log.subject && log.subject.toLowerCase().includes(q))
+                                );
+                              }
+                              return true;
+                            });
+
+                            if (isLoadingEmailLogs && firestoreEmailLogs.length === 0) {
+                              return (
+                                <tr>
+                                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                                    <div className="flex flex-col items-center justify-center gap-2">
+                                      <RefreshCw className="w-6 h-6 text-rose-600 animate-spin" />
+                                      <span className="font-semibold text-xs">ফায়ারবেস ডাটাবেজের /mail কালেকশন থেকে ইমেইল লগ লোড হচ্ছে...</span>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            }
+
+                            if (firestoreEmailLogs.length === 0) {
+                              return (
+                                <tr>
+                                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                                    <div className="max-w-md mx-auto space-y-2">
+                                      <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto">
+                                        <Mail className="w-6 h-6" />
+                                      </div>
+                                      <h6 className="font-bold text-slate-800 text-sm">এখনো কোনো ইমেইল নোটিফিকেশন লগ জমা হয়নি</h6>
+                                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                                        গ্রাহক চেকআউটে ইমেইল দিলে বা উপরের 'টেস্ট ইমেইল পাঠান' বাটনে ক্লিক করলে স্বয়ংক্রিয়ভাবে ফায়ারবেসের <code className="text-pink-600 font-mono">/mail</code> কালেকশনে ডকুমেন্ট তৈরি হবে এবং এখানে রিয়েলটাইমে প্রদর্শিত হবে।
+                                      </p>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            }
+
+                            if (filtered.length === 0) {
+                              return (
+                                <tr>
+                                  <td colSpan={7} className="p-6 text-center text-slate-500">
+                                    <p className="text-xs font-semibold">আপনার সার্চের সাথে মিলে এমন কোনো ইমেইল লগ পাওয়া যায়নি।</p>
+                                    <button
+                                      type="button"
+                                      onClick={() => { setEmailLogSearch(''); setEmailLogStatusFilter('all'); }}
+                                      className="mt-2 text-rose-600 underline font-bold text-xs cursor-pointer"
+                                    >
+                                      সব ফিল্টার মুছুন
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            }
+
+                            return filtered.map((log) => {
+                              const createdDate = new Date(log.createdAt);
+                              const formattedDate = !isNaN(createdDate.getTime())
+                                ? createdDate.toLocaleString('bn-BD', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })
+                                : log.createdAt;
+
+                              const isDelivered = log.status === 'delivered';
+                              const isFailed = log.status === 'failed';
+                              const isQueued = log.status === 'queued';
+
+                              return (
+                                <tr key={log.id} className="hover:bg-rose-50/30 transition">
+                                  {/* Order & Doc ID */}
+                                  <td className="p-3 align-top">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-mono font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                                        #{log.orderId}
+                                      </span>
+                                    </div>
+                                    <div className="mt-1 flex items-center gap-1 text-[10px] text-slate-400 font-mono" title={log.id}>
+                                      <span className="truncate max-w-[120px]">{log.id}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCopyEmailLogId(log.id)}
+                                        className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                                        title="Firestore Document ID কপি করুন"
+                                      >
+                                        {emailLogCopiedId === log.id ? (
+                                          <Check className="w-3 h-3 text-emerald-600" />
+                                        ) : (
+                                          <Copy className="w-3 h-3" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  </td>
+
+                                  {/* Recipient */}
+                                  <td className="p-3 align-top">
+                                    <div className="flex items-center gap-1.5 font-mono font-bold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 inline-flex max-w-[220px] truncate" title={log.to}>
+                                      <Mail className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                      <span className="truncate">{log.to}</span>
+                                    </div>
+                                    {log.cc && (
+                                      <div className="text-[10px] text-slate-400 mt-1 truncate max-w-[200px]" title={`CC: ${log.cc}`}>
+                                        CC: {log.cc}
+                                      </div>
+                                    )}
+                                  </td>
+
+                                  {/* Customer Info */}
+                                  <td className="p-3 align-top">
+                                    <div className="font-bold text-slate-900">{log.customerName}</div>
+                                    <div className="text-[11px] text-slate-500 mt-0.5">{log.customerPhone}</div>
+                                    {typeof log.total === 'number' && log.total > 0 && (
+                                      <div className="text-[11px] font-bold text-rose-700 font-['Outfit'] mt-0.5">
+                                        ৳{log.total.toLocaleString()}
+                                      </div>
+                                    )}
+                                  </td>
+
+                                  {/* Subject */}
+                                  <td className="p-3 align-top max-w-[200px]">
+                                    <p className="font-medium text-slate-800 line-clamp-2" title={log.subject}>
+                                      {log.subject}
+                                    </p>
+                                    {log.error && (
+                                      <p className="text-[10px] text-rose-600 font-mono mt-1 line-clamp-1" title={log.error}>
+                                        এরর: {log.error}
+                                      </p>
+                                    )}
+                                  </td>
+
+                                  {/* Timestamp */}
+                                  <td className="p-3 align-top whitespace-nowrap">
+                                    <div className="font-bold text-slate-800 flex items-center gap-1">
+                                      <Clock className="w-3 h-3 text-slate-400" />
+                                      <span>{formattedDate}</span>
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                                      {log.createdAt ? log.createdAt.substring(11, 19) + ' UTC' : ''}
+                                    </div>
+                                  </td>
+
+                                  {/* Delivery Status */}
+                                  <td className="p-3 align-top whitespace-nowrap">
+                                    {isDelivered && (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-xs" title="সরাসরি গ্রাহকের ইনবক্সে সফলভাবে প্রেরিত">
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                        <span>ইনবক্সে প্রেরিত (Live)</span>
+                                      </span>
+                                    )}
+
+                                    {isQueued && (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200 shadow-xs" title="ক্লাউড ফাংশন বা SMTP প্রেরণের অপেক্ষায় ফায়ারবেসে জমা">
+                                        <Clock className="w-3.5 h-3.5 text-blue-600" />
+                                        <span>ক্লাউড কিউড (/mail)</span>
+                                      </span>
+                                    )}
+
+                                    {isFailed && (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200 shadow-xs" title={log.error || 'প্রেরণে সমস্যা হয়েছে'}>
+                                        <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                                        <span>ব্যর্থ / ত্রুটি</span>
+                                      </span>
+                                    )}
+
+                                    {log.deliveryState && (
+                                      <div className="text-[10px] font-mono text-slate-500 mt-1">
+                                        স্টেট: {log.deliveryState}
+                                      </div>
+                                    )}
+                                  </td>
+
+                                  {/* Action Buttons */}
+                                  <td className="p-3 align-top text-right">
+                                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                      {/* View HTML Preview */}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleViewEmailLog(log)}
+                                        className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] transition border border-rose-200 cursor-pointer flex items-center gap-1"
+                                        title="গ্রাহকের কাছে প্রেরিত এইচটিএমএল ইমেইল প্রিভিউ দেখুন"
+                                      >
+                                        <Eye className="w-3 h-3" />
+                                        <span>ইমেইল দেখুন</span>
+                                      </button>
+
+                                      {/* View Doc Metadata Modal */}
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedEmailLogModal(log)}
+                                        className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] transition border border-slate-200 cursor-pointer flex items-center gap-1"
+                                        title="লগের বিস্তারিত তথ্য দেখুন"
+                                      >
+                                        <FileText className="w-3 h-3 text-slate-500" />
+                                        <span>বিস্তারিত</span>
+                                      </button>
+
+                                      {/* 1-Click Gmail Composer */}
+                                      {log.to && log.to !== 'N/A' && (
+                                        <a
+                                          href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(log.to)}&su=${encodeURIComponent(log.subject || 'নারীর স্বপ্ন - আপনার অর্ডার')}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] transition border border-slate-800 cursor-pointer flex items-center gap-1"
+                                          title="সরাসরি অফিসিয়াল জিমেইলে কম্পোজ ড্রাফট খুলুন"
+                                        >
+                                          <ExternalLink className="w-3 h-3 text-rose-400" />
+                                          <span>Gmail</span>
+                                        </a>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </div>
@@ -5244,19 +7061,58 @@ export const AdminPanel: React.FC = () => {
                 )}
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">কুরিয়ার কনসাইনমেন্ট / ট্র্যাকিং আইডি *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="যেমন: ST-889142 অথবা PTH-667104"
-                    value={courierTrackingId}
-                    onChange={(e) => setCourierTrackingId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold text-rose-700"
-                  />
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    কুরিয়ার কনসাইনমেন্ট / ট্র্যাকিং আইডি বা লিঙ্ক *
+                  </label>
+                  <div className="space-y-1.5">
+                    <input
+                      type="text"
+                      required
+                      placeholder="যেমন: https://steadfast.com.bd/tl/... অথবা SFR261029STCD01DB3BD"
+                      value={courierTrackingId}
+                      onChange={(e) => setCourierTrackingId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold text-rose-700 text-xs"
+                    />
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 gap-2 flex-wrap">
+                      <span>স্টেডফাস্টের পুরো ট্র্যাকিং লিঙ্ক অথবা কোড এখানে পেস্ট করা যাবে</span>
+                      {courierName.toLowerCase().includes('steadfast') && (
+                        <button
+                          type="button"
+                          onClick={handleAutoDetectSteadfast}
+                          disabled={isDetectingCourier || !courierTrackingId.trim()}
+                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        >
+                          <RefreshCw className={`w-3 h-3 text-emerald-600 ${isDetectingCourier ? 'animate-spin' : ''}`} />
+                          <span>{isDetectingCourier ? 'যাচাই হচ্ছে...' : '⚡ লিঙ্ক থেকে অটো-সিঙ্ক করুন'}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Auto Sync Result Notice */}
+                {courierSyncNotice && (
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-[11px] font-semibold flex items-center gap-1.5 animate-fadeIn">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{courierSyncNotice}</span>
+                  </div>
+                )}
+
+                {/* Courier Status Selection */}
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">অর্ডার স্ট্যাটাস (Order Status)</label>
+                  <select
+                    value={courierStatus}
+                    onChange={(e) => setCourierStatus(e.target.value as OrderStatus)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold bg-white"
+                  >
+                    <option value="shipped">কুরিয়ারে হস্তান্তর / ট্রানজিটে (Shipped / On the way)</option>
+                    <option value="delivered">ডেলিভারি সম্পন্ন (Delivered)</option>
+                  </select>
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">সম্ভাব্য ডেলিভারি সময়</label>
+                  <label className="block font-semibold text-slate-700 mb-1">সম্ভাব্য ডেলিভারি সময় / নোট</label>
                   <input
                     type="text"
                     value={courierEstDelivery}
@@ -5269,15 +7125,15 @@ export const AdminPanel: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSelectedOrderForCourier(null)}
-                    className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-semibold"
+                    className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-semibold cursor-pointer"
                   >
                     বাতিল
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-rose-600 text-white font-bold shadow hover:bg-rose-700"
+                    className="px-5 py-2 rounded-xl bg-rose-600 text-white font-bold shadow hover:bg-rose-700 cursor-pointer"
                   >
-                    কুরিয়ার আপডেট করুন
+                    কুরিয়ার ও স্ট্যাটাস সংরক্ষণ করুন
                   </button>
                 </div>
               </form>
@@ -5492,6 +7348,418 @@ export const AdminPanel: React.FC = () => {
           </div>
         )}
 
+        {/* Rendered HTML Email Preview Suite Modal */}
+        {previewEmailHtml && (
+          <div 
+            className="fixed inset-0 z-70 bg-black/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 animate-fadeIn"
+            onClick={() => setPreviewEmailHtml(null)}
+          >
+            <div 
+              className={`bg-white rounded-3xl w-full max-h-[94vh] flex flex-col overflow-hidden shadow-2xl border border-rose-200 animate-scaleUp transition-all duration-300 ${
+                previewDeviceMode === 'mobile' ? 'max-w-md' : 'max-w-4xl'
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Top Header */}
+              <div className="p-3.5 sm:p-4 border-b border-rose-100 bg-rose-50/80 flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm sm:text-base font-['Hind_Siliguri'] flex items-center gap-2">
+                      <span>{previewEmailTitle || 'অটোমেটেড অর্ডার কনফার্মেশন ইমেইল প্রিভিউ'}</span>
+                      <span className="text-[10px] font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200">
+                        লাইভ প্রিভিউ
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      গ্রাহকদের ইনবক্সে প্রেরণের পূর্বে স্বয়ংক্রিয় নোটিফিকেশনের পূর্ণ রেসপন্সিভ প্রিভিউ
+                    </p>
+                  </div>
+                </div>
+
+                {/* Header Controls: Device Toggle & Close */}
+                <div className="flex items-center gap-2 ml-auto">
+                  {/* Device Switcher */}
+                  <div className="flex items-center bg-white p-1 rounded-xl border border-slate-200 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewDeviceMode('desktop')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                        previewDeviceMode === 'desktop'
+                          ? 'bg-purple-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                      title="ডেস্কটপ ভিউ (Desktop)"
+                    >
+                      <Monitor className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">ডেস্কটপ</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewDeviceMode('mobile')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                        previewDeviceMode === 'mobile'
+                          ? 'bg-purple-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                      title="মোবাইল ভিউ (Mobile 375px)"
+                    >
+                      <Smartphone className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">মোবাইল</span>
+                    </button>
+                  </div>
+
+                  <button 
+                    onClick={() => setPreviewEmailHtml(null)}
+                    className="w-8 h-8 rounded-full bg-white hover:bg-rose-100 text-slate-600 hover:text-rose-600 flex items-center justify-center transition shadow-xs cursor-pointer"
+                    title="প্রিভিউ বন্ধ করুন"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Order Switcher & Metadata Bar */}
+              <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200/90 text-xs flex items-center justify-between gap-3 flex-wrap">
+                {/* Order Selector Dropdown */}
+                <div className="flex items-center gap-2 flex-1 min-w-[240px]">
+                  <span className="text-[11px] font-bold text-slate-600 shrink-0">নমুনা অর্ডার:</span>
+                  <select
+                    value={templatePreviewOrder?.id || 'sample'}
+                    onChange={(e) => {
+                      const selectedId = e.target.value;
+                      if (selectedId === 'sample') {
+                        const sample = getSampleOrderForPreview();
+                        handleOpenEmailPreviewForOrder(sample);
+                      } else {
+                        const found = orders.find(o => o.id === selectedId);
+                        if (found) {
+                          handleOpenEmailPreviewForOrder(found);
+                        }
+                      }
+                    }}
+                    className="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1 focus:ring-2 focus:ring-purple-500 font-medium truncate max-w-[280px]"
+                  >
+                    <option value="sample">ডিফল্ট ডেমো অর্ডার (#NS-4821 - শাড়ি ও থ্রি-পিস)</option>
+                    {orders.map((ord) => (
+                      <option key={ord.id} value={ord.id}>
+                        #{ord.id} - {ord.customerName} (৳{ord.total.toLocaleString()})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Email Client Simulated Metadata */}
+                <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                  <span className="truncate max-w-[180px]">
+                    <strong className="text-slate-700">প্রাপক:</strong> {templatePreviewOrder?.customerEmail || 'customer@example.com'}
+                  </span>
+                  <span>•</span>
+                  <span>
+                    <strong className="text-slate-700">প্রেরক:</strong> NaarirShopno@Gmail.com
+                  </span>
+                </div>
+              </div>
+
+              {/* Email Content Body Area */}
+              <div className="flex-1 overflow-y-auto p-3 sm:p-5 bg-slate-100 flex justify-center">
+                {previewDeviceMode === 'mobile' ? (
+                  /* Realistic iPhone Smartphone Mockup */
+                  <div className="w-[375px] my-auto bg-black p-3 rounded-[44px] shadow-2xl border-4 border-slate-800">
+                    {/* Simulated iPhone Screen */}
+                    <div className="bg-white rounded-[32px] overflow-hidden flex flex-col max-h-[70vh]">
+                      {/* Top Phone Notch / Status Bar */}
+                      <div className="bg-slate-900 text-white px-5 py-2 flex items-center justify-between text-[11px] font-mono shrink-0 select-none">
+                        <span>09:41</span>
+                        <div className="w-16 h-3 bg-black rounded-full" />
+                        <div className="flex items-center gap-1 text-[10px]">
+                          <span>5G</span>
+                          <span>100%</span>
+                        </div>
+                      </div>
+
+                      {/* Rendered HTML inside mobile view */}
+                      <div className="flex-1 overflow-y-auto p-2 bg-slate-50">
+                        <div 
+                          className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden text-xs"
+                          dangerouslySetInnerHTML={{ __html: previewEmailHtml }} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Desktop Email Client View */
+                  <div className="w-full max-w-2xl bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden my-auto">
+                    {/* Desktop Email Client Simulated Header */}
+                    <div className="bg-slate-50 p-3.5 border-b border-slate-200 space-y-1.5 text-xs text-slate-600">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 text-sm">
+                            {emailSettingsForm.senderName || 'নারীর স্বপ্ন (Naarir Shopno)'}
+                          </span>
+                          <span className="text-[11px] text-slate-500 font-mono">
+                            &lt;{emailSettingsForm.senderEmail || 'NaarirShopno@Gmail.com'}&gt;
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          {new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-600">
+                        <strong>To:</strong> {templatePreviewOrder?.customerName || 'সম্মানিত গ্রাহক'} &lt;{templatePreviewOrder?.customerEmail || 'customer@example.com'}&gt;
+                      </div>
+                      <div className="text-[11px] text-slate-700 font-medium">
+                        <strong>Subject:</strong> {emailSettingsForm.orderConfirmationSubject
+                          .replace('{orderId}', templatePreviewOrder?.id || 'NS-4821')
+                          .replace('{customerName}', templatePreviewOrder?.customerName || 'সম্মানিত গ্রাহক')}
+                      </div>
+                    </div>
+
+                    {/* Rendered HTML */}
+                    <div 
+                      className="p-1 sm:p-2 overflow-x-auto"
+                      dangerouslySetInnerHTML={{ __html: previewEmailHtml }} 
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer Toolbar */}
+              <div className="p-3 sm:p-4 bg-white border-t border-slate-200 flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="hidden sm:inline">বাংলা ও ইংরেজি রেসপন্সিভ ইনভয়েস</span>
+                  </span>
+                  <span>•</span>
+                  <span>কুরিয়ার ট্র্যাকিং লিঙ্ক যুক্ত</span>
+                </div>
+
+                <div className="flex items-center gap-2 ml-auto flex-wrap">
+                  {/* Copy HTML Code Button */}
+                  <button
+                    type="button"
+                    onClick={handleCopyPreviewHtml}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                    title="সম্পূর্ণ ইমেইল এইচটিএমএল কোড কপি করুন"
+                  >
+                    {previewHtmlCopied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-700">HTML কপি হয়েছে!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-500" />
+                        <span>HTML কোড কপি</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Open in Gmail Draft Button */}
+                  {templatePreviewOrder && (
+                    <a
+                      href={createGmailDraftUrl(templatePreviewOrder, testEmailAddress)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                      title="ব্রাউজারে সরাসরি Gmail Compose উইন্ডো খুলুন"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Gmail এ খুলুন</span>
+                    </a>
+                  )}
+
+                  <button
+                    onClick={() => setPreviewEmailHtml(null)}
+                    className="px-5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition cursor-pointer shadow-xs"
+                  >
+                    বন্ধ করুন
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Firestore Email Log Document Details Modal */}
+        {selectedEmailLogModal && (
+          <div 
+            className="fixed inset-0 z-70 bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-fadeIn"
+            onClick={() => setSelectedEmailLogModal(null)}
+          >
+            <div 
+              className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-rose-200 animate-scaleUp"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-4 border-b border-rose-100 bg-rose-50/70 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-xs">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm sm:text-base font-['Hind_Siliguri']">
+                      Firestore ইমেইল লগ বিবরণ - #{selectedEmailLogModal.orderId}
+                    </h4>
+                    <p className="text-[11px] text-slate-500 font-mono">
+                      Document ID: {selectedEmailLogModal.id}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedEmailLogModal(null)}
+                  className="w-8 h-8 rounded-full bg-white hover:bg-rose-100 text-slate-600 hover:text-rose-600 flex items-center justify-center transition shadow-xs cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                {/* Status banner */}
+                <div className={`p-3.5 rounded-2xl border flex items-center justify-between ${
+                  selectedEmailLogModal.status === 'delivered' 
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                    : selectedEmailLogModal.status === 'failed'
+                    ? 'bg-rose-50 border-rose-200 text-rose-900'
+                    : 'bg-blue-50 border-blue-200 text-blue-900'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    {selectedEmailLogModal.status === 'delivered' ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    ) : selectedEmailLogModal.status === 'failed' ? (
+                      <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                    ) : (
+                      <Clock className="w-5 h-5 text-blue-600 shrink-0" />
+                    )}
+                    <div>
+                      <span className="font-bold text-xs sm:text-sm">
+                        {selectedEmailLogModal.status === 'delivered' 
+                          ? 'সরাসরি গ্রাহকের ইনবক্সে সফলভাবে প্রেরিত'
+                          : selectedEmailLogModal.status === 'failed'
+                          ? 'ইমেইল প্রেরণে ত্রুটি বা ব্যর্থ'
+                          : 'ফায়ারবেস ক্লাউড কিউতে জমা (/mail)'}
+                      </span>
+                      {selectedEmailLogModal.deliveryState && (
+                        <p className="text-[11px] font-mono mt-0.5 opacity-80">
+                          Delivery State: {selectedEmailLogModal.deliveryState}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/70">
+                    {selectedEmailLogModal.status}
+                  </span>
+                </div>
+
+                {selectedEmailLogModal.error && (
+                  <div className="p-3 bg-rose-50 rounded-xl border border-rose-200 text-xs text-rose-700">
+                    <p className="font-bold">এরর মেসেজ:</p>
+                    <p className="font-mono mt-1 text-[11px] break-all">{selectedEmailLogModal.error}</p>
+                  </div>
+                )}
+
+                {/* Key metadata grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase">প্রাপকের ইমেইল (Recipient)</span>
+                    <p className="font-mono font-bold text-slate-900 break-all">{selectedEmailLogModal.to}</p>
+                    {selectedEmailLogModal.cc && (
+                      <p className="text-[11px] text-slate-500 font-mono">CC: {selectedEmailLogModal.cc}</p>
+                    )}
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase">টাইমস্ট্যাম্প (Timestamp)</span>
+                    <p className="font-bold text-slate-900">
+                      {new Date(selectedEmailLogModal.createdAt).toLocaleString('bn-BD', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-mono">{selectedEmailLogModal.createdAt}</p>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase">গ্রাহকের নাম ও ফোন</span>
+                    <p className="font-bold text-slate-900">{selectedEmailLogModal.customerName}</p>
+                    <p className="text-slate-600 font-mono text-[11px]">{selectedEmailLogModal.customerPhone}</p>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase">অর্ডার মূল্য (Total)</span>
+                    <p className="font-bold text-rose-700 text-sm font-['Outfit']">৳{(selectedEmailLogModal.total || 0).toLocaleString()}</p>
+                    <p className="text-[10px] text-slate-500">Order ID: #{selectedEmailLogModal.orderId}</p>
+                  </div>
+                </div>
+
+                {/* Email Subject */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1 text-xs">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase">ইমেইলের বিষয় (Subject)</span>
+                  <p className="font-bold text-slate-900">{selectedEmailLogModal.subject}</p>
+                </div>
+
+                {/* Rendered HTML or Preview button */}
+                {selectedEmailLogModal.html ? (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700">এইচটিএমএল ইমেইল বডি:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const html = selectedEmailLogModal.html;
+                          const ordId = selectedEmailLogModal.orderId;
+                          const toAddr = selectedEmailLogModal.to;
+                          setSelectedEmailLogModal(null);
+                          setPreviewEmailTitle(`ইমেইল লগ - #${ordId} (${toAddr})`);
+                          setPreviewEmailHtml(html || '');
+                        }}
+                        className="text-xs text-rose-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>পূর্ণ পর্দায় প্রিভিউ দেখুন</span>
+                      </button>
+                    </div>
+                    <div 
+                      className="max-h-60 overflow-y-auto p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs"
+                      dangerouslySetInnerHTML={{ __html: selectedEmailLogModal.html }}
+                    />
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">এই ডকুমেন্টে সরাসরি এইচটিএমএল ক্যাশ করা হয়নি (মেটাডেটা সংরক্ষিত)।</p>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                {selectedEmailLogModal.to && selectedEmailLogModal.to !== 'N/A' && (
+                  <a
+                    href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(selectedEmailLogModal.to)}&su=${encodeURIComponent(selectedEmailLogModal.subject || '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow transition"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Gmail এ খুলুন</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedEmailLogModal(null)}
+                  className="ml-auto px-5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition cursor-pointer"
+                >
+                  বন্ধ করুন
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

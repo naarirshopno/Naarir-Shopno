@@ -38,6 +38,7 @@
       "properties": {
         "id": { "type": "string" },
         "customerName": { "type": "string" },
+        "customerEmail": { "type": "string" },
         "customerPhone": { "type": "string" },
         "deliveryAddress": { "type": "string" },
         "deliveryDistrict": { "type": "string" },
@@ -104,6 +105,18 @@
         "verifiedPurchase": { "type": "boolean" }
       },
       "required": ["id", "productId", "author", "rating", "comment"]
+    },
+    "MailNotification": {
+      "title": "MailNotification",
+      "description": "Automated order email notifications queued for delivery",
+      "type": "object",
+      "properties": {
+        "to": { "type": "string" },
+        "cc": { "type": "string" },
+        "message": { "type": "object" },
+        "metadata": { "type": "object" }
+      },
+      "required": ["to", "message"]
     }
   },
   "firestore": {
@@ -126,6 +139,10 @@
     "/reviews/{reviewId}": {
       "schema": "ProductReview",
       "description": "Customer reviews for products"
+    },
+    "/mail/{mailId}": {
+      "schema": "MailNotification",
+      "description": "Automated email notifications triggered on order placement"
     }
   }
 }

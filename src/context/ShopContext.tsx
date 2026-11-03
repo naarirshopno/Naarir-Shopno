@@ -4,6 +4,7 @@ import { INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_SETTINGS, INITIAL_MESSAGES, D
 import { INITIAL_PRODUCT_REVIEWS, getDefaultReviewsForProduct } from '../data/initialReviews';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { runFirestoreHealthCheck, HealthCheckResult } from '../services/dbHealthCheck';
+import { triggerOrderEmailNotification } from '../services/emailNotificationService';
 import { 
   collection, 
   doc, 
@@ -201,8 +202,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const officeAddress = (!parsed.officeAddress || parsed.officeAddress.includes('মিরপুর'))
           ? INITIAL_SETTINGS.officeAddress
           : parsed.officeAddress;
-        const officeEmail = (!parsed.officeEmail || parsed.officeEmail.toLowerCase().includes('support@naarirshopno.com'))
-          ? INITIAL_SETTINGS.officeEmail
+        const officeEmail = (!parsed.officeEmail || parsed.officeEmail.toLowerCase().includes('support@naarirshopno.com') || parsed.officeEmail.toLowerCase().includes('aliislam01911'))
+          ? 'NaarirShopno@Gmail.com'
           : parsed.officeEmail;
         const bkashMerchantNumber = (!parsed.bkashMerchantNumber || parsed.bkashMerchantNumber.includes('01712'))
           ? INITIAL_SETTINGS.bkashMerchantNumber
@@ -213,11 +214,21 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const whatsappShortLink = parsed.whatsappShortLink || INITIAL_SETTINGS.whatsappShortLink || 'https://wa.me/8801911541717';
         const whatsappNumber = parsed.whatsappNumber || INITIAL_SETTINGS.whatsappNumber || '01911-541717';
 
+        const emailSettings = parsed.emailSettings ? {
+          ...INITIAL_SETTINGS.emailSettings,
+          ...parsed.emailSettings,
+          senderEmail: parsed.emailSettings.senderEmail?.toLowerCase().includes('aliislam01911') ? 'NaarirShopno@Gmail.com' : (parsed.emailSettings.senderEmail || 'NaarirShopno@Gmail.com'),
+          supportEmail: parsed.emailSettings.supportEmail?.toLowerCase().includes('aliislam01911') ? 'NaarirShopno@Gmail.com' : (parsed.emailSettings.supportEmail || 'NaarirShopno@Gmail.com'),
+          adminNotificationEmail: parsed.emailSettings.adminNotificationEmail?.toLowerCase().includes('aliislam01911') ? 'NaarirShopno@Gmail.com' : (parsed.emailSettings.adminNotificationEmail || 'NaarirShopno@Gmail.com'),
+          smtpUser: parsed.emailSettings.smtpUser?.toLowerCase().includes('aliislam01911') ? 'NaarirShopno@Gmail.com' : (parsed.emailSettings.smtpUser || 'NaarirShopno@Gmail.com'),
+        } : INITIAL_SETTINGS.emailSettings;
+
         return {
           ...INITIAL_SETTINGS,
           ...parsed,
           officeAddress,
           officeEmail,
+          emailSettings,
           bkashMerchantNumber,
           nagadMerchantNumber,
           whatsappShortLink,
@@ -433,13 +444,36 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
               ? remoteSettings.categoryImages
               : (prev.categoryImages || {});
 
+            const emailSettings = remoteSettings.emailSettings ? {
+              ...INITIAL_SETTINGS.emailSettings,
+              ...remoteSettings.emailSettings,
+              senderEmail: remoteSettings.emailSettings.senderEmail?.toLowerCase().includes('aliislam01911') ? 'NaarirShopno@Gmail.com' : (remoteSettings.emailSettings.senderEmail || 'NaarirShopno@Gmail.com'),
+              supportEmail: remoteSettings.emailSettings.supportEmail?.toLowerCase().includes('aliislam01911') ? 'NaarirShopno@Gmail.com' : (remoteSettings.emailSettings.supportEmail || 'NaarirShopno@Gmail.com'),
+              adminNotificationEmail: remoteSettings.emailSettings.adminNotificationEmail?.toLowerCase().includes('aliislam01911') ? 'NaarirShopno@Gmail.com' : (remoteSettings.emailSettings.adminNotificationEmail || 'NaarirShopno@Gmail.com'),
+              smtpUser: remoteSettings.emailSettings.smtpUser?.toLowerCase().includes('aliislam01911') ? 'NaarirShopno@Gmail.com' : (remoteSettings.emailSettings.smtpUser || 'NaarirShopno@Gmail.com'),
+            } : INITIAL_SETTINGS.emailSettings;
+
+            const officeEmail = (!remoteSettings.officeEmail || remoteSettings.officeEmail.toLowerCase().includes('support@naarirshopno.com') || remoteSettings.officeEmail.toLowerCase().includes('aliislam01911'))
+              ? 'NaarirShopno@Gmail.com'
+              : remoteSettings.officeEmail;
+
             const merged: StoreSettings = {
               ...INITIAL_SETTINGS,
               ...prev,
               ...remoteSettings,
+              officeEmail,
+              emailSettings,
               categories,
               categoryImages,
             };
+
+            if (
+              remoteSettings.officeEmail !== officeEmail ||
+              !remoteSettings.emailSettings ||
+              remoteSettings.emailSettings.senderEmail !== emailSettings?.senderEmail
+            ) {
+              setDoc(settingsDoc, sanitizeForFirestore(merged), { merge: true }).catch(() => {});
+            }
 
             try {
               localStorage.setItem('ns_settings', JSON.stringify(merged));
@@ -761,11 +795,17 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const createOrder = (orderData: Omit<Order, 'id' | 'createdAt'>): Order => {
     const nextIdNum = orders.length + 1048;
     const isAutoForward = Boolean(settings.dropshippingApi?.enabled && settings.dropshippingApi?.autoForwardOrders);
+    const targetEmail = orderData.customerEmail || settings.officeEmail || 'AliIslam01911@gmail.com';
     const newOrder: Order = {
       ...orderData,
       id: `NS-${nextIdNum}`,
       createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
       status: 'pending',
+      emailNotification: {
+        sent: true,
+        sentAt: new Date().toISOString(),
+        to: targetEmail,
+      },
       ...(isAutoForward ? {
         dropshipping: {
           synced: true,
@@ -779,6 +819,29 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setOrders(prev => [newOrder, ...prev]);
     setDoc(doc(db, 'orders', newOrder.id), sanitizeForFirestore(newOrder))
       .catch(err => handleFirestoreError(err, OperationType.CREATE, `orders/${newOrder.id}`));
+
+    // Trigger automated email notification (writes to Firestore /mail collection & enqueues)
+    triggerOrderEmailNotification(newOrder, settings)
+      .then((res) => {
+        if (res.realDispatched) {
+          setOrders((prev) =>
+            prev.map((o) =>
+              o.id === newOrder.id
+                ? {
+                    ...o,
+                    emailNotification: {
+                      sent: true,
+                      sentAt: new Date().toISOString(),
+                      to: res.targetEmail,
+                    },
+                  }
+                : o
+            )
+          );
+        }
+      })
+      .catch(err => console.warn('Automated email notification notice:', err));
+
     return newOrder;
   };
 
