@@ -186,78 +186,8 @@ export const CategoryPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FCFBF7] pb-16">
-      {/* 1. Breadcrumbs */}
-      <div className="bg-rose-50/50 border-b border-rose-100/70 py-2.5 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex items-center gap-2 text-xs text-slate-600">
-          <Link to="/" className="flex items-center gap-1 hover:text-rose-600 transition font-medium">
-            <Home className="w-3.5 h-3.5" />
-            <span>হোম</span>
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <Link to="/" className="hover:text-rose-600 transition font-medium">
-            ক্যাটাগরি সমূহ
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="font-bold text-rose-700 truncate max-w-[200px] sm:max-w-none">
-            {currentCategory.title}
-          </span>
-        </div>
-      </div>
-
-      {/* 2. Category Hero Banner */}
-      <div className="relative bg-gradient-to-r from-rose-900 via-pink-900 to-rose-950 text-white overflow-hidden shadow-md">
-        <div className="absolute inset-0 opacity-20 pointer-events-none">
-          <img 
-            src={categoryBannerImg} 
-            alt="" 
-            className="w-full h-full object-cover blur-md scale-110" 
-          />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-rose-950/70 to-transparent pointer-events-none" />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-2 text-center md:text-left z-10 max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/30 border border-rose-400/40 text-rose-200 text-xs font-semibold backdrop-blur-xs">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>এক্সক্লুসিভ কালেকশন</span>
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold font-['Hind_Siliguri'] text-white drop-shadow tracking-tight">
-              {currentCategory.title}
-            </h1>
-            {currentCategory.subtitle && (
-              <p className="text-xs sm:text-sm text-pink-100/90 font-medium max-w-xl leading-relaxed">
-                {currentCategory.subtitle}
-              </p>
-            )}
-            <div className="flex items-center justify-center md:justify-start gap-4 pt-1 text-xs text-rose-200">
-              <span className="flex items-center gap-1.5 font-bold bg-white/10 px-3 py-1 rounded-full border border-white/10">
-                <ShoppingBag className="w-3.5 h-3.5 text-rose-300" />
-                <span>{filteredProducts.length} টি প্রোডাক্ট প্রদর্শিত</span>
-              </span>
-              <span className="hidden sm:inline-flex items-center gap-1">
-                <Truck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>সারাদেশে ক্যাশ অন ডেলিভারি</span>
-              </span>
-            </div>
-          </div>
-
-          <div className="relative shrink-0 hidden sm:block">
-            <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden border-2 border-white/30 shadow-2xl ring-4 ring-rose-500/20 group">
-              <img 
-                src={categoryBannerImg} 
-                alt={currentCategory.title}
-                className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                onError={(e) => {
-                  e.currentTarget.src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80';
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Horizontal Category Switcher Bar */}
-      <div className="bg-white border-b border-rose-100 sticky top-16 z-20 shadow-xs">
+      {/* 1. Horizontal Category Switcher Bar (১ নাম্বার div Top থেকে শুরু) */}
+      <div className="bg-white/98 backdrop-blur-md border-b border-rose-100 sticky top-0 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5">
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 hidden sm:inline">
@@ -309,6 +239,93 @@ export const CategoryPage: React.FC = () => {
                 </button>
               );
             })}
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Breadcrumbs Navigation */}
+      <div className="bg-rose-50/50 border-b border-rose-100/70 py-2 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto flex items-center gap-2 text-xs text-slate-600">
+          <Link to="/" className="flex items-center gap-1 hover:text-rose-600 transition font-medium">
+            <Home className="w-3.5 h-3.5" />
+            <span>হোম</span>
+          </Link>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <Link to="/" className="hover:text-rose-600 transition font-medium">
+            ক্যাটাগরি সমূহ
+          </Link>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="font-bold text-rose-700 truncate max-w-[200px] sm:max-w-none">
+            {currentCategory.title}
+          </span>
+        </div>
+      </div>
+
+      {/* 3. Category Hero Banner with 50% Full Picture Background (২ নাম্বার div) */}
+      <div className="relative bg-gradient-to-r from-rose-950 via-rose-900 to-pink-950 text-white overflow-hidden shadow-md min-h-[200px] sm:min-h-[250px] flex items-center">
+        {/* Category Full Picture taking 50% background on right (and full cover backdrop on mobile) */}
+        <div className="absolute right-0 top-0 bottom-0 w-full md:w-1/2 overflow-hidden pointer-events-none">
+          <img 
+            src={categoryBannerImg} 
+            alt={currentCategory.title} 
+            className="w-full h-full object-cover object-top md:object-center" 
+            onError={(e) => {
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1200&q=80';
+            }}
+          />
+          {/* 50% Background Gradient & Smooth Masking for text contrast */}
+          <div className="absolute inset-0 bg-gradient-to-r from-rose-950 via-rose-950/70 md:via-rose-950/30 to-transparent" />
+          <div className="absolute inset-0 bg-black/40 md:bg-black/15" />
+        </div>
+
+        {/* Ambient mobile scrim */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30 pointer-events-none md:hidden" />
+
+        {/* Category Hero Content */}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 w-full flex flex-col md:flex-row items-center justify-between gap-6 z-10">
+          <div className="space-y-2.5 text-center md:text-left max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/30 border border-rose-400/40 text-rose-200 text-xs font-semibold backdrop-blur-xs shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>এক্সক্লুসিভ কালেকশন</span>
+            </div>
+            <h1 className="text-2xl sm:text-4xl font-extrabold font-['Hind_Siliguri'] text-white drop-shadow-md tracking-tight">
+              {currentCategory.title}
+            </h1>
+            {currentCategory.subtitle && (
+              <p className="text-xs sm:text-sm text-pink-100/90 font-medium max-w-xl leading-relaxed drop-shadow-xs">
+                {currentCategory.subtitle}
+              </p>
+            )}
+            <div className="flex items-center justify-center md:justify-start gap-3 sm:gap-4 pt-1 text-xs text-rose-200">
+              <span className="flex items-center gap-1.5 font-bold bg-white/10 px-3 py-1 rounded-full border border-white/15 backdrop-blur-xs shadow-xs">
+                <ShoppingBag className="w-3.5 h-3.5 text-rose-300" />
+                <span>{filteredProducts.length} টি প্রোডাক্ট প্রদর্শিত</span>
+              </span>
+              <span className="hidden sm:inline-flex items-center gap-1 font-medium bg-white/10 px-3 py-1 rounded-full border border-white/15 backdrop-blur-xs shadow-xs">
+                <Truck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>সারাদেশে ক্যাশ অন ডেলিভারি</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Right Showcase Card - Floating preview badge of full category picture */}
+          <div className="relative shrink-0 hidden lg:block">
+            <div className="relative w-36 h-36 xl:w-40 xl:h-40 rounded-2xl overflow-hidden border-2 border-white/40 shadow-2xl ring-4 ring-rose-500/30 group">
+              <img 
+                src={categoryBannerImg} 
+                alt={currentCategory.title}
+                className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80';
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute bottom-2 inset-x-2 text-center">
+                <span className="text-[10px] font-bold text-white bg-rose-600/90 px-2 py-0.5 rounded-full shadow-xs">
+                  {currentCategory.title}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
