@@ -39,11 +39,20 @@ export const HomePage: React.FC = () => {
       const targetCat = (Array.isArray(settings.categories) ? settings.categories : DEFAULT_CATEGORIES).find(
         (c: CustomCategoryItem) => c.id === activeCategory
       );
-      result = result.filter(
-        (p) =>
-          p.category === activeCategory ||
-          (targetCat && (p.categoryBengali === targetCat.title || p.category === targetCat.title))
-      );
+      result = result.filter((p) => {
+        if (p.category === activeCategory) return true;
+        if (
+          (activeCategory === 'readymade_three_piece' || activeCategory === 'cat_1791038823348' || activeCategory === 'three_piece') &&
+          (p.category === 'readymade_three_piece' || p.category === 'cat_1791038823348' || p.category === 'three_piece')
+        ) return true;
+        if (targetCat) {
+          if (p.categoryBengali === targetCat.title || p.category === targetCat.title) return true;
+          if (p.categoryBengali && targetCat.title && (
+            p.categoryBengali.includes(targetCat.title) || targetCat.title.includes(p.categoryBengali)
+          )) return true;
+        }
+        return false;
+      });
     }
 
     // Search query filter

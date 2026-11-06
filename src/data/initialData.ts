@@ -76,7 +76,7 @@ export const DEFAULT_CATEGORIES: CustomCategoryItem[] = [
   {
     id: 'cat_1791041224436',
     title: 'সুন্নাতি ড্রেস',
-    subtitle: '🕌 সুন্নাহসম্মত পোশাকে থাকুক পরিমিত সৌন্দর',
+    subtitle: '🕌 সুন্নাহসম্মত পোশাকে থাকুক পরিমিত সৌন্দর্য',
     image: 'https://i.postimg.cc/43BbH7wf/modefa-abaya-modest-muslim-woman-abaya-with-niqab-khimar-ecru-1236735249-1800x1800.jpg',
   },
   {
@@ -84,6 +84,18 @@ export const DEFAULT_CATEGORIES: CustomCategoryItem[] = [
     title: 'Bed.Sheet & Curtain',
     subtitle: 'Exclusive Design',
     image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'cat_1793739806022',
+    title: 'লেডিস উইন্টার',
+    subtitle: '❄️ শীতের ফ্যাশনে আরামদায়ক ও ট্রেন্ডি পোশাক',
+    image: 'https://shopbasebd.com/public/uploads/shop/products/1791614122_L_1.jpeg',
+  },
+  {
+    id: 'jewellery_bags',
+    title: 'জুয়েলারি ও ব্যাগ',
+    subtitle: '✨ আভিজাত্য ও সৌন্দর্যের অপূর্ব মেলবন্ধন',
+    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=800&q=80',
   },
 ];
 
@@ -134,6 +146,7 @@ export const INITIAL_SETTINGS: StoreSettings = {
     hijab_abaya: "https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&w=400&q=80",
     lehenga: "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=400&q=80",
     jewellery_bags: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=400&q=80",
+    cat_1793739806022: "https://shopbasebd.com/public/uploads/shop/products/1791614122_L_1.jpeg",
   },
   dropshippingApi: {
     enabled: false,
