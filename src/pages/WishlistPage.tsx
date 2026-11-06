@@ -55,7 +55,7 @@ export const WishlistPage: React.FC = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-3xl border border-rose-100 shadow-md p-12 text-center space-y-4">
+        <div className="bg-white rounded-3xl border border-rose-100 shadow-none p-12 text-center space-y-4">
           <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto text-rose-500">
             <Heart className="w-8 h-8" />
           </div>

@@ -527,21 +527,24 @@ export const Header: React.FC = () => {
                       if (location.pathname !== '/') navigate('/');
                     }
                   }}
-                  className="w-full pl-10 pr-10 py-2 text-xs sm:text-sm bg-rose-50/60 border border-rose-200 rounded-full focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400 shadow-inner"
+                  className="w-full pl-10 pr-20 py-2 text-xs sm:text-sm bg-rose-50/60 border border-rose-200 rounded-full focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400 shadow-inner"
                 />
                 <Search className="w-4 h-4 text-rose-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearchQuery('');
-                      setIsDesktopSearchOpen(true);
-                    }}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setIsDesktopSearchOpen(true);
+                      }}
+                      className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                      title="মুছে ফেলুন"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
 
                 {/* Real-time search dropdown results popover */}
                 {isDesktopSearchOpen && renderSearchDropdown(() => setIsDesktopSearchOpen(false))}
@@ -662,21 +665,24 @@ export const Header: React.FC = () => {
                   if (location.pathname !== '/') navigate('/');
                 }
               }}
-              className="w-full pl-9 pr-9 py-2 text-xs bg-rose-50/60 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white text-slate-800"
+              className="w-full pl-9 pr-16 py-2 text-xs bg-rose-50/60 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white text-slate-800"
             />
             <Search className="w-4 h-4 text-rose-500 absolute left-3 top-1/2 -translate-y-1/2" />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setIsMobileSearchOpen(true);
-                }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setIsMobileSearchOpen(true);
+                  }}
+                  className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  title="মুছে ফেলুন"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
 
             {/* Mobile real-time search dropdown results popover */}
             {isMobileSearchOpen && renderSearchDropdown(() => setIsMobileSearchOpen(false))}

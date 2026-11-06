@@ -17,7 +17,8 @@ import {
   Heart, 
   FileText, 
   Sparkles, 
-  Info, 
+  MessageCircle,
+  Info,
   Share2, 
   ZoomIn, 
   ZoomOut,
@@ -295,6 +296,28 @@ export const ProductDetailPage: React.FC = () => {
       quantity,
     });
     navigate('/checkout');
+  };
+
+  const handleDirectWhatsAppOrder = () => {
+    if (!product || isOutOfStock) return;
+    const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const chosenColor = selectedColor || (product.colors && product.colors[0]?.name) || 'ডিফল্ট';
+    const chosenSize = selectedSize || (product.sizes && product.sizes[0]) || 'ডিফল্ট';
+    const rawPhone = (settings.whatsappNumber || '01911-541717').replace(/[^0-9]/g, '');
+    const phone = rawPhone.startsWith('88') ? rawPhone : `88${rawPhone}`;
+
+    const text = 
+      `আসসালামু আলাইকুম! আমি নারীর স্বপ্ন থেকে এই পোশাকটি সরাসরি WhatsApp-এ অর্ডার করতে চাই:\n\n` +
+      `👗 পণ্যের নাম: ${product.bengaliName || product.name}\n` +
+      `💰 মূল্য: ৳${product.price.toLocaleString()} টাকা (পরিমাণ: ${quantity}টি, সর্বমোট: ৳${(product.price * quantity).toLocaleString()} টাকা)\n` +
+      (chosenSize !== 'ডিফল্ট' ? `📏 সাইজ: ${chosenSize}\n` : '') +
+      (chosenColor !== 'ডিফল্ট' ? `🎨 রঙ: ${chosenColor}\n` : '') +
+      (product.fabric ? `🧵 ফেব্রিক: ${product.fabric}\n` : '') +
+      `🔗 প্রোডাক্ট লিংক: ${currentUrl}\n\n` +
+      `দয়া করে আমার অর্ডারটি কনফার্ম করুন।`;
+
+    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handleShare = async () => {
@@ -823,6 +846,23 @@ export const ProductDetailPage: React.FC = () => {
               </button>
             </div>
 
+            {/* Direct to WhatsApp Order Button */}
+            <button
+              id="btn-page-whatsapp-order"
+              type="button"
+              onClick={handleDirectWhatsAppOrder}
+              disabled={isOutOfStock}
+              className={`w-full font-bold text-sm sm:text-base py-3 px-6 rounded-2xl shadow-md transition-all flex items-center justify-center gap-2.5 ${
+                isOutOfStock
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-80'
+                  : 'bg-[#25D366] hover:bg-[#20bd5a] active:scale-98 text-white hover:shadow-lg cursor-pointer ring-2 ring-emerald-400/30'
+              }`}
+              title="হোয়াটসঅ্যাপে চ্যাটের মাধ্যমে সরাসরি এই প্রোডাক্টটি অর্ডার করুন"
+            >
+              <MessageCircle className="w-5 h-5 fill-white text-[#25D366]" />
+              <span>হোয়াটসঅ্যাপে সরাসরি অর্ডার করুন (Direct to WhatsApp)</span>
+            </button>
+
             {/* Trust Assurance Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 text-[11px] text-slate-600">
               <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-xl">
@@ -847,7 +887,7 @@ export const ProductDetailPage: React.FC = () => {
       </div>
 
       {/* 3. Product Description & Specifications */}
-      <div className="bg-white rounded-3xl border border-rose-100 p-6 sm:p-8 space-y-6 shadow-sm">
+      <div className="bg-white rounded-3xl border border-rose-100 p-6 sm:p-8 space-y-6 shadow-none">
         <div className="flex items-center gap-2 border-b border-rose-100 pb-3">
           <FileText className="w-5 h-5 text-rose-600" />
           <h2 className="text-lg sm:text-xl font-bold text-slate-900 font-['Hind_Siliguri']">
@@ -1002,6 +1042,7 @@ export const ProductDetailPage: React.FC = () => {
           </div>
         </div>
       )}
+
     </div>
   );
 };

@@ -104,7 +104,7 @@ interface ShopContextType {
   // Category Management
   deleteCategory: (categoryId: string) => Promise<void>;
   addCategory: (category: CustomCategoryItem) => Promise<void>;
-  updateCategory: (category: CustomCategoryItem) => Promise<void>;
+  updateCategory: (category: CustomCategoryItem, oldId?: string) => Promise<void>;
 
   // Compare Products
   compareList: Product[];
@@ -162,10 +162,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const saved = localStorage.getItem('ns_products');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const filtered = parsed.filter((p: Product) => !p.id.startsWith('ns-0') && p.id !== 'ns-10');
-          const has13022 = filtered.some((p: Product) => p.id === 'ds-13022' || p.sku === 'DS-13022');
-          return has13022 ? filtered : [...INITIAL_PRODUCTS, ...filtered];
+        if (Array.isArray(parsed)) {
+          // Permanently filter out any deleted demo or dropshipping auto-post (ds-13022)
+          return parsed.filter((p: Product) => 
+            !p.id.startsWith('ns-0') && 
+            p.id !== 'ns-10' && 
+            p.id !== 'ds-13022' && 
+            p.sku !== 'DS-13022'
+          );
         }
       }
     } catch {
@@ -881,7 +885,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteOrder = (orderId: string) => {
-    setOrders(prev => prev.filter(o => o.id !== orderId));
+    setOrders(prev => {
+      const updated = prev.filter(o => o.id !== orderId);
+      try {
+        localStorage.setItem('ns_orders', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     deleteDoc(doc(db, 'orders', orderId))
       .catch(err => handleFirestoreError(err, OperationType.DELETE, `orders/${orderId}`));
   };
@@ -905,7 +915,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
+    setProducts(prev => {
+      const updated = prev.filter(p => p.id !== id);
+      try {
+        localStorage.setItem('ns_products', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     deleteDoc(doc(db, 'products', id))
       .catch(err => handleFirestoreError(err, OperationType.DELETE, `products/${id}`));
   };
@@ -1016,10 +1032,19 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateCategory = async (updatedCat: CustomCategoryItem) => {
+  const updateCategory = async (updatedCat: CustomCategoryItem, oldId?: string) => {
     const currentList = Array.isArray(settings.categories) ? settings.categories : DEFAULT_CATEGORIES;
-    const updatedCategories = currentList.map(c => c.id === updatedCat.id ? updatedCat : c);
-    const updatedImages = { ...(settings.categoryImages || {}), [updatedCat.id]: updatedCat.image };
+    const targetMatchId = oldId || updatedCat.id;
+    const updatedCategories = currentList.map(c => (c.id === targetMatchId || c.id === updatedCat.id) ? updatedCat : c);
+
+    const updatedImages = { ...(settings.categoryImages || {}) };
+    if (oldId && oldId !== updatedCat.id && updatedImages[oldId]) {
+      updatedImages[updatedCat.id] = updatedImages[oldId];
+      delete updatedImages[oldId];
+    }
+    if (updatedCat.image) {
+      updatedImages[updatedCat.id] = updatedCat.image;
+    }
 
     const newSettings: StoreSettings = {
       ...settings,
@@ -1038,6 +1063,42 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await setDoc(doc(db, 'settings', 'general'), sanitizeForFirestore(newSettings));
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, 'settings/general');
+    }
+
+    // If ID changed or title changed, cascade update to matching products in local state and Firestore
+    if (oldId && oldId !== updatedCat.id) {
+      const matchId = oldId;
+      setProducts(prevProducts => 
+        prevProducts.map(p => {
+          if (p.category === matchId) {
+            return {
+              ...p,
+              category: updatedCat.id,
+              categoryBengali: updatedCat.title || p.categoryBengali
+            };
+          }
+          return p;
+        })
+      );
+
+      // Batch update in Firestore
+      try {
+        const matchingProducts = products.filter(p => p.category === matchId);
+        if (matchingProducts.length > 0) {
+          const batch = writeBatch(db);
+          matchingProducts.forEach(prod => {
+            const updatedProd = {
+              ...prod,
+              category: updatedCat.id,
+              categoryBengali: updatedCat.title || prod.categoryBengali,
+            };
+            batch.set(doc(db, 'products', prod.id), sanitizeForFirestore(updatedProd), { merge: true });
+          });
+          await batch.commit();
+        }
+      } catch (err) {
+        console.error('Failed to batch update products category:', err);
+      }
     }
   };
 

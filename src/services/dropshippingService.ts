@@ -382,7 +382,7 @@ export const DROPSHIPPING_SAMPLE_CATALOG: DropshippingCatalogProduct[] = [
     sku: "DS-BD-3P-881",
     bengaliName: "প্রিমিয়াম সিকোয়েন্স কাজ করা কটন জর্জেট রেডিমেড থ্রি-পিস",
     name: "Luxury Embroidered Cotton Georgette Readymade Three Piece",
-    category: "cat_1791038823348",
+    category: "readymade_three_piece",
     categoryBengali: "রেডিমেড থ্রিপিস.টু পিস",
     wholesalePrice: 1650,
     suggestedRetailPrice: 2350,
@@ -553,7 +553,7 @@ export function generateProductFromDropshippingInput(
     // Intelligent slug parser for any dropshipping.com.bd link
     let extractedName = 'ইম্পোর্টেড প্রিমিয়াম কালেকশন পোশাক';
     let extractedSku = `DS-${Math.floor(10000 + Math.random() * 90000)}`;
-    let extractedCategory = 'cat_1791038823348';
+    let extractedCategory = 'readymade_three_piece';
     let extractedCategoryBn = 'রেডিমেড থ্রিপিস.টু পিস';
     let extractedWholesale = 850;
 

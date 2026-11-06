@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { Product, Order, OrderStatus, CategoryType, StoreSettings, CustomCategoryItem, DropshippingApiSettings, ProductFulfillmentType, FirestoreEmailLog } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/initialData';
@@ -86,7 +87,8 @@ import {
   triggerOrderEmailNotification, 
   createGmailDraftUrl,
   fetchFirestoreEmailLogs,
-  subscribeToFirestoreEmailLogs
+  subscribeToFirestoreEmailLogs,
+  clearAllFirestoreEmailLogs
 } from '../services/emailNotificationService';
 
 const PRESET_COLORS: { name: string; hex: string }[] = [
@@ -139,6 +141,8 @@ export const AdminPanel: React.FC = () => {
     runDbHealthCheck
   } = useShop();
 
+  const navigate = useNavigate();
+
   const [isSyncingAll, setIsSyncingAll] = useState(false);
   const [cloudSyncedToast, setCloudSyncedToast] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
@@ -184,6 +188,24 @@ export const AdminPanel: React.FC = () => {
   const [emailLogStatusFilter, setEmailLogStatusFilter] = useState<'all' | 'delivered' | 'queued' | 'failed'>('all');
   const [selectedEmailLogModal, setSelectedEmailLogModal] = useState<FirestoreEmailLog | null>(null);
   const [emailLogCopiedId, setEmailLogCopiedId] = useState<string | null>(null);
+  const [showClearEmailLogsModal, setShowClearEmailLogsModal] = useState<boolean>(false);
+  const [isClearingEmailLogs, setIsClearingEmailLogs] = useState<boolean>(false);
+  const [emailLogsClearToast, setEmailLogsClearToast] = useState<string | null>(null);
+
+  const handleClearAllEmailLogs = async () => {
+    setIsClearingEmailLogs(true);
+    const res = await clearAllFirestoreEmailLogs();
+    setIsClearingEmailLogs(false);
+    setShowClearEmailLogsModal(false);
+    if (res.success) {
+      setFirestoreEmailLogs([]);
+      setEmailLogsClearToast(`ফায়ারবেস ডাটাবেজ থেকে মোট ${res.count} টি ইমেইল লগ সফলভাবে মুছে ফেলা হয়েছে!`);
+      setTimeout(() => setEmailLogsClearToast(null), 4000);
+    } else {
+      setEmailLogsClearToast(res.error || 'ইমেইল লগ মুছতে ব্যর্থ হয়েছে');
+      setTimeout(() => setEmailLogsClearToast(null), 4000);
+    }
+  };
 
   useEffect(() => {
     if (settings.emailSettings) {
@@ -263,6 +285,7 @@ export const AdminPanel: React.FC = () => {
 
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategoryItem, setEditingCategoryItem] = useState<CustomCategoryItem | null>(null);
+  const [categoryFormId, setCategoryFormId] = useState('');
   const [categoryFormTitle, setCategoryFormTitle] = useState('');
   const [categoryFormSubtitle, setCategoryFormSubtitle] = useState('');
   const [categoryFormImage, setCategoryFormImage] = useState('');
@@ -1407,13 +1430,10 @@ export const AdminPanel: React.FC = () => {
   const unreadMessagesCount = messages.filter((m) => !m.isRead).length;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-fadeIn">
-      <div 
-        className="bg-white rounded-3xl max-w-6xl w-full h-[92vh] overflow-hidden shadow-2xl border border-rose-200 flex flex-col animate-scaleUp"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Top Header */}
-        <div className="p-4 sm:px-6 bg-slate-900 text-white flex items-center justify-between shrink-0">
+    <div className="min-h-screen w-full bg-slate-100 flex flex-col font-['Hind_Siliguri'] admin-scope">
+      <div className="w-full flex-1 flex flex-col bg-white min-h-screen">
+        {/* Top Header - Full Width Sticky Dashboard Nav */}
+        <div className="p-4 sm:px-8 bg-slate-900 text-white flex items-center justify-between shrink-0 shadow-md sticky top-0 z-40 border-b border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-rose-600 flex items-center justify-center text-white font-bold shadow">
               <Lock className="w-5 h-5" />
@@ -1471,7 +1491,7 @@ export const AdminPanel: React.FC = () => {
                     )}
                   </div>
                 ) : (
-                  <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                     লকড পোর্টাল
                   </span>
                 )}
@@ -1482,7 +1502,20 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            {/* Direct Back to Store Website button */}
+            <button
+              onClick={() => {
+                setIsAdminOpen(false);
+                navigate('/');
+              }}
+              title="মূল ওয়েবসাইটে ফিরে যান"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white text-xs font-bold transition shadow-xs cursor-pointer border border-slate-700/60"
+            >
+              <Globe className="w-3.5 h-3.5 text-rose-400" />
+              <span>ওয়েবসাইটে ফিরে যান</span>
+            </button>
+
             {isAuthenticated && (
               <button
                 onClick={handleLogout}
@@ -1493,13 +1526,6 @@ export const AdminPanel: React.FC = () => {
                 <span className="hidden sm:inline">লগআউট</span>
               </button>
             )}
-
-            <button
-              onClick={() => setIsAdminOpen(false)}
-              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
         </div>
 
@@ -1588,6 +1614,18 @@ export const AdminPanel: React.FC = () => {
                 >
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
                   <span>প্যানেলে প্রবেশ করুন</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAdminOpen(false);
+                    navigate('/');
+                  }}
+                  className="w-full py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Globe className="w-3.5 h-3.5 text-rose-500" />
+                  <span>মূল ওয়েবসাইটে ফিরে যান</span>
                 </button>
               </form>
 
@@ -2091,19 +2129,6 @@ export const AdminPanel: React.FC = () => {
                         <span>{isSyncingAll ? 'ক্লাউডে সিঙ্ক হচ্ছে...' : 'ক্লাউড সিঙ্ক করুন'}</span>
                       </button>
                       <button
-                        id="btn-admin-dropshipping-link-post"
-                        onClick={() => {
-                          setIsLinkPostModalOpen(true);
-                          if (!extractedProduct) {
-                            handleExtractFromLink('https://www.dropshipping.com.bd/product/imported-maternity-bra-for-newborn-baby-feeding-cotton-bra-13022');
-                          }
-                        }}
-                        title="Dropshipping.com.bd-এর যেকোনো লিঙ্ক পেস্ট করে বিবরণ, ছবি, দাম ও লাভসহ স্বয়ংক্রিয়ভাবে শপে পোস্ট করুন"
-                        className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs px-3.5 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer active:scale-98"
-                      >
-                        <LinkIcon className="w-4 h-4 text-slate-950" />
-                        <span>🔗 ড্রপশিপিং লিংক থেকে পোস্ট</span>
-                      </button>                      <button
                         id="btn-admin-add-product"
                         onClick={handleOpenAddProduct}
                         className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer"
@@ -2444,14 +2469,14 @@ export const AdminPanel: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    if (confirm(`আপনি কি "${prod.bengaliName}" প্রোডাক্টটি সম্পূর্ণ মুছে ফেলতে চান?`)) {
+                                    if (confirm(`আপনি কি "${prod.bengaliName}" প্রোডাক্টটি ডাটাবেস ও ওয়েবসাইট থেকে পার্মানেন্টলি ডিলিট করতে চান? এটি চিরতরে মুছে যাবে।`)) {
                                       deleteProduct(prod.id);
                                     }
                                   }}
                                   className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-xl border border-transparent hover:border-red-200 transition-all cursor-pointer"
-                                  title="প্রোডাক্ট ডিলিট করুন"
+                                  title="পার্মানেন্ট ডিলিট (Permanent Delete)"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 className="w-4 h-4 text-red-500 hover:text-red-700" />
                                 </button>
                               </div>
                             </div>
@@ -2932,26 +2957,26 @@ export const AdminPanel: React.FC = () => {
 
                   <form onSubmit={handleSaveSocial} className="space-y-6">
                     {/* SECTION 1: WHATSAPP & HOTLINE CONTACT */}
-                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-rose-100 shadow-sm space-y-4">
-                      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                          <Phone className="w-4 h-4" />
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-rose-100 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-2xs">
+                          <Phone className="w-5 h-5" />
                         </div>
                         <div>
-                          <h5 className="font-bold text-sm text-slate-900 font-['Hind_Siliguri']">
+                          <h5 className="font-extrabold text-base text-slate-900 font-['Hind_Siliguri']">
                             হোয়াটসঅ্যাপ ও হটলাইন যোগাযোগ
                           </h5>
-                          <p className="text-[11px] text-slate-500">
-                            কাস্টমারদের সাথে সরাসরি যোগাযোগের মাধ্যম নির্ধারণ করুন
+                          <p className="text-xs text-slate-600 font-medium">
+                            কাস্টমারদের সাথে সরাসরি যোগাযোগের মাধ্যম ও হটলাইন নম্বর নির্ধারণ করুন
                           </p>
                         </div>
                       </div>
 
-                      {/* WhatsApp Short Link */}
-                      <div className="bg-emerald-50/60 p-4 rounded-xl border border-emerald-200 space-y-2">
+                      {/* WhatsApp Short Link Box */}
+                      <div className="bg-emerald-50/80 p-4 sm:p-5 rounded-2xl border-2 border-emerald-300 space-y-2.5 shadow-xs">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                          <label className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
-                            <LinkIcon className="w-3.5 h-3.5 text-emerald-600" />
+                          <label className="text-xs sm:text-sm font-extrabold text-emerald-950 flex items-center gap-2">
+                            <LinkIcon className="w-4 h-4 text-emerald-700" />
                             <span>WhatsApp শর্ট লিংক (Direct Link / wa.me):</span>
                           </label>
                           {socialForm.whatsappShortLink && (
@@ -2959,9 +2984,9 @@ export const AdminPanel: React.FC = () => {
                               href={socialForm.whatsappShortLink.startsWith('http') ? socialForm.whatsappShortLink : `https://${socialForm.whatsappShortLink}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 underline self-start sm:self-auto"
+                              className="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 underline self-start sm:self-auto bg-emerald-100/80 px-2 py-0.5 rounded-lg"
                             >
-                              <ExternalLink className="w-3 h-3" />
+                              <ExternalLink className="w-3.5 h-3.5" />
                               <span>লিংক টেস্ট করুন</span>
                             </a>
                           )}
@@ -2971,17 +2996,17 @@ export const AdminPanel: React.FC = () => {
                           placeholder="উদা: https://wa.me/message/XXXXXX অথবা https://wa.me/8801911541717"
                           value={socialForm.whatsappShortLink}
                           onChange={(e) => setSocialForm({ ...socialForm, whatsappShortLink: e.target.value })}
-                          className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-slate-800 font-mono"
+                          className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-slate-900 font-bold font-mono placeholder:text-slate-400 shadow-2xs"
                         />
-                        <p className="text-[11px] text-emerald-800">
-                          💡 <strong>টিপ:</strong> আপনার WhatsApp Business অ্যাকাউন্টের শর্ট লিংক (Short Link) বা wa.me লিংক এখানে দিন। কাস্টমাররা এক ক্লিকেই চ্যাটে চলে যাবে।
+                        <p className="text-xs text-emerald-900 font-medium leading-relaxed">
+                          💡 <strong className="font-bold">টিপ:</strong> আপনার WhatsApp Business অ্যাকাউন্টের শর্ট লিংক (Short Link) বা wa.me লিংক এখানে দিন। কাস্টমাররা এক ক্লিকেই চ্যাটে চলে যাবে।
                         </p>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {/* WhatsApp Number */}
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                          <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                             WhatsApp মোবাইল নম্বর:
                           </label>
                           <input
@@ -2989,13 +3014,13 @@ export const AdminPanel: React.FC = () => {
                             placeholder="যেমন: 01911-541717"
                             value={socialForm.whatsappNumber}
                             onChange={(e) => setSocialForm({ ...socialForm, whatsappNumber: e.target.value })}
-                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-bold font-mono placeholder:text-slate-400 shadow-2xs"
                           />
                         </div>
 
                         {/* Support Email */}
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                          <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                             সাপোর্ট ইমেইল এড্রেস:
                           </label>
                           <input
@@ -3003,13 +3028,13 @@ export const AdminPanel: React.FC = () => {
                             placeholder="যেমন: NaarirShopno@Gmail.com"
                             value={socialForm.officeEmail}
                             onChange={(e) => setSocialForm({ ...socialForm, officeEmail: e.target.value })}
-                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-bold placeholder:text-slate-400 shadow-2xs"
                           />
                         </div>
 
                         {/* Hotline 1 */}
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                          <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                             কাস্টমার সাপোর্ট ও সরাসরি ফোন নম্বর (প্রধান) *:
                           </label>
                           <input
@@ -3017,13 +3042,13 @@ export const AdminPanel: React.FC = () => {
                             placeholder="যেমন: 09617-541717"
                             value={socialForm.hotline1}
                             onChange={(e) => setSocialForm({ ...socialForm, hotline1: e.target.value })}
-                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono font-bold text-rose-700"
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-rose-700 font-black font-mono shadow-2xs placeholder:text-slate-400"
                           />
                         </div>
 
                         {/* Hotline 2 */}
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                          <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                             বিকল্প হটলাইন নম্বর ২:
                           </label>
                           <input
@@ -3031,13 +3056,13 @@ export const AdminPanel: React.FC = () => {
                             placeholder="যেমন: 09649-541717"
                             value={socialForm.hotline2}
                             onChange={(e) => setSocialForm({ ...socialForm, hotline2: e.target.value })}
-                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-bold font-mono placeholder:text-slate-400 shadow-2xs"
                           />
                         </div>
 
                         {/* Support Hours */}
                         <div className="sm:col-span-2">
-                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                          <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                             কাস্টমার সাপোর্ট সময়সূচি:
                           </label>
                           <input
@@ -3045,30 +3070,30 @@ export const AdminPanel: React.FC = () => {
                             placeholder="যেমন: সকাল ১০টা - রাত ১০টা সার্বক্ষণিক সেবা"
                             value={socialForm.supportHours}
                             onChange={(e) => setSocialForm({ ...socialForm, supportHours: e.target.value })}
-                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium text-emerald-800 bg-emerald-50/30"
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-900 bg-emerald-50/70 shadow-2xs placeholder:text-slate-400"
                           />
                         </div>
                       </div>
                     </div>
 
                     {/* SECTION 2: SHOWROOM & OFFICE ADDRESS */}
-                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-rose-100 shadow-sm space-y-4">
-                      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                        <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center">
-                          <MapPin className="w-4 h-4" />
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-rose-100 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
+                        <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shadow-2xs">
+                          <MapPin className="w-5 h-5" />
                         </div>
                         <div>
-                          <h5 className="font-bold text-sm text-slate-900 font-['Hind_Siliguri']">
+                          <h5 className="font-extrabold text-base text-slate-900 font-['Hind_Siliguri']">
                             শোরুম ও অফিস ঠিকানা
                           </h5>
-                          <p className="text-[11px] text-slate-500">
+                          <p className="text-xs text-slate-600 font-medium">
                             ফুটার, ইনভয়েস ক্যাশ মেমো এবং কাস্টমার সাপোর্টে এই ঠিকানা দেখানো হবে
                           </p>
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                        <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                           সম্পূর্ণ ঠিকানা (Full Address):
                         </label>
                         <textarea
@@ -3076,156 +3101,162 @@ export const AdminPanel: React.FC = () => {
                           value={socialForm.officeAddress}
                           onChange={(e) => setSocialForm({ ...socialForm, officeAddress: e.target.value })}
                           placeholder="যেমন: হাউজ# ফকিরবাড়ি, ৮নং কোড়ালতলী, ভেদরগঞ্জ, শরিয়তপুর-৮০৩০, বাংলাদেশ"
-                          className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 leading-relaxed"
+                          className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-bold leading-relaxed shadow-2xs placeholder:text-slate-400"
                         />
                       </div>
 
-                      {/* Live Address Preview Card */}
-                      <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex items-start gap-2.5">
-                        <MapPin className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                        <div className="text-xs">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                            লাইভ প্রিভিউ (ফুটার ও মেমোতে যেমন দেখাবে):
+                      {/* Live Address Preview Card Box */}
+                      <div className="bg-rose-50/80 p-4 sm:p-5 rounded-2xl border-2 border-rose-200 space-y-2 shadow-xs">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-rose-600 shrink-0" />
+                          <span className="text-xs font-bold text-rose-900 bg-rose-200/90 px-2.5 py-0.5 rounded-full inline-block">
+                            লাইভ প্রিভিউ (ফুটার ও মেমোতে যেমন দেখাবে)
                           </span>
-                          <p className="font-medium text-slate-800 mt-0.5">
-                            {socialForm.officeAddress || 'হাউজ# ফকিরবাড়ি, ৮নং কোড়ালতলী, ভেদরগঞ্জ, শরিয়তপুর-৮০৩০, বাংলাদেশ'}
-                          </p>
                         </div>
+                        <p className="font-bold text-slate-900 text-xs sm:text-sm leading-relaxed bg-white p-3.5 rounded-xl border border-rose-200 shadow-2xs">
+                          {socialForm.officeAddress || 'হাউজ# ফকিরবাড়ি, ৮নং কোড়ালতলী, ভেদরগঞ্জ, শরিয়তপুর-৮০৩০, বাংলাদেশ'}
+                        </p>
                       </div>
                     </div>
 
                     {/* SECTION 3: STORE IDENTITY & SLOGAN */}
-                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-rose-100 shadow-sm space-y-4">
-                      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                        <div className="w-8 h-8 rounded-lg bg-pink-100 text-pink-700 flex items-center justify-center">
-                          <Globe className="w-4 h-4" />
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-rose-100 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
+                        <div className="w-9 h-9 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center shadow-2xs">
+                          <Globe className="w-5 h-5" />
                         </div>
                         <div>
-                          <h5 className="font-bold text-sm text-slate-900 font-['Hind_Siliguri']">
+                          <h5 className="font-extrabold text-base text-slate-900 font-['Hind_Siliguri']">
                             দোকানের নাম, স্লোগান ও নোটিশ বার্তা
                           </h5>
-                          <p className="text-[11px] text-slate-500">
+                          <p className="text-xs text-slate-600 font-medium">
                             ব্র্যান্ডের নাম, ট্যাগলাইন এবং ওয়েবসাইটের একদম উপরের স্ক্রোলিং নোটিশ
                           </p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                          <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                             দোকানের নাম (Store Name):
                           </label>
                           <input
                             type="text"
                             value={socialForm.storeName}
                             onChange={(e) => setSocialForm({ ...socialForm, storeName: e.target.value })}
-                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-bold"
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-black shadow-2xs placeholder:text-slate-400"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                          <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                             স্লোগান / ট্যাগলাইন (Slogan):
                           </label>
                           <input
                             type="text"
                             value={socialForm.slogan}
                             onChange={(e) => setSocialForm({ ...socialForm, slogan: e.target.value })}
-                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-bold shadow-2xs placeholder:text-slate-400"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                        <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                           শীর্ষ অফার বার্তার নোটিশ (Top Announcement Notice):
                         </label>
                         <textarea
                           rows={2}
                           value={socialForm.announcementText}
                           onChange={(e) => setSocialForm({ ...socialForm, announcementText: e.target.value })}
-                          className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 leading-relaxed"
+                          className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-semibold leading-relaxed shadow-2xs placeholder:text-slate-400"
                         />
                       </div>
                     </div>
 
                     {/* SECTION 4: PAYMENT MERCHANT ACCOUNTS */}
-                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-rose-100 shadow-sm space-y-4">
-                      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                        <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
-                          <DollarSign className="w-4 h-4" />
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-rose-100 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
+                        <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-2xs">
+                          <DollarSign className="w-5 h-5" />
                         </div>
                         <div>
-                          <h5 className="font-bold text-sm text-slate-900 font-['Hind_Siliguri']">
+                          <h5 className="font-extrabold text-base text-slate-900 font-['Hind_Siliguri']">
                             পেমেন্ট মার্চেন্ট নম্বরসমূহ (বিকাশ ও নগদ)
                           </h5>
-                          <p className="text-[11px] text-slate-500">
+                          <p className="text-xs text-slate-600 font-medium">
                             চেকআউটে কাস্টমারদের পেমেন্ট করার জন্য প্রদর্শিত নম্বর
                           </p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                        <div className="bg-pink-50/50 p-3.5 rounded-xl border border-pink-200">
-                          <label className="block text-xs font-bold text-pink-900 mb-1">
-                            📱 বিকাশ নম্বর:
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="bg-pink-50 p-4 sm:p-5 rounded-2xl border-2 border-pink-300 shadow-xs space-y-2">
+                          <label className="block text-xs sm:text-sm font-black text-pink-950">
+                            📱 বিকাশ মার্চেন্ট/পার্সোনাল নম্বর:
                           </label>
                           <input
                             type="text"
                             placeholder="যেমন: 01611541717 (মার্চেন্ট)"
                             value={socialForm.bkashMerchantNumber}
                             onChange={(e) => setSocialForm({ ...socialForm, bkashMerchantNumber: e.target.value })}
-                            className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-pink-300 bg-white font-mono"
+                            className="w-full text-sm sm:text-base px-3.5 py-2.5 rounded-xl border-2 border-pink-300 focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white text-slate-900 font-black font-mono shadow-xs placeholder:text-slate-400"
                           />
+                          <p className="text-xs text-pink-900 font-semibold">
+                            কাস্টমাররা চেকআউটে বিকাশ পেমেন্ট অপশন সিলেক্ট করলে এই নম্বর দেখতে পাবে
+                          </p>
                         </div>
 
-                        <div className="bg-orange-50/50 p-3.5 rounded-xl border border-orange-200">
-                          <label className="block text-xs font-bold text-orange-900 mb-1">
-                            💳 নগদ নম্বর:
+                        <div className="bg-orange-50 p-4 sm:p-5 rounded-2xl border-2 border-orange-300 shadow-xs space-y-2">
+                          <label className="block text-xs sm:text-sm font-black text-orange-950">
+                            💳 নগদ মার্চেন্ট/পার্সোনাল নম্বর:
                           </label>
                           <input
                             type="text"
                             placeholder="যেমন: 01911541717 (পার্সোনাল)"
                             value={socialForm.nagadMerchantNumber}
                             onChange={(e) => setSocialForm({ ...socialForm, nagadMerchantNumber: e.target.value })}
-                            className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-orange-300 bg-white font-mono"
+                            className="w-full text-sm sm:text-base px-3.5 py-2.5 rounded-xl border-2 border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-slate-900 font-black font-mono shadow-xs placeholder:text-slate-400"
                           />
+                          <p className="text-xs text-orange-900 font-semibold">
+                            কাস্টমাররা চেকআউটে নগদ পেমেন্ট অপশন সিলেক্ট করলে এই নম্বর দেখতে পাবে
+                          </p>
                         </div>
                       </div>
                     </div>
 
                     {/* SECTION 5: FOOTER WATERMARK BACKGROUND IMAGE */}
-                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-rose-100 shadow-sm space-y-4">
-                      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                        <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
-                          <ImageIcon className="w-4 h-4" />
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-rose-100 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
+                        <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shadow-2xs">
+                          <ImageIcon className="w-5 h-5" />
                         </div>
                         <div>
-                          <h5 className="font-bold text-sm text-slate-900 font-['Hind_Siliguri']">
+                          <h5 className="font-extrabold text-base text-slate-900 font-['Hind_Siliguri']">
                             ফুটার ৩০% জলছাপ ব্যাকগ্রাউন্ড ছবি
                           </h5>
-                          <p className="text-[11px] text-slate-500">
+                          <p className="text-xs text-slate-600 font-medium">
                             ফুটারের পেছনের জলছাপ ছবির লিংক পরিবর্তন করুন (ডিফল্ট: /footer-bg.jpg)
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row items-center gap-3">
-                        <div className="relative w-28 h-16 rounded-xl overflow-hidden border-2 border-rose-200 shadow-xs bg-slate-900 shrink-0">
+                      <div className="flex flex-col sm:flex-row items-center gap-3.5">
+                        <div className="relative w-32 h-20 rounded-xl overflow-hidden border-2 border-purple-300 shadow-xs bg-slate-900 shrink-0">
                           <img
                             src={socialForm.footerBgImage || '/footer-bg.jpg'}
                             alt="Footer Background"
-                            className="w-full h-full object-cover opacity-50"
+                            className="w-full h-full object-cover opacity-60"
                             onError={(e) => {
                               e.currentTarget.src = '/hero-banner.jpg';
                             }}
                           />
-                          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white bg-black/30">
-                            ৩০% জলছাপ
+                          <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-white bg-black/60 px-2 text-center drop-shadow-md">
+                            ৩০% জলছাপ প্রিভিউ
                           </span>
                         </div>
                         <div className="flex-1 w-full">
-                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                          <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                             ছবির ইউআরএল (Image URL):
                           </label>
                           <input
@@ -3233,32 +3264,32 @@ export const AdminPanel: React.FC = () => {
                             placeholder="যেমন: /footer-bg.jpg অথবা যেকোনো ইমেজ লিংক"
                             value={socialForm.footerBgImage}
                             onChange={(e) => setSocialForm({ ...socialForm, footerBgImage: e.target.value })}
-                            className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-bold font-mono shadow-2xs placeholder:text-slate-400"
                           />
                         </div>
                       </div>
                     </div>
 
                     {/* SECTION 6: SOCIAL MEDIA LINKS */}
-                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-rose-100 shadow-sm space-y-4">
-                      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                        <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
-                          <Share2 className="w-4 h-4" />
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-rose-100 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
+                        <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shadow-2xs">
+                          <Share2 className="w-5 h-5" />
                         </div>
                         <div>
-                          <h5 className="font-bold text-sm text-slate-900 font-['Hind_Siliguri']">
+                          <h5 className="font-extrabold text-base text-slate-900 font-['Hind_Siliguri']">
                             সোশ্যাল মিডিয়া পেজ লিংক
                           </h5>
-                          <p className="text-[11px] text-slate-500">
+                          <p className="text-xs text-slate-600 font-medium">
                             ফেসবুক, টিকটক ও ইউটিউব চ্যানেলের অফিশিয়াল লিংক
                           </p>
                         </div>
                       </div>
 
-                      <div className="space-y-3">
+                      <div className="space-y-3.5">
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                            <span className="text-blue-600 font-bold">f</span>
+                          <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5 flex items-center gap-1.5">
+                            <span className="text-blue-600 font-black">f</span>
                             <span>ফেসবুক পেজ লিংক (Facebook URL):</span>
                           </label>
                           <input
@@ -3266,12 +3297,12 @@ export const AdminPanel: React.FC = () => {
                             placeholder="যেমন: https://www.facebook.com/NaarirShopno"
                             value={socialForm.facebookUrl}
                             onChange={(e) => setSocialForm({ ...socialForm, facebookUrl: e.target.value })}
-                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-bold font-mono shadow-2xs placeholder:text-slate-400"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                          <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                             টিকটক প্রোফাইল লিংক (TikTok URL):
                           </label>
                           <input
@@ -3279,12 +3310,12 @@ export const AdminPanel: React.FC = () => {
                             placeholder="যেমন: https://www.tiktok.com/@naarir.shopno"
                             value={socialForm.tiktokUrl}
                             onChange={(e) => setSocialForm({ ...socialForm, tiktokUrl: e.target.value })}
-                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-bold font-mono shadow-2xs placeholder:text-slate-400"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                          <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                             ইউটিউব চ্যানেল লিংক (YouTube URL):
                           </label>
                           <input
@@ -3292,7 +3323,7 @@ export const AdminPanel: React.FC = () => {
                             placeholder="যেমন: https://youtube.com/@naarirshopno"
                             value={socialForm.youtubeUrl}
                             onChange={(e) => setSocialForm({ ...socialForm, youtubeUrl: e.target.value })}
-                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                            className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-bold font-mono shadow-2xs placeholder:text-slate-400"
                           />
                         </div>
                       </div>
@@ -3302,7 +3333,7 @@ export const AdminPanel: React.FC = () => {
                     <div className="pt-2">
                       <button
                         type="submit"
-                        className="w-full sm:w-auto bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-bold text-sm px-8 py-3.5 rounded-2xl shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                        className="w-full sm:w-auto bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-extrabold text-sm sm:text-base px-8 py-3.5 rounded-2xl shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2.5 cursor-pointer active:scale-98"
                       >
                         <Save className="w-5 h-5" />
                         <span>সকল সেটিংস সংরক্ষণ করুন (Save All Settings)</span>
@@ -3310,36 +3341,36 @@ export const AdminPanel: React.FC = () => {
                     </div>
                   </form>
 
-                  {/* Security & Password Change Section */}
-                  <div className="pt-6 border-t border-slate-200">
-                    <div className="bg-slate-50 p-5 sm:p-6 rounded-2xl border border-slate-200 space-y-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-slate-900 text-emerald-400 flex items-center justify-center">
-                          <Lock className="w-4 h-4" />
+                  {/* Security & Password Change Section (নিচের ডায়ালগ বক্স) */}
+                  <div className="pt-8 border-t-2 border-slate-300">
+                    <div className="bg-white p-6 sm:p-7 rounded-3xl border-2 border-slate-300 shadow-md space-y-5">
+                      <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
+                        <div className="w-10 h-10 rounded-xl bg-slate-900 text-emerald-400 flex items-center justify-center shadow-xs">
+                          <Lock className="w-5 h-5" />
                         </div>
                         <div>
-                          <h5 className="text-sm font-bold text-slate-900 font-['Hind_Siliguri']">
+                          <h5 className="text-base sm:text-lg font-black text-slate-900 font-['Hind_Siliguri']">
                             অ্যাডমিন নিরাপত্তা ও পাসওয়ার্ড পরিবর্তন
                           </h5>
-                          <p className="text-[11px] text-slate-500">
-                            অ্যাডমিন প্যানেলে লগইন করার ইমেইল ও পাসওয়ার্ড পরিবর্তন করুন
+                          <p className="text-xs sm:text-sm text-slate-700 font-medium">
+                            অ্যাডমিন প্যানেলে লগইন করার ইমেইল, পাসওয়ার্ড ও গোপন রিকভারি সিকিউরিটি পিন পরিবর্তন করুন
                           </p>
                         </div>
                       </div>
 
                       {changePassToast && (
-                        <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${
-                          changePassToast.success ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-red-100 text-red-800 border border-red-300'
+                        <div className={`p-3.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 ${
+                          changePassToast.success ? 'bg-emerald-100 text-emerald-900 border-2 border-emerald-300' : 'bg-red-100 text-red-900 border-2 border-red-300'
                         }`}>
-                          {changePassToast.success ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                          {changePassToast.success ? <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-700" /> : <AlertCircle className="w-5 h-5 shrink-0 text-red-700" />}
                           <span>{changePassToast.message}</span>
                         </div>
                       )}
 
-                      <form onSubmit={handleUpdatePassword} className="space-y-3">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <form onSubmit={handleUpdatePassword} className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                            <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                               বর্তমান পাসওয়ার্ড: *
                             </label>
                             <input
@@ -3348,12 +3379,12 @@ export const AdminPanel: React.FC = () => {
                               placeholder="বর্তমান পাসওয়ার্ড লিখুন"
                               value={changePassForm.currentPass}
                               onChange={(e) => setChangePassForm({ ...changePassForm, currentPass: e.target.value })}
-                              className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300 bg-white"
+                              className="w-full text-xs sm:text-sm px-4 py-2.5 rounded-xl border-2 border-slate-300 bg-white text-slate-900 font-bold placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 shadow-2xs"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                            <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                               লগইন ইমেইল / ইউজারনেম:
                             </label>
                             <input
@@ -3361,14 +3392,14 @@ export const AdminPanel: React.FC = () => {
                               required
                               value={changePassForm.newEmail}
                               onChange={(e) => setChangePassForm({ ...changePassForm, newEmail: e.target.value })}
-                              className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300 bg-white"
+                              className="w-full text-xs sm:text-sm px-4 py-2.5 rounded-xl border-2 border-slate-300 bg-white text-slate-900 font-bold placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 shadow-2xs"
                             />
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                            <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                               নতুন পাসওয়ার্ড: * (কমপক্ষে ৬ অক্ষর)
                             </label>
                             <input
@@ -3378,12 +3409,12 @@ export const AdminPanel: React.FC = () => {
                               placeholder="নতুন পাসওয়ার্ড দিন"
                               value={changePassForm.newPass}
                               onChange={(e) => setChangePassForm({ ...changePassForm, newPass: e.target.value })}
-                              className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300 bg-white"
+                              className="w-full text-xs sm:text-sm px-4 py-2.5 rounded-xl border-2 border-slate-300 bg-white text-slate-900 font-bold placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 shadow-2xs"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                            <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1.5">
                               নতুন পাসওয়ার্ড নিশ্চিত করুন: *
                             </label>
                             <input
@@ -3393,32 +3424,32 @@ export const AdminPanel: React.FC = () => {
                               placeholder="পুনরায় পাসওয়ার্ড লিখুন"
                               value={changePassForm.confirmPass}
                               onChange={(e) => setChangePassForm({ ...changePassForm, confirmPass: e.target.value })}
-                              className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300 bg-white"
+                              className="w-full text-xs sm:text-sm px-4 py-2.5 rounded-xl border-2 border-slate-300 bg-white text-slate-900 font-bold placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 shadow-2xs"
                             />
                           </div>
                         </div>
 
-                        {/* Secret Recovery PIN Management */}
-                        <div className="p-3.5 bg-rose-50/50 rounded-xl border border-rose-200 space-y-1">
-                          <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                            <Key className="w-3.5 h-3.5 text-rose-600" />
+                        {/* Secret Recovery PIN Management Dialog Box */}
+                        <div className="p-4 sm:p-5 bg-amber-50 rounded-2xl border-2 border-amber-300 shadow-xs space-y-2.5">
+                          <label className="block text-xs sm:text-sm font-black text-amber-950 flex items-center gap-2">
+                            <Key className="w-4 h-4 text-amber-700" />
                             <span>গোপন রিকভারি সিকিউরিটি পিন (Secret Recovery PIN) পরিবর্তন:</span>
                           </label>
-                          <p className="text-[11px] text-slate-500">
-                            পাসওয়ার্ড ভুলে গেলে অ্যাকাউন্ট ফিরে পাওয়ার জন্য এই পিন ব্যবহৃত হবে। এটি সম্পূর্ণ নিজের কাছে গোপন রাখুন (কমপক্ষে ৪ সংখ্যা)।
+                          <p className="text-xs text-amber-900 font-semibold leading-relaxed">
+                            পাসওয়ার্ড ভুলে গেলে অ্যাডমিন অ্যাকাউন্ট ফিরে পাওয়ার জন্য এই পিন ব্যবহৃত হবে। এটি সম্পূর্ণ নিজের কাছে গোপন রাখুন (কমপক্ষে ৪ সংখ্যা)।
                           </p>
                           <input
                             type="text"
                             placeholder="যেমন: নিজের পছন্দের ৪-৮ সংখ্যার গোপন পিন (ঐচ্ছিক)"
                             value={changePassForm.newSecurityPin}
                             onChange={(e) => setChangePassForm({ ...changePassForm, newSecurityPin: e.target.value })}
-                            className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-rose-300 bg-white font-mono"
+                            className="w-full text-xs sm:text-sm px-4 py-2.5 rounded-xl border-2 border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white text-slate-900 font-black font-mono placeholder:text-slate-400 shadow-2xs"
                           />
                         </div>
 
                         <button
                           type="submit"
-                          className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow transition flex items-center gap-2 cursor-pointer"
+                          className="bg-slate-900 hover:bg-slate-800 text-white font-black text-xs sm:text-sm px-6 py-3 rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer active:scale-98"
                         >
                           <ShieldCheck className="w-4 h-4 text-emerald-400" />
                           <span>ক্রেডেনশিয়াল ও সিকিউরিটি পিন আপডেট করুন</span>
@@ -3429,7 +3460,7 @@ export const AdminPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* TAB 6: CUSTOMER MESSAGES INBOX */}
+{/* TAB 6: CUSTOMER MESSAGES INBOX */}
               {activeTab === 'messages' && (
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -3554,6 +3585,7 @@ export const AdminPanel: React.FC = () => {
                       type="button"
                       onClick={() => {
                         setEditingCategoryItem(null);
+                        setCategoryFormId('');
                         setCategoryFormTitle('');
                         setCategoryFormSubtitle('');
                         setCategoryFormImage('https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80');
@@ -3603,8 +3635,13 @@ export const AdminPanel: React.FC = () => {
                                 {cat.title}
                               </h5>
                               <p className="text-[11px] text-slate-500 truncate">{cat.subtitle}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[10px] text-slate-400 font-mono">ID: {cat.id}</span>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                <span className="text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                                  ক্যাটাগরি: {cat.title}
+                                </span>
+                                <span className="text-[10px] font-mono font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200" title="ক্যাটাগরি আইডি (Category Id / Slug)">
+                                  Id: {cat.id}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -3615,6 +3652,7 @@ export const AdminPanel: React.FC = () => {
                               type="button"
                               onClick={() => {
                                 setEditingCategoryItem(cat);
+                                setCategoryFormId(cat.id);
                                 setCategoryFormTitle(cat.title);
                                 setCategoryFormSubtitle(cat.subtitle);
                                 setCategoryFormImage(activeImg);
@@ -5460,6 +5498,18 @@ export const AdminPanel: React.FC = () => {
                           <AlertCircle className="w-3 h-3" />
                           <span>ব্যর্থ ({firestoreEmailLogs.filter(l => l.status === 'failed').length})</span>
                         </button>
+
+                        {/* Email Log Clear Database System Button */}
+                        <button
+                          type="button"
+                          onClick={() => setShowClearEmailLogsModal(true)}
+                          disabled={isClearingEmailLogs || firestoreEmailLogs.length === 0}
+                          className="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 disabled:opacity-40 disabled:pointer-events-none shadow-2xs ml-auto"
+                          title="ফায়ারবেস ডাটাবেজের /mail কালেকশন থেকে সকল ইমেইল লগ মুছুন"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                          <span>ডাটাবেস লগ ক্লিয়ার করুন</span>
+                        </button>
                       </div>
                     </div>
 
@@ -5716,301 +5766,7 @@ export const AdminPanel: React.FC = () => {
           </div>
         )}
 
-        {/* Dropshipping Link to Post Auto Description, Pictures, Selling Price & Profits Modal */}
-        {isLinkPostModalOpen && (
-          <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
-            <div className="bg-white rounded-3xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto border border-amber-300">
-              
-              {/* Header */}
-              <div className="flex justify-between items-center pb-3 border-b border-amber-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 font-bold flex items-center justify-center shadow-xs">
-                    <LinkIcon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
-                      <span>ড্রপশিপিং লিংক থেকে অটো-পোস্ট</span>
-                      <span className="text-[10px] font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-300">
-                        বিবরণ • ছবি • বিক্রয়মূল্য • লাভ
-                      </span>
-                    </h4>
-                    <p className="text-xs text-slate-500">
-                      dropshipping.com.bd-এর পণ্যের লিংক দিলে অটো ডেসক্রিপশন, ছবি, সাইজ ও বিক্রয়মূল্য তৈরি হয়ে যাবে
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsLinkPostModalOpen(false)}
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Toast Notification inside modal */}
-              {linkExtractToast && (
-                <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-2xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn font-semibold">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>{linkExtractToast}</span>
-                </div>
-              )}
-
-              {/* Link Input & Action Bar */}
-              <div className="p-4 bg-gradient-to-br from-amber-50/90 to-rose-50/50 rounded-2xl border border-amber-200/90 space-y-3">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-bold text-slate-800">
-                      ১. dropshipping.com.bd এর পণ্যের লিংক বা SKU কোড পেস্ট করুন:
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const sample = 'https://www.dropshipping.com.bd/product/imported-maternity-bra-for-newborn-baby-feeding-cotton-bra-13022';
-                        setLinkInput(sample);
-                        handleExtractFromLink(sample);
-                      }}
-                      className="text-[11px] text-rose-700 hover:text-rose-800 font-bold underline cursor-pointer"
-                    >
-                      ম্যাটার্নিটি বেবি ফিডিং ব্রা লিংক দিন (#13022)
-                    </button>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <div className="relative flex-1">
-                      <LinkIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="https://www.dropshipping.com.bd/product/... অথবা কোড: 13022"
-                        value={linkInput}
-                        onChange={(e) => setLinkInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleExtractFromLink();
-                          }
-                        }}
-                        className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleExtractFromLink()}
-                      disabled={isExtracting}
-                      className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
-                    >
-                      <Sparkles className="w-4 h-4 text-amber-300" />
-                      <span>{isExtracting ? 'লোড হচ্ছে...' : 'তথ্য ও ছবি অটো-লোড করুন'}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Profit Margin Controls */}
-                <div className="pt-2 border-t border-amber-200/70 flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-slate-800">২. আপনার লাভের মার্জিন (Profit Margin):</span>
-                    <label className="flex items-center gap-1 cursor-pointer font-medium">
-                      <input
-                        type="radio"
-                        name="linkMarginType"
-                        checked={linkProfitMarginType === 'fixed'}
-                        onChange={() => {
-                          setLinkProfitMarginType('fixed');
-                          if (linkInput.trim()) {
-                            const res = generateProductFromDropshippingInput(linkInput, 'fixed', linkProfitMargin);
-                            if (res.product) setExtractedProduct(res.product);
-                          }
-                        }}
-                        className="text-rose-600 focus:ring-rose-500"
-                      />
-                      <span>নির্দিষ্ট টাকা (+৳)</span>
-                    </label>
-                    <label className="flex items-center gap-1 cursor-pointer font-medium">
-                      <input
-                        type="radio"
-                        name="linkMarginType"
-                        checked={linkProfitMarginType === 'percent'}
-                        onChange={() => {
-                          setLinkProfitMarginType('percent');
-                          if (linkInput.trim()) {
-                            const res = generateProductFromDropshippingInput(linkInput, 'percent', linkProfitMargin);
-                            if (res.product) setExtractedProduct(res.product);
-                          }
-                        }}
-                        className="text-rose-600 focus:ring-rose-500"
-                      />
-                      <span>শতকরা লাভ (+%)</span>
-                    </label>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-600 font-medium">লাভের পরিমাণ:</span>
-                    <div className="flex items-center bg-white px-2 py-1 rounded-xl border border-slate-300">
-                      <span className="font-bold text-slate-500 mr-1">
-                        {linkProfitMarginType === 'fixed' ? '৳' : '%'}
-                      </span>
-                      <input
-                        type="number"
-                        min="50"
-                        step="50"
-                        value={linkProfitMargin}
-                        onChange={(e) => {
-                          const val = Number(e.target.value) || 0;
-                          setLinkProfitMargin(val);
-                          if (linkInput.trim()) {
-                            const res = generateProductFromDropshippingInput(linkInput, linkProfitMarginType, val);
-                            if (res.product) setExtractedProduct(res.product);
-                          }
-                        }}
-                        className="w-16 font-bold text-slate-900 text-xs sm:text-sm focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Extracted Product Live Preview Card */}
-              {extractedProduct ? (
-                <div className="p-4 bg-white rounded-2xl border-2 border-amber-300/80 shadow-md space-y-4 animate-scaleUp">
-                  
-                  {/* Top Status & Price Matrix */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
-                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                      <span className="text-[10px] text-slate-500 block">পাইকারি ক্রয়মূল্য</span>
-                      <span className="text-base font-black text-slate-800 font-['Outfit']">
-                        ৳{extractedProduct.wholesalePrice}
-                      </span>
-                      <span className="text-[9px] text-slate-400 block">dropshipping.com.bd</span>
-                    </div>
-
-                    <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200">
-                      <span className="text-[10px] text-emerald-700 block font-bold">আপনার নিট লাভ</span>
-                      <span className="text-base font-black text-emerald-700 font-['Outfit']">
-                        +৳{extractedProduct.calculatedProfit}
-                      </span>
-                      <span className="text-[9px] text-emerald-600 block font-semibold">প্রতি পিস অর্ডারে</span>
-                    </div>
-
-                    <div className="p-2.5 bg-rose-50 rounded-xl border border-rose-300">
-                      <span className="text-[10px] text-rose-700 block font-bold">আপনার বিক্রয়মূল্য</span>
-                      <span className="text-base font-black text-rose-700 font-['Outfit']">
-                        ৳{extractedProduct.calculatedPrice}
-                      </span>
-                      <span className="text-[9px] text-rose-600 block font-semibold">কাস্টমার যে দামে কিনবে</span>
-                    </div>
-
-                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                      <span className="text-[10px] text-slate-400 block">পূর্বের কাটা মূল্য</span>
-                      <span className="text-base font-bold text-slate-400 line-through font-['Outfit']">
-                        ৳{extractedProduct.calculatedRegularPrice}
-                      </span>
-                      <span className="text-[9px] text-emerald-600 font-bold block">
-                        {Math.round(((extractedProduct.calculatedRegularPrice - extractedProduct.calculatedPrice) / extractedProduct.calculatedRegularPrice) * 100)}% ছাড় ডিসপ্লে
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Product Details Columns */}
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 pt-2">
-                    {/* Pictures */}
-                    <div className="md:col-span-4 space-y-2">
-                      <div className="aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner">
-                        <img
-                          src={extractedProduct.images[0]}
-                          alt={extractedProduct.bengaliName}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      {extractedProduct.images.length > 1 && (
-                        <div className="grid grid-cols-3 gap-2">
-                          {extractedProduct.images.map((img, i) => (
-                            <div key={i} className="aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
-                              <img src={img} alt="Thumb" className="w-full h-full object-cover" />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Meta & Descriptions */}
-                    <div className="md:col-span-8 space-y-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold">
-                            {extractedProduct.categoryBengali}
-                          </span>
-                          <span className="text-[11px] font-mono font-bold text-slate-400">
-                            কোড: {extractedProduct.sku}
-                          </span>
-                        </div>
-                        <h5 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
-                          {extractedProduct.bengaliName}
-                        </h5>
-                        <p className="text-xs text-slate-500 font-medium">
-                          {extractedProduct.name}
-                        </p>
-                      </div>
-
-                      {/* Fabric, Sizes & Colors */}
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 text-xs text-slate-700">
-                        <p><strong>ফেব্রিক ও উপাদান:</strong> {extractedProduct.fabric}</p>
-                        <p><strong>উপলব্ধ সাইজ:</strong> {extractedProduct.sizes.join(', ')}</p>
-                        <div className="flex items-center gap-2 pt-0.5">
-                          <span className="font-bold">কালার অপশন:</span>
-                          <div className="flex items-center gap-1.5">
-                            {extractedProduct.colors.map((c, i) => (
-                              <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[11px]">
-                                <span className="w-2.5 h-2.5 rounded-full border border-slate-300" style={{ backgroundColor: c.hex }} />
-                                <span>{c.name}</span>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Description */}
-                      <div className="text-xs text-slate-600 bg-amber-50/40 p-3 rounded-xl border border-amber-200/50 leading-relaxed">
-                        <strong className="text-slate-900 block mb-1">বিস্তারিত বিবরণ:</strong>
-                        <p>{extractedProduct.description}</p>
-                      </div>
-
-                      {/* Bottom Action Buttons */}
-                      <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
-                        <button
-                          type="button"
-                          onClick={handleApplyExtractedToFullForm}
-                          className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
-                        >
-                          <Edit3 className="w-4 h-4 text-slate-500" />
-                          <span>এডিট ফর্মে ওপেন করুন</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={handlePostExtractedProductToShop}
-                          className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
-                        >
-                          <Check className="w-4 h-4" />
-                          <span>পোশাকটি আপনার ওয়েবসাইটে পোস্ট করুন</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-300 text-slate-500 text-xs space-y-2">
-                  <LinkIcon className="w-8 h-8 mx-auto text-amber-500" />
-                  <p className="font-bold text-slate-700 text-sm">
-                    উপরে লিংক দিয়ে "তথ্য ও ছবি অটো-লোড করুন" বাটনে চাপুন
-                  </p>
-                  <p className="text-[11px] text-slate-400 max-w-md mx-auto">
-                    সিস্টেমটি dropshipping.com.bd থেকে ছবি, বিবরণ, সাইজ, পাইকারি কেনা মূল্য ও আপনার নির্ধারিত লাভ হিসাব করে সম্পূর্ণ বিক্রয়মূল্য তৈরি করে দেবে।
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Dropshipping link auto-post modal completely deleted per user request */}
         {isCategoryModalOpen && (
           <div className="fixed inset-0 z-60 bg-black/60 flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
             <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto border border-rose-100">
@@ -6043,22 +5799,23 @@ export const AdminPanel: React.FC = () => {
                   if (!categoryFormTitle.trim()) return;
 
                   if (editingCategoryItem) {
+                    const finalId = categoryFormId.trim() || editingCategoryItem.id;
                     await updateCategory({
-                      id: editingCategoryItem.id,
+                      id: finalId,
                       title: categoryFormTitle.trim(),
                       subtitle: categoryFormSubtitle.trim() || editingCategoryItem.subtitle,
                       image: categoryFormImage.trim() || editingCategoryItem.image,
-                    });
-                    setCategoryToast(`"${categoryFormTitle}" ক্যাটাগরি সফলভাবে আপডেট করা হয়েছে!`);
+                    }, editingCategoryItem.id);
+                    setCategoryToast(`"${categoryFormTitle}" ক্যাটাগরি (Id: ${finalId}) সফলভাবে আপডেট করা হয়েছে!`);
                   } else {
-                    const newId = 'cat_' + Date.now();
+                    const cleanSlug = categoryFormId.trim() || ('cat_' + Date.now());
                     await addCategory({
-                      id: newId,
+                      id: cleanSlug,
                       title: categoryFormTitle.trim(),
                       subtitle: categoryFormSubtitle.trim() || 'এক্সক্লুসিভ কালেকশন',
                       image: categoryFormImage.trim() || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80',
                     });
-                    setCategoryToast(`নতুন ক্যাটাগরি "${categoryFormTitle}" যুক্ত করা হয়েছে!`);
+                    setCategoryToast(`নতুন ক্যাটাগরি "${categoryFormTitle}" (Id: ${cleanSlug}) যুক্ত করা হয়েছে!`);
                   }
                   setTimeout(() => setCategoryToast(null), 3000);
                   setIsCategoryModalOpen(false);
@@ -6068,16 +5825,48 @@ export const AdminPanel: React.FC = () => {
                 {/* Title */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    ক্যাটাগরির নাম (Title) *
+                    ক্যাটাগরির নাম (Category Name / Title) *
                   </label>
                   <input
                     type="text"
                     required
                     placeholder="যেমন: লেহেঙ্গা, শীতের পোশাক, বাচ্চাদের ফ্রক"
                     value={categoryFormTitle}
-                    onChange={(e) => setCategoryFormTitle(e.target.value)}
+                    onChange={(e) => {
+                      const newTitle = e.target.value;
+                      setCategoryFormTitle(newTitle);
+                      // Auto-suggest slug for new category if ID is empty
+                      if (!editingCategoryItem && (!categoryFormId || categoryFormId.startsWith('cat_'))) {
+                        const suggested = newTitle.toLowerCase().trim().replace(/[^a-z0-9\u0980-\u09FF]+/g, '_').replace(/^_+|_+$/g, '');
+                        if (suggested) {
+                          setCategoryFormId(suggested);
+                        }
+                      }
+                    }}
                     className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
                   />
+                </div>
+
+                {/* Category ID / Slug Field */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                      <span>ক্যাটাগরি আইডি (Category Id / Slug) *</span>
+                    </label>
+                    <span className="text-[10px] text-slate-500 font-medium">ইউআরএল ও সিস্টেমে ব্যবহারের জন্য</span>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    placeholder="যেমন: readymade_three_piece অথবা saree"
+                    value={categoryFormId}
+                    onChange={(e) => setCategoryFormId(e.target.value.trim())}
+                    className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-bold text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    💡 এই Id পরিবর্তন করলে সংশ্লিষ্ট সকল পোশাকের ক্যাটাগরি স্বয়ংক্রিয়ভাবে নতুন Id-তে আপডেট হয়ে যাবে।
+                  </p>
                 </div>
 
                 {/* Subtitle */}
@@ -6308,56 +6097,6 @@ export const AdminPanel: React.FC = () => {
               </div>
 
               <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
-                {/* Dropshipping Quick-Fill Bar */}
-                <div className="p-3 bg-gradient-to-r from-amber-50 to-rose-50 rounded-2xl border border-amber-200/90 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                  <div className="flex items-center gap-1.5 text-xs text-amber-950 font-bold">
-                    <LinkIcon className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>ড্রপশিপিং লিংক দিয়ে অটো-পূরণ:</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-1">
-                    <input
-                      type="text"
-                      placeholder="যেমন: dropshipping.com.bd পণ্যের লিংক বা কোড..."
-                      value={quickLinkInputInProductModal}
-                      onChange={(e) => setQuickLinkInputInProductModal(e.target.value)}
-                      className="flex-1 px-3 py-1.5 rounded-xl border border-amber-300 bg-white text-xs font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const target = quickLinkInputInProductModal.trim() || 'https://www.dropshipping.com.bd/product/imported-maternity-bra-for-newborn-baby-feeding-cotton-bra-13022';
-                        const res = generateProductFromDropshippingInput(target, 'fixed', 300);
-                        if (res.product) {
-                          setProductForm({
-                            name: res.product.name,
-                            bengaliName: res.product.bengaliName,
-                            sku: res.product.sku,
-                            category: res.product.category as CategoryType,
-                            categoryBengali: res.product.categoryBengali,
-                            fulfillmentType: 'dropshipping',
-                            wholesalePrice: res.product.wholesalePrice,
-                            price: res.product.calculatedPrice,
-                            regularPrice: res.product.calculatedRegularPrice,
-                            images: res.product.images,
-                            fabric: res.product.fabric,
-                            sizes: res.product.sizes.join(', '),
-                            colors: res.product.colors,
-                            description: res.product.description,
-                            stockCount: res.product.stockCount,
-                            isNew: true,
-                            isTrending: true,
-                            featured: true,
-                          });
-                        }
-                      }}
-                      className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs whitespace-nowrap cursor-pointer transition shadow-xs flex items-center gap-1"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>অটো-লোড</span>
-                    </button>
-                  </div>
-                </div>
-
                 {/* SECTION 1: মূল বিবরণ (Basic Info) */}
                 <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-3">
                   <h5 className="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
@@ -7580,6 +7319,64 @@ export const AdminPanel: React.FC = () => {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Clear All Firestore Email Logs Confirmation Modal */}
+        {showClearEmailLogsModal && (
+          <div className="fixed inset-0 z-70 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+            <div 
+              className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-red-200 space-y-4 text-center animate-scaleUp"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-14 h-14 rounded-full bg-red-100 text-red-600 mx-auto flex items-center justify-center shadow-inner">
+                <Trash2 className="w-7 h-7 text-red-600" />
+              </div>
+
+              <div className="space-y-1.5">
+                <h4 className="text-lg font-black text-slate-900 font-['Hind_Siliguri']">
+                  ডাটাবেস থেকে সকল ইমেইল লগ মুছবেন?
+                </h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  আপনি কি নিশ্চিতভাবে ফায়ারবেস ক্লাউড ডাটাবেজের <strong className="text-red-600 font-mono">/mail</strong> কালেকশন থেকে সকল <strong>({firestoreEmailLogs.length}টি)</strong> স্বয়ংক্রিয় নোটিফিকেশন লগ চিরতরে মুছে ফেলতে চান?
+                </p>
+                <p className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200 mt-2 font-medium">
+                  ⚠️ সতর্কীকরণ: এই অ্যাকশনটি অপ্রত্যাবর্তনযোগ্য (Irreversible)। মুছার পর পূর্বের কোনো ইমেইল হিস্ট্রি পুনরুদ্ধার করা যাবে না।
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowClearEmailLogsModal(false)}
+                  disabled={isClearingEmailLogs}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition cursor-pointer"
+                >
+                  বাতিল
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleClearAllEmailLogs}
+                  disabled={isClearingEmailLogs}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-md cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>{isClearingEmailLogs ? 'মুছে ফেলা হচ্ছে...' : 'হ্যাঁ, ডাটাবেস মুছুন'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Email Logs Clear Toast Notification */}
+        {emailLogsClearToast && (
+          <div className="fixed bottom-6 left-6 z-70 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-red-500/50 flex items-center gap-2.5 text-xs animate-slideUp">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <p className="font-bold">{emailLogsClearToast}</p>
+              <p className="text-[11px] text-slate-300">ফায়ারবেস ডাটাবেজের /mail কালেকশন সফলভাবে রিফ্রেশ হয়েছে।</p>
             </div>
           </div>
         )}

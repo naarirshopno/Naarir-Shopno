@@ -74,16 +74,19 @@ const NavigationHandler: React.FC = () => {
 };
 
 const AppLayout: React.FC = () => {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#FCFBF7] text-slate-800 font-['Hind_Siliguri',sans-serif] selection:bg-rose-600 selection:text-white relative">
+    <div className={`min-h-screen flex flex-col font-['Hind_Siliguri',sans-serif] selection:bg-rose-600 selection:text-white relative ${isAdminRoute ? 'bg-slate-900 text-slate-100' : 'bg-[#FCFBF7] text-slate-800'}`}>
       <ScrollToTop />
       <NavigationHandler />
 
-      {/* 1. Header (Sticky & Responsive across all pages) */}
-      <Header />
+      {/* 1. Store Header - Hidden on Admin Page so Admin is a dedicated full-page system */}
+      {!isAdminRoute && <Header />}
 
       {/* 2. Main Page Content (Multiple Page System) */}
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/product/:productId" element={<ProductDetailPage />} />
@@ -103,15 +106,19 @@ const AppLayout: React.FC = () => {
         </Routes>
       </div>
 
-      {/* 3. Universal Footer */}
-      <Footer />
+      {/* 3. Universal Store Footer - Hidden on Admin Page */}
+      {!isAdminRoute && <Footer />}
 
-      {/* 4. Global Persistent Actions & Drawers */}
-      <FloatingActions />
-      <BackgroundMusicPlayer />
-      <CartDrawer />
-      <FacebookModal />
-      <CustomerChatDrawer />
+      {/* 4. Global Persistent Actions & Drawers - Hidden on Admin Page */}
+      {!isAdminRoute && (
+        <>
+          <FloatingActions />
+          <BackgroundMusicPlayer />
+          <CartDrawer />
+          <FacebookModal />
+          <CustomerChatDrawer />
+        </>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { Order, FirestoreEmailLog } from '../types';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { collection, doc, setDoc, getDocs, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, deleteDoc, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
 export interface EmailLogEntry {
   id: string;
@@ -453,8 +453,38 @@ export function subscribeToFirestoreEmailLogs(
         handleFirestoreError(error, OperationType.LIST, 'mail');
       }
     );
-  } catch {
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, 'mail');
     return () => {};
   }
 }
 
+/**
+ * Deletes all automated email notifications from Firestore /mail collection and resets local storage logs
+ */
+export async function clearAllFirestoreEmailLogs(): Promise<{ success: boolean; count: number; error?: string }> {
+  try {
+    const mailCol = collection(db, 'mail');
+    const snapshot = await getDocs(mailCol);
+    if (!snapshot.empty) {
+      const deletePromises = snapshot.docs.map((docSnap) => deleteDoc(doc(db, 'mail', docSnap.id)));
+      await Promise.all(deletePromises);
+    }
+
+    try {
+      localStorage.removeItem('ns_email_notifications');
+    } catch {}
+
+    return {
+      success: true,
+      count: snapshot.size,
+    };
+  } catch (err: any) {
+    console.error('Failed to clear Firestore email logs:', err);
+    return {
+      success: false,
+      count: 0,
+      error: err?.message || 'ডাটাবেস থেকে ইমেইল লগ মুছতে সমস্যা হয়েছে',
+    };
+  }
+}

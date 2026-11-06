@@ -29,3 +29,77 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #ec4899;
 }
+
+/* Ensure all form inputs, textareas, and selects have sharp, dark, high-contrast text across the app and admin panel */
+input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+textarea,
+select {
+  color: #0f172a !important; /* Tailwind slate-900 */
+  -webkit-text-fill-color: #0f172a !important;
+  font-weight: 600;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #64748b !important; /* Tailwind slate-500 - crisp and clearly visible */
+  -webkit-text-fill-color: #64748b !important;
+  opacity: 1 !important;
+}
+
+/* Chrome/Safari autofill override to prevent washed out text */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: #0f172a !important;
+  box-shadow: 0 0 0px 1000px white inset !important;
+  -webkit-box-shadow: 0 0 0px 1000px white inset !important;
+}
+
+/* Specific high-contrast enhancements for Admin Panel text boxes */
+.admin-scope input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+.admin-scope textarea,
+.admin-scope select {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  background-color: #ffffff !important;
+  font-weight: 600 !important;
+  border-color: #cbd5e1; /* slate-300 */
+}
+
+.admin-scope select option {
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.admin-scope input:focus,
+.admin-scope textarea:focus,
+.admin-scope select:focus {
+  border-color: #e11d48 !important; /* rose-600 */
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  outline: none !important;
+}
+
+.admin-scope input::placeholder,
+.admin-scope textarea::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
+}
+
+.admin-scope input:disabled,
+.admin-scope textarea:disabled,
+.admin-scope select:disabled,
+.admin-scope input[readonly],
+.admin-scope textarea[readonly] {
+  color: #1e293b !important;
+  -webkit-text-fill-color: #1e293b !important;
+  background-color: #f1f5f9 !important;
+  font-weight: 600 !important;
+  opacity: 0.95 !important;
+}
+

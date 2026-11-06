@@ -584,9 +584,11 @@ export const CheckoutModal: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        পূর্ণাঙ্গ ঠিকানা (বাসা/রোড/এলাকা) <span className="text-rose-600">*</span>
-                      </label>
+                      <div className="mb-1">
+                        <label className="text-xs font-semibold text-slate-700">
+                          পূর্ণাঙ্গ ঠিকানা (বাসা/রোড/এলাকা) <span className="text-rose-600">*</span>
+                        </label>
+                      </div>
                       <textarea
                         id="textarea-address"
                         rows={2}
@@ -601,9 +603,11 @@ export const CheckoutModal: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        বিশেষ নির্দেশনা / নোট (ঐচ্ছিক)
-                      </label>
+                      <div className="mb-1">
+                        <label className="text-xs font-semibold text-slate-700">
+                          বিশেষ নির্দেশনা / নোট (ঐচ্ছিক)
+                        </label>
+                      </div>
                       <input
                         id="input-order-note"
                         type="text"

@@ -151,40 +151,40 @@ export const CustomerChatDrawer: React.FC = () => {
 
               {/* Form to submit direct message */}
               <form onSubmit={handleSubmit} className="space-y-3 pt-2">
-                <p className="text-xs font-bold text-slate-700">মেসেজ ফর্ম:</p>
-                {error && <p className="text-xs text-red-500 bg-red-50 p-2 rounded-lg">{error}</p>}
+                <p className="text-xs sm:text-sm font-extrabold text-slate-900">মেসেজ ফর্ম:</p>
+                {error && <p className="text-xs font-bold text-red-700 bg-red-50 p-2.5 rounded-xl border border-red-200">{error}</p>}
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">আপনার নাম *</label>
+                  <label className="block text-xs font-bold text-slate-900 mb-1">আপনার নাম *</label>
                   <input
                     id="input-chat-name"
                     type="text"
                     placeholder="আপনার পুরো নাম"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-semibold placeholder:text-slate-400 shadow-2xs"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">মোবাইল নাম্বার *</label>
+                  <label className="block text-xs font-bold text-slate-900 mb-1">মোবাইল নাম্বার *</label>
                   <input
                     id="input-chat-phone"
                     type="tel"
                     placeholder="017XXXXXXXX"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-semibold font-mono placeholder:text-slate-400 shadow-2xs"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">বিষয়</label>
+                  <label className="block text-xs font-bold text-slate-900 mb-1">বিষয়</label>
                   <select
                     id="select-chat-subject"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-bold shadow-2xs"
                   >
                     <option value="পোশাকের সাইজ ও ফ্যাব্রিক তথ্য">পোশাকের সাইজ ও ফ্যাব্রিক তথ্য</option>
                     <option value="ডেলিভারি সংক্রান্ত প্রশ্ন">ডেলিভারি সংক্রান্ত প্রশ্ন</option>
@@ -195,14 +195,16 @@ export const CustomerChatDrawer: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">আপনার মেসেজ লিখুন *</label>
+                  <div className="mb-1">
+                    <label className="text-xs font-bold text-slate-900">আপনার মেসেজ লিখুন *</label>
+                  </div>
                   <textarea
                     id="textarea-chat-msg"
                     rows={4}
                     placeholder="আপনার প্রশ্ন বা পছন্দের প্রোডাক্ট সম্পর্কে বিস্তারিত লিখুন..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-medium leading-relaxed placeholder:text-slate-400 shadow-2xs"
                   />
                 </div>
 
