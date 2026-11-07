@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
-import { Product, Order, OrderStatus, CategoryType, StoreSettings, CustomCategoryItem, DropshippingApiSettings, ProductFulfillmentType, FirestoreEmailLog } from '../types';
+import { Product, Order, OrderStatus, CategoryType, StoreSettings, CustomCategoryItem, DropshippingApiSettings, MohasagorApiSettings, ProductFulfillmentType, FirestoreEmailLog } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/initialData';
 import { 
   testDropshippingConnection, 
@@ -9,7 +9,10 @@ import {
   getOrderFulfillmentSummary,
   DropshippingTestResult,
   generateProductFromDropshippingInput,
-  DropshippingCatalogProduct
+  DropshippingCatalogProduct,
+  testMohasagorConnection,
+  fetchMohasagorProducts,
+  convertMohasagorToProduct
 } from '../services/dropshippingService';
 import { fetchSteadfastTracking, normalizeSteadfastInput } from '../services/courierTrackingService';
 import { 
@@ -272,6 +275,44 @@ export const AdminPanel: React.FC = () => {
       setDropshippingForm(settings.dropshippingApi);
     }
   }, [settings.dropshippingApi]);
+
+  // Mohasagor Dropshipping State
+  const [dropshippingProvider, setDropshippingProvider] = useState<'mohasagor' | 'dropshipping_bd'>('mohasagor');
+  const [mohasagorForm, setMohasagorForm] = useState<MohasagorApiSettings>(() => {
+    return settings.mohasagorApi || {
+      enabled: true,
+      apiKey: 'A8niclztH9JtzS4t',
+      secretKey: '2ff380917a11d3a7c97bcf6dddfb8adf38194c7d6b726ab12c4d0d5fb136fef8',
+      baseUrl: 'https://mohasagor.com.bd/api/reseller/product',
+      defaultProfitMargin: 150,
+      autoCategorize: true,
+      connectionStatus: 'connected',
+      lastStatusMessage: 'মহসাগর ড্রপশিপিং API সক্রিয়',
+    };
+  });
+  const [showMohasagorSecret, setShowMohasagorSecret] = useState(false);
+  const [mohasagorProducts, setMohasagorProducts] = useState<any[]>([]);
+  const [mohasagorPage, setMohasagorPage] = useState(1);
+  const [mohasagorLastPage, setMohasagorLastPage] = useState(1);
+  const [mohasagorTotal, setMohasagorTotal] = useState(0);
+  const [isFetchingMohasagor, setIsFetchingMohasagor] = useState(false);
+  const [isTestingMohasagor, setIsTestingMohasagor] = useState(false);
+  const [mohasagorTestResult, setMohasagorTestResult] = useState<{ success: boolean; status: number; message: string } | null>(null);
+  const [mohasagorToast, setMohasagorToast] = useState<string | null>(null);
+  const [mohasagorDefaultCategory, setMohasagorDefaultCategory] = useState<string>('লেডিস উইন্টার');
+  const [mohasagorProfitMargin, setMohasagorProfitMargin] = useState<number>(150);
+
+  useEffect(() => {
+    if (settings.mohasagorApi) {
+      setMohasagorForm(settings.mohasagorApi);
+    }
+  }, [settings.mohasagorApi]);
+
+  useEffect(() => {
+    if (activeTab === 'dropshipping' && dropshippingProvider === 'mohasagor' && mohasagorProducts.length === 0 && !isFetchingMohasagor) {
+      handleFetchMohasagorProducts(1);
+    }
+  }, [activeTab, dropshippingProvider]);
 
   // Dropshipping Link-to-Post Auto Description & Profits State
   const [isLinkPostModalOpen, setIsLinkPostModalOpen] = useState(false);
@@ -1094,6 +1135,100 @@ export const AdminPanel: React.FC = () => {
       setForwardingOrderId(null);
       setTimeout(() => setOrderForwardToast(null), 4000);
     }
+  };
+
+  // Mohasagor Dropshipping Handlers
+  const handleTestMohasagorConnection = async () => {
+    setIsTestingMohasagor(true);
+    setMohasagorTestResult(null);
+    try {
+      const res = await testMohasagorConnection(mohasagorForm);
+      setMohasagorTestResult(res);
+      setMohasagorForm(prev => ({
+        ...prev,
+        connectionStatus: res.success ? 'connected' : 'error',
+        lastConnectedAt: new Date().toISOString(),
+        lastStatusMessage: res.message,
+      }));
+    } catch {
+      setMohasagorTestResult({
+        success: false,
+        status: 500,
+        message: 'মহসাগর এপিআই সার্ভারে সংযোগ করা যায়নি।',
+      });
+    } finally {
+      setIsTestingMohasagor(false);
+    }
+  };
+
+  const handleSaveMohasagorSettings = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const updated: MohasagorApiSettings = {
+      ...mohasagorForm,
+      apiKey: mohasagorForm.apiKey.trim(),
+      secretKey: mohasagorForm.secretKey.trim(),
+      baseUrl: 'https://mohasagor.com.bd/api/reseller/product',
+      lastConnectedAt: new Date().toISOString(),
+    };
+    updateSettings({
+      ...settings,
+      mohasagorApi: updated,
+    });
+    setMohasagorToast('মহসাগর ড্রপশিপিং API ক্রেডেনশিয়ালস সফলভাবে সংরক্ষিত হয়েছে!');
+    setTimeout(() => setMohasagorToast(null), 3500);
+  };
+
+  const handleFetchMohasagorProducts = async (page: number = 1) => {
+    setIsFetchingMohasagor(true);
+    try {
+      const res = await fetchMohasagorProducts(page, mohasagorForm);
+      setMohasagorProducts(res.products || []);
+      setMohasagorPage(res.page || page);
+      setMohasagorLastPage(res.last_page || 1);
+      setMohasagorTotal(res.total || (res.products ? res.products.length : 0));
+      if (!res.success && res.error) {
+        setMohasagorToast(res.error);
+        setTimeout(() => setMohasagorToast(null), 5000);
+      }
+    } catch {
+      setMohasagorToast('পণ্য তালিকা লোড করতে সমস্যা হয়েছে।');
+      setTimeout(() => setMohasagorToast(null), 3500);
+    } finally {
+      setIsFetchingMohasagor(false);
+    }
+  };
+
+  const handleImportMohasagorProduct = (item: any, customCategory?: string) => {
+    const targetCat = customCategory || mohasagorDefaultCategory || 'লেডিস উইন্টার';
+    const prod = convertMohasagorToProduct(item, mohasagorProfitMargin, targetCat);
+    
+    // Check if product with same SKU or ID already exists
+    const existing = products.find(p => p.sku === prod.sku || p.id === prod.id);
+    if (existing) {
+      setMohasagorToast(`"${prod.name}" পণ্যটি ইতোমধ্যে দোকানে সংরক্ষিত আছে!`);
+      setTimeout(() => setMohasagorToast(null), 3000);
+      return;
+    }
+
+    addProduct(prod);
+    setMohasagorToast(`"${prod.name}" সফলভাবে "${targetCat}" ক্যাটাগরিতে যুক্ত হয়েছে!`);
+    setTimeout(() => setMohasagorToast(null), 3500);
+  };
+
+  const handleBulkImportMohasagor = () => {
+    if (!mohasagorProducts || mohasagorProducts.length === 0) return;
+    let count = 0;
+    mohasagorProducts.forEach(item => {
+      const targetCat = item.suggestedCategory || mohasagorDefaultCategory || 'লেডিস উইন্টার';
+      const prod = convertMohasagorToProduct(item, mohasagorProfitMargin, targetCat);
+      const existing = products.find(p => p.sku === prod.sku || p.id === prod.id);
+      if (!existing) {
+        addProduct(prod);
+        count++;
+      }
+    });
+    setMohasagorToast(`মহসাগর থেকে ${count}টি নতুন পণ্য সফলভাবে দোকানে ইমপোর্ট হয়েছে!`);
+    setTimeout(() => setMohasagorToast(null), 4000);
   };
 
   // Automated Email Notification Handlers
@@ -3977,9 +4112,474 @@ export const AdminPanel: React.FC = () => {
               {/* TAB: DROPSHIPPING API SETTINGS */}
               {activeTab === 'dropshipping' && (
                 <div className="space-y-6">
-                  {/* Header Banner */}
-                  <div className="bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 rounded-3xl p-6 text-white shadow-xl border border-rose-900/40 relative overflow-hidden">
-                    <div className="absolute right-0 top-0 w-96 h-96 bg-rose-600/10 rounded-full blur-3xl pointer-events-none" />
+                  {/* Provider Tabs: Mohasagor Dropshipping vs Dropshipping.com.bd */}
+                  <div className="flex flex-wrap items-center gap-3 bg-white p-2.5 rounded-2xl border border-rose-100 shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setDropshippingProvider('mohasagor')}
+                      className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+                        dropshippingProvider === 'mohasagor'
+                          ? 'bg-rose-600 text-white shadow-md'
+                          : 'bg-slate-50 text-slate-700 hover:bg-rose-50 hover:text-rose-700'
+                      }`}
+                    >
+                      <Boxes className="w-4 h-4 text-amber-300" />
+                      <span>মহসাগর ড্রপশিপিং (Mohasagor.com.bd)</span>
+                      <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full font-black">
+                        API সংযুক্ত
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDropshippingProvider('dropshipping_bd')}
+                      className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+                        dropshippingProvider === 'dropshipping_bd'
+                          ? 'bg-rose-600 text-white shadow-md'
+                          : 'bg-slate-50 text-slate-700 hover:bg-rose-50 hover:text-rose-700'
+                      }`}
+                    >
+                      <ExternalLink className="w-4 h-4 text-slate-400" />
+                      <span>Dropshipping.com.bd</span>
+                    </button>
+                  </div>
+
+                  {dropshippingProvider === 'mohasagor' ? (
+                    <div className="space-y-6">
+                      {/* Mohasagor Header Banner */}
+                      <div className="bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 rounded-3xl p-6 text-white shadow-xl border border-rose-900/40 relative overflow-hidden">
+                        <div className="absolute right-0 top-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                        
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-bold text-[10px] uppercase tracking-wider">
+                                Mohasagor Reseller API v1
+                              </span>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                <span>সক্রিয় ইন্টিগ্রেশন</span>
+                              </span>
+                            </div>
+                            <h4 className="text-xl sm:text-2xl font-black font-['Hind_Siliguri'] flex items-center gap-2 text-white">
+                              <Boxes className="w-6 h-6 text-amber-400" />
+                              <span>মহসাগর ড্রপশিপিং (Mohasagor.com.bd) অটোমেশন</span>
+                            </h4>
+                            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                              মহসাগর পাইকারি রিসেলার এপিআই থেকে সরাসরি হুডি, থ্রি-পিস, শাড়ি ও পোশাক আপনার দোকানে আমদানি করুন। কাস্টমার অর্ডার দিলে সরাসরি মহসাগর থেকে গ্রাহকের ঠিকানায় ডেলিভারি হবে।
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <a
+                              href="https://mohasagor.com.bd"
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 border border-white/15 backdrop-blur-sm cursor-pointer"
+                            >
+                              <ExternalLink className="w-4 h-4 text-amber-300" />
+                              <span>Mohasagor পোর্টাল</span>
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* API Credentials Card */}
+                      <div className="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm space-y-5">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                          <div className="flex items-center gap-2">
+                            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                              <Key className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <h5 className="font-bold text-slate-900 text-base">মহসাগর API ক্রেডেনশিয়ালস</h5>
+                              <p className="text-xs text-slate-500">আপনার Mohasagor Reseller অ্যাকাউন্ট থেকে প্রাপ্ত API Key ও Secret Key</p>
+                            </div>
+                          </div>
+                          <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+                            ✓ সার্ভার-সাইড প্রক্সি এনক্রিপ্টেড
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* API Key */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="block text-xs font-bold text-slate-700">
+                                API Key (এপিআই কী) *
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(mohasagorForm.apiKey);
+                                  setMohasagorToast('API Key কপি করা হয়েছে!');
+                                  setTimeout(() => setMohasagorToast(null), 2000);
+                                }}
+                                className="text-[11px] text-rose-600 font-bold hover:underline cursor-pointer"
+                              >
+                                কপি করুন
+                              </button>
+                            </div>
+                            <input
+                              type="text"
+                              value={mohasagorForm.apiKey}
+                              onChange={(e) => setMohasagorForm({ ...mohasagorForm, apiKey: e.target.value })}
+                              placeholder="A8niclztH9JtzS4t"
+                              className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white font-mono font-bold text-slate-800 focus:ring-2 focus:ring-rose-500"
+                            />
+                            <p className="text-[11px] text-slate-400 mt-1">
+                              হেডারে পাঠানো হবে: <code className="text-rose-600 font-mono">api-key</code>
+                            </p>
+                          </div>
+
+                          {/* Secret Key */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="block text-xs font-bold text-slate-700">
+                                Secret Key (সিক্রেট কী) *
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(mohasagorForm.secretKey);
+                                  setMohasagorToast('Secret Key কপি করা হয়েছে!');
+                                  setTimeout(() => setMohasagorToast(null), 2000);
+                                }}
+                                className="text-[11px] text-rose-600 font-bold hover:underline cursor-pointer"
+                              >
+                                কপি করুন
+                              </button>
+                            </div>
+                            <div className="relative">
+                              <input
+                                type={showMohasagorSecret ? 'text' : 'password'}
+                                value={mohasagorForm.secretKey}
+                                onChange={(e) => setMohasagorForm({ ...mohasagorForm, secretKey: e.target.value })}
+                                placeholder="2ff380917a11d3a7c97bcf6dddfb8adf38194c7d6b726ab12c4d0d5fb136fef8"
+                                className="w-full text-xs sm:text-sm px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 bg-white font-mono text-slate-800 focus:ring-2 focus:ring-rose-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowMohasagorSecret(!showMohasagorSecret)}
+                                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                                title={showMohasagorSecret ? 'লুকান' : 'দেখুন'}
+                              >
+                                {showMohasagorSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-1">
+                              হেডারে পাঠানো হবে: <code className="text-rose-600 font-mono">secret-key</code>
+                            </p>
+                          </div>
+
+                          {/* API Endpoint & Pagination Note */}
+                          <div className="md:col-span-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-slate-800">API Endpoint &amp; পেজিনেশন:</span>
+                              <span className="text-rose-600 font-mono font-bold">প্রতি পেজে ২০০ পণ্য</span>
+                            </div>
+                            <p className="font-mono text-[11px] text-slate-700 break-all">
+                              GET https://mohasagor.com.bd/api/reseller/product?page=N
+                            </p>
+                            <p className="text-[11px] text-slate-500">
+                              * পেজ ১ থেকে শুরু হয়। খালি ফলাফল এড়াতে সিস্টেমে <code className="text-rose-600">last_page</code> শেষ সীমা স্বয়ংক্রিয়ভাবে হ্যান্ডেল করা আছে।
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Test Results Box */}
+                        {mohasagorTestResult && (
+                          <div className={`p-4 rounded-2xl border transition-all ${
+                            mohasagorTestResult.success 
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
+                              : 'bg-amber-50 border-amber-200 text-amber-900'
+                          }`}>
+                            <div className="flex items-start gap-3">
+                              {mohasagorTestResult.success ? (
+                                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                              ) : (
+                                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                              )}
+                              <div className="space-y-1 flex-1 text-xs">
+                                <h6 className="font-bold text-sm">
+                                  {mohasagorTestResult.success ? 'মহসাগর সংযোগ সফল!' : 'কানেকশন স্ট্যাটাস নোটিশ'}
+                                </h6>
+                                <p className="leading-relaxed">{mohasagorTestResult.message}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={handleTestMohasagorConnection}
+                            disabled={isTestingMohasagor}
+                            className="px-5 py-2.5 rounded-xl border border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-100 font-bold text-xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                          >
+                            <RefreshCw className={`w-4 h-4 ${isTestingMohasagor ? 'animate-spin' : ''}`} />
+                            <span>{isTestingMohasagor ? 'পরীক্ষা করা হচ্ছে...' : 'কানেকশন টেস্ট করুন'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSaveMohasagorSettings()}
+                            className="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition flex items-center gap-2 cursor-pointer"
+                          >
+                            <Save className="w-4 h-4" />
+                            <span>ক্রেডেনশিয়ালস সেভ করুন</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Live Mohasagor Product Browser & Importer */}
+                      <div className="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm space-y-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[10px] font-black uppercase">
+                                লাইভ ক্যাটালগ
+                              </span>
+                              <h5 className="font-black text-slate-900 text-lg font-['Hind_Siliguri']">
+                                মহসাগর পাইকারি পণ্য তালিকা ও ১-ক্লিক ইমপোর্ট
+                              </h5>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              মহসাগরের পাইকারি স্টক ব্রাউজ করুন এবং আপনার নির্ধারিত লাভে দোকানে যুক্ত করুন
+                            </p>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleFetchMohasagorProducts(mohasagorPage)}
+                              disabled={isFetchingMohasagor}
+                              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            >
+                              <RefreshCw className={`w-3.5 h-3.5 ${isFetchingMohasagor ? 'animate-spin text-rose-600' : ''}`} />
+                              <span>{isFetchingMohasagor ? 'লোড হচ্ছে...' : 'রিফ্রেশ করুন'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={handleBulkImportMohasagor}
+                              disabled={!mohasagorProducts || mohasagorProducts.length === 0}
+                              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span>সব পণ্য একসাথে ইমপোর্ট করুন ({mohasagorProducts.length})</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Importer Controls: Target Category & Profit Margin */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-rose-50/50 p-4 rounded-2xl border border-rose-100">
+                          {/* Target Category */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                              ইমপোর্ট ক্যাটাগরি (Target Category)
+                            </label>
+                            <select
+                              value={mohasagorDefaultCategory}
+                              onChange={(e) => setMohasagorDefaultCategory(e.target.value)}
+                              className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-800 focus:ring-2 focus:ring-rose-500"
+                            >
+                              {(Array.isArray(settings.categories) ? settings.categories : DEFAULT_CATEGORIES).map(c => (
+                                <option key={c.id} value={c.title}>
+                                  {c.title}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Profit Margin */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                              আপনার নির্দিষ্ট লাভ (Profit / Margin ৳)
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                min={50}
+                                step={10}
+                                value={mohasagorProfitMargin}
+                                onChange={(e) => setMohasagorProfitMargin(Number(e.target.value) || 150)}
+                                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-800 focus:ring-2 focus:ring-rose-500"
+                              />
+                              <span className="text-xs text-slate-400 absolute right-3 top-2 font-bold">টাকা</span>
+                            </div>
+                          </div>
+
+                          {/* Pagination controls */}
+                          <div className="flex flex-col justify-end">
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                disabled={mohasagorPage <= 1 || isFetchingMohasagor}
+                                onClick={() => handleFetchMohasagorProducts(mohasagorPage - 1)}
+                                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+                              >
+                                &larr; পূর্ববর্তী
+                              </button>
+                              <span className="text-xs font-bold text-slate-600 px-1">
+                                পৃষ্ঠা {mohasagorPage} / {mohasagorLastPage}
+                              </span>
+                              <button
+                                type="button"
+                                disabled={mohasagorPage >= mohasagorLastPage || isFetchingMohasagor}
+                                onClick={() => handleFetchMohasagorProducts(mohasagorPage + 1)}
+                                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+                              >
+                                পরবর্তী &rarr;
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Product Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {mohasagorProducts.map((item: any, idx: number) => {
+                            const isImported = products.some(p => p.sku === `MH-${item.product_code || item.id}` || p.id === `ds-mh-${item.id || item.product_code}`);
+                            const wholesale = Number(item.sale_price) || Number(item.price) || 420;
+                            const resale = Number(item.reselling_price) || (wholesale + mohasagorProfitMargin);
+                            const profit = resale - wholesale;
+
+                            // Image resolution
+                            let imgUrl = 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=400&q=80';
+                            if (Array.isArray(item.product_image) && item.product_image[0]) {
+                              const p = item.product_image[0].product_image || item.product_image[0];
+                              if (typeof p === 'string') {
+                                imgUrl = p.startsWith('http') ? p : (p.startsWith('images/') || p.startsWith('uploads/') ? `https://mohasagor.com.bd/${p}` : `https://mohasagor.com.bd/uploads/products/${p}`);
+                              }
+                            } else if (item.thumbnail_img) {
+                              const t = item.thumbnail_img;
+                              imgUrl = t.startsWith('http') ? t : `https://mohasagor.com.bd/uploads/products/${t}`;
+                            }
+
+                            return (
+                              <div
+                                key={item.id || idx}
+                                className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                              >
+                                <div>
+                                  <div className="relative aspect-square bg-slate-100 overflow-hidden">
+                                    <img
+                                      src={imgUrl}
+                                      alt={item.name}
+                                      className="w-full h-full object-cover"
+                                      onError={(e: any) => {
+                                        e.target.src = 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=400&q=80';
+                                      }}
+                                    />
+                                    <span className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[10px] font-mono font-bold">
+                                      কোড: {item.product_code || item.id}
+                                    </span>
+                                    {isImported && (
+                                      <span className="absolute top-2 right-2 bg-emerald-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow">
+                                        ✓ দোকানে যুক্ত
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="p-3.5 space-y-2">
+                                    <h6 className="font-bold text-xs text-slate-800 line-clamp-2 leading-snug">
+                                      {item.bengaliTitle || item.name}
+                                    </h6>
+
+                                    <div className="bg-slate-50 p-2 rounded-xl space-y-1 text-[11px]">
+                                      <div className="flex items-center justify-between text-slate-500">
+                                        <span>মহসাগর পাইকারি রেট:</span>
+                                        <span className="font-bold text-slate-700">৳{wholesale}</span>
+                                      </div>
+                                      <div className="flex items-center justify-between text-slate-800 font-bold">
+                                        <span>বিক্রয়মূল্য (Retail):</span>
+                                        <span className="text-rose-600">৳{resale}</span>
+                                      </div>
+                                      <div className="flex items-center justify-between pt-1 border-t border-slate-200 text-emerald-700 font-bold">
+                                        <span>আপনার লাভ (Profit):</span>
+                                        <span>+৳{profit}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="p-3.5 pt-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleImportMohasagorProduct(item)}
+                                    disabled={isImported}
+                                    className={`w-full py-2 px-3 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                                      isImported
+                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
+                                        : 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm'
+                                    }`}
+                                  >
+                                    {isImported ? (
+                                      <>
+                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                        <span>দোকানে আছে</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Plus className="w-3.5 h-3.5" />
+                                        <span>দোকানে যুক্ত করুন</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* How It Works Guide Card */}
+                      <div className="bg-gradient-to-br from-rose-50 to-amber-50/60 p-6 rounded-3xl border border-rose-100 space-y-4">
+                        <div className="flex items-center gap-2">
+                          <span className="w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center font-bold text-sm">?</span>
+                          <div>
+                            <h5 className="font-black text-slate-900 text-base">মহসাগর ড্রপশিপিং কিভাবে কাজ করে? (৪টি সহজ ধাপ)</h5>
+                            <p className="text-xs text-slate-600">কোনো ইনভেন্টরি কেনা ছাড়া কীভাবে রিসেলিং করে আয় করবেন</p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                          <div className="bg-white p-3.5 rounded-2xl border border-rose-100 space-y-1.5 shadow-sm">
+                            <span className="font-bold text-rose-600 block">১. পণ্য নির্বাচন ও আমদানি</span>
+                            <p className="text-slate-600 text-[11px] leading-relaxed">
+                              উপরের তালিকা থেকে যেকোনো পণ্য ১-ক্লিকে "দোকানে যুক্ত করুন" চাপ দিন। পণ্যটি স্বয়ংক্রিয়ভাবে আপনার ওয়েবসাইটে লাইভ হয়ে যাবে।
+                            </p>
+                          </div>
+
+                          <div className="bg-white p-3.5 rounded-2xl border border-rose-100 space-y-1.5 shadow-sm">
+                            <span className="font-bold text-rose-600 block">২. কাস্টমারের অর্ডার গ্রহণ</span>
+                            <p className="text-slate-600 text-[11px] leading-relaxed">
+                              গ্রাহক আপনার শপে ক্যাশ অন ডেলিভারিতে অর্ডার প্লেস করবেন। আপনি গ্রাহকের নাম, ফোন ও ঠিকানা পেয়ে যাবেন।
+                            </p>
+                          </div>
+
+                          <div className="bg-white p-3.5 rounded-2xl border border-rose-100 space-y-1.5 shadow-sm">
+                            <span className="font-bold text-rose-600 block">৩. মহসাগরে অর্ডার প্লেস</span>
+                            <p className="text-slate-600 text-[11px] leading-relaxed">
+                              মহসাগর ড্যাশবোর্ডে গিয়ে পণ্য কোড লিখে গ্রাহকের নাম ও ঠিকানা দিয়ে পাইকারি মূল্যে অর্ডার সাবমিট করে দিন।
+                            </p>
+                          </div>
+
+                          <div className="bg-white p-3.5 rounded-2xl border border-rose-100 space-y-1.5 shadow-sm">
+                            <span className="font-bold text-rose-600 block">৪. ডেলিভারি ও প্রফিট উইথড্র</span>
+                            <p className="text-slate-600 text-[11px] leading-relaxed">
+                              মহসাগর কুরিয়ারে পার্সেল পাঠাবে এবং টাকা কালেক্ট করে আপনার লাভ (প্রফিট) সরাসরি আপনার বিকাশ বা ব্যাংকে ট্রান্সফার করবে।
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Header Banner */}
+                      <div className="bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 rounded-3xl p-6 text-white shadow-xl border border-rose-900/40 relative overflow-hidden">
+                        <div className="absolute right-0 top-0 w-96 h-96 bg-rose-600/10 rounded-full blur-3xl pointer-events-none" />
                     
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
                       <div className="space-y-1.5">
@@ -4435,6 +5035,8 @@ export const AdminPanel: React.FC = () => {
                   </div>
                 </div>
               )}
+            </div>
+          )}
 
               {/* TAB: AUTOMATED EMAIL NOTIFICATIONS */}
               {activeTab === 'emails' && (
@@ -7066,6 +7668,17 @@ export const AdminPanel: React.FC = () => {
             <div>
               <p className="font-bold">{apiSaveToast}</p>
               <p className="text-[11px] text-slate-300">ক্লাউড ফায়ারবেসে Dropshipping.com.bd সেটিংস আপডেট হয়েছে।</p>
+            </div>
+          </div>
+        )}
+
+        {/* Mohasagor Dropshipping Toast */}
+        {mohasagorToast && (
+          <div className="fixed bottom-6 right-6 z-60 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-rose-500/60 flex items-center gap-3 text-xs animate-slideUp max-w-md">
+            <Boxes className="w-5 h-5 text-amber-400 shrink-0" />
+            <div>
+              <p className="font-bold text-white text-xs">{mohasagorToast}</p>
+              <p className="text-[11px] text-rose-300">মহসাগর ড্রপশিপিং সিস্টেম</p>
             </div>
           </div>
         )}

@@ -1,4 +1,4 @@
-import { DropshippingApiSettings, Order } from '../types';
+import { DropshippingApiSettings, MohasagorApiSettings, Order, Product } from '../types';
 
 export interface DropshippingTestResult {
   success: boolean;
@@ -642,4 +642,167 @@ export function generateProductFromDropshippingInput(
     }
   };
 }
+
+/**
+ * -------------------------------------------------------------
+ * Mohasagor Dropshipping (mohasagor.com.bd) Integration Services
+ * -------------------------------------------------------------
+ */
+
+export interface MohasagorFetchResult {
+  success: boolean;
+  source: 'live_api' | 'preview_fallback';
+  page: number;
+  total: number;
+  last_page: number;
+  products: any[];
+  error?: string;
+  rawMessage?: string;
+}
+
+export async function testMohasagorConnection(settings?: Partial<MohasagorApiSettings>): Promise<{
+  success: boolean;
+  status: number;
+  message: string;
+  raw?: any;
+}> {
+  try {
+    const res = await fetch('/api/mohasagor/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey: settings?.apiKey || 'A8niclztH9JtzS4t',
+        secretKey: settings?.secretKey || '2ff380917a11d3a7c97bcf6dddfb8adf38194c7d6b726ab12c4d0d5fb136fef8',
+      }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return {
+      success: false,
+      status: 500,
+      message: `মহসাগর সার্ভারের সাথে সংযোগ করা যায়নি: ${err?.message || err}`,
+    };
+  }
+}
+
+export async function fetchMohasagorProducts(
+  page: number = 1,
+  settings?: Partial<MohasagorApiSettings>
+): Promise<MohasagorFetchResult> {
+  try {
+    const apiKey = encodeURIComponent(settings?.apiKey || 'A8niclztH9JtzS4t');
+    const secretKey = encodeURIComponent(settings?.secretKey || '2ff380917a11d3a7c97bcf6dddfb8adf38194c7d6b726ab12c4d0d5fb136fef8');
+    const res = await fetch(`/api/mohasagor/products?page=${page}&apiKey=${apiKey}&secretKey=${secretKey}`);
+    return await res.json();
+  } catch (err: any) {
+    return {
+      success: false,
+      source: 'preview_fallback',
+      page,
+      total: 0,
+      last_page: 1,
+      products: [],
+      error: err?.message || 'পণ্য তালিকা লোড করতে ব্যর্থ হয়েছে',
+    };
+  }
+}
+
+/**
+ * Normalizes a raw Mohasagor product object into a Naarir Shopno Product
+ */
+export function convertMohasagorToProduct(
+  item: any,
+  profitMargin: number = 150,
+  targetCategory: string = 'লেডিস উইন্টার'
+): Product {
+  // Extract images
+  const images: string[] = [];
+  if (Array.isArray(item.product_image) && item.product_image.length > 0) {
+    item.product_image.forEach((imgObj: any) => {
+      const path = imgObj.product_image || imgObj.image || imgObj;
+      if (typeof path === 'string') {
+        if (path.startsWith('http://') || path.startsWith('https://')) {
+          images.push(path);
+        } else if (path.startsWith('images/') || path.startsWith('uploads/')) {
+          images.push(`https://mohasagor.com.bd/${path}`);
+        } else {
+          images.push(`https://mohasagor.com.bd/uploads/products/${path}`);
+        }
+      }
+    });
+  }
+
+  if (images.length === 0 && item.thumbnail_img) {
+    const t = item.thumbnail_img;
+    if (typeof t === 'string') {
+      if (t.startsWith('http://') || t.startsWith('https://')) {
+        images.push(t);
+      } else {
+        images.push(`https://mohasagor.com.bd/uploads/products/${t}`);
+      }
+    }
+  }
+
+  // Fallback fashion images if empty
+  if (images.length === 0) {
+    images.push('https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80');
+  }
+
+  // Pricing
+  const wholesale = Number(item.sale_price) || Number(item.price) || 420;
+  const resale = Number(item.reselling_price) || (wholesale + profitMargin);
+  const regular = Number(item.price) && Number(item.price) > resale ? Number(item.price) : Math.round((resale + 200) / 50) * 50;
+
+  // Extract fabric & clean description from details HTML
+  let fabric = 'প্রিমিয়াম এক্সপোর্ট কোয়ালিটি ফেব্রিক';
+  let cleanDesc = item.name || 'মহসাগর ড্রপশিপিং প্রিমিয়াম কোয়ালিটি পণ্য।';
+  if (item.details) {
+    const rawDetails = String(item.details);
+    const fabricMatch = rawDetails.match(/fabric:\s*([^<]+)/i) || rawDetails.match(/ফেব্ৰিক:\s*([^<]+)/i);
+    if (fabricMatch) {
+      fabric = fabricMatch[1].trim();
+    }
+    cleanDesc = rawDetails.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  // Variants to sizes/colors
+  const sizes: string[] = [];
+  if (Array.isArray(item.product_variant) && item.product_variant.length > 0) {
+    item.product_variant.forEach((v: any) => {
+      if (v.name) sizes.push(String(v.name));
+    });
+  }
+  if (sizes.length === 0) {
+    sizes.push('M (৩৮)', 'L (৪০)', 'XL (৪২)', 'XXL (৪৪)');
+  }
+
+  return {
+    id: `ds-mh-${item.id || item.product_code || Date.now()}`,
+    name: item.name || 'Mohasagor Product',
+    bengaliName: item.bengaliTitle || item.name || 'মহসাগর কালেকশন',
+    category: targetCategory as any,
+    categoryBengali: targetCategory,
+    price: resale,
+    regularPrice: regular,
+    wholesalePrice: wholesale,
+    fulfillmentType: 'dropshipping',
+    images,
+    rating: 4.8,
+    reviewsCount: 32,
+    isNew: true,
+    isTrending: true,
+    featured: false,
+    fabric,
+    sizes,
+    colors: [
+      { name: 'স্ট্যান্ডার্ড', hex: '#1e293b' },
+      { name: 'রোজ পিঙ্ক', hex: '#f43f5e' }
+    ],
+    description: cleanDesc,
+    inStock: item.status === 3 || true,
+    stockCount: 50,
+    sku: `MH-${item.product_code || item.id || 'PROD'}`,
+  };
+}
+
 

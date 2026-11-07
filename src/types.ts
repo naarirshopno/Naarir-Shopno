@@ -131,6 +131,18 @@ export interface DropshippingApiSettings {
   lastStatusMessage?: string;
 }
 
+export interface MohasagorApiSettings {
+  enabled: boolean;
+  apiKey: string;
+  secretKey: string;
+  baseUrl: string;
+  defaultProfitMargin: number;
+  autoCategorize: boolean;
+  lastConnectedAt?: string;
+  connectionStatus?: 'disconnected' | 'connected' | 'error';
+  lastStatusMessage?: string;
+}
+
 export interface StoreSettings {
   storeName: string;
   slogan: string;
@@ -159,6 +171,7 @@ export interface StoreSettings {
   categories?: CustomCategoryItem[];
   categoryImages?: Record<string, string>;
   dropshippingApi?: DropshippingApiSettings;
+  mohasagorApi?: MohasagorApiSettings;
   backgroundMusic?: {
     enabled?: boolean;
     audioUrl?: string;

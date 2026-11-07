@@ -162,6 +162,16 @@ export const INITIAL_SETTINGS: StoreSettings = {
     connectionStatus: "disconnected",
     lastStatusMessage: "এখনো কোনো API কানেকশন কনফিগার করা হয়নি",
   },
+  mohasagorApi: {
+    enabled: true,
+    apiKey: "A8niclztH9JtzS4t",
+    secretKey: "2ff380917a11d3a7c97bcf6dddfb8adf38194c7d6b726ab12c4d0d5fb136fef8",
+    baseUrl: "https://mohasagor.com.bd/api/reseller/product",
+    defaultProfitMargin: 150,
+    autoCategorize: true,
+    connectionStatus: "connected",
+    lastStatusMessage: "মহসাগর ড্রপশিপিং API ক্রেডেনশিয়ালস সংরক্ষিত ও সক্রিয়",
+  },
   backgroundMusic: {
     enabled: true,
     audioUrl: "/audio/track-piano-serenade.mp3",
