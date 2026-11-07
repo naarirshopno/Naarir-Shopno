@@ -103,8 +103,8 @@ app.post('/api/email/send', async (req, res) => {
 
     const host = smtpConfig?.host || process.env.SMTP_HOST || 'smtp.gmail.com';
     const port = Number(smtpConfig?.port || process.env.SMTP_PORT || 465);
-    const user = (smtpConfig?.user || process.env.SMTP_USER || '').trim();
-    const pass = (smtpConfig?.pass || process.env.SMTP_PASS || '').trim();
+    const user = (smtpConfig?.user || process.env.SMTP_USER || 'NaarirShopno@Gmail.com').trim();
+    const pass = (smtpConfig?.pass || process.env.SMTP_PASS || 'ahumuvbilessprtl').trim();
     const senderName = smtpConfig?.senderName || 'নারীর স্বপ্ন (Naarir Shopno)';
 
     if (!to) {
@@ -124,7 +124,7 @@ app.post('/api/email/send', async (req, res) => {
       host,
       port,
       secure: port === 465,
-      auth: { user, pass },
+      auth: { user, pass: pass.replace(/\s+/g, '') },
       tls: { rejectUnauthorized: false },
     });
 

@@ -273,30 +273,29 @@ export async function triggerOrderEmailNotification(
   let dispatchError: string | undefined = undefined;
   let messageId: string | undefined = undefined;
 
-  // Attempt live SMTP transmission if credentials exist
-  if (emailSettings?.smtpPass && (emailSettings?.smtpUser || emailSettings?.senderEmail)) {
-    const dispatchRes = await sendLiveEmailViaBackend({
-      to: targetEmail,
-      cc: order.customerEmail && order.customerEmail !== defaultAdminEmail ? defaultAdminEmail : undefined,
-      subject,
-      html,
-      smtpConfig: {
-        host: emailSettings.smtpHost || (emailSettings.provider === 'gmail' ? 'smtp.gmail.com' : 'smtp.gmail.com'),
-        port: emailSettings.smtpPort || (emailSettings.provider === 'gmail' ? 465 : 587),
-        user: (emailSettings.smtpUser || emailSettings.senderEmail || defaultAdminEmail).trim(),
-        pass: emailSettings.smtpPass.trim(),
-        senderName: emailSettings.senderName || 'নারীর স্বপ্ন (Naarir Shopno)',
-      },
-    });
+  // Attempt live SMTP transmission
+  const effectiveUser = (emailSettings?.smtpUser || emailSettings?.senderEmail || defaultAdminEmail || 'NaarirShopno@Gmail.com').trim();
+  const effectivePass = (emailSettings?.smtpPass || 'ahum uvbi less prtl').trim();
 
-    realDispatched = Boolean(dispatchRes.success);
-    if (!dispatchRes.success) {
-      dispatchError = dispatchRes.error;
-    } else {
-      messageId = dispatchRes.messageId;
-    }
+  const dispatchRes = await sendLiveEmailViaBackend({
+    to: targetEmail,
+    cc: order.customerEmail && order.customerEmail !== defaultAdminEmail ? defaultAdminEmail : undefined,
+    subject,
+    html,
+    smtpConfig: {
+      host: emailSettings?.smtpHost || (emailSettings?.provider === 'gmail' ? 'smtp.gmail.com' : 'smtp.gmail.com'),
+      port: emailSettings?.smtpPort || (emailSettings?.provider === 'gmail' ? 465 : 587),
+      user: effectiveUser,
+      pass: effectivePass,
+      senderName: emailSettings?.senderName || 'নারীর স্বপ্ন (Naarir Shopno)',
+    },
+  });
+
+  realDispatched = Boolean(dispatchRes.success);
+  if (!dispatchRes.success) {
+    dispatchError = dispatchRes.error;
   } else {
-    dispatchError = 'SMTP অ্যাপ পাসওয়ার্ড এখনো কনফিগার করা হয়নি। অ্যাডমিন প্যানেল > ইমেইল সেটিংসে জিমেইল অ্যাপ পাসওয়ার্ড দিন।';
+    messageId = dispatchRes.messageId;
   }
 
   const mailPayload = {

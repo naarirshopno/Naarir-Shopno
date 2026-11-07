@@ -3636,11 +3636,8 @@ export const AdminPanel: React.FC = () => {
                               </h5>
                               <p className="text-[11px] text-slate-500 truncate">{cat.subtitle}</p>
                               <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                <span className="text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                                  ক্যাটাগরি: {cat.title}
-                                </span>
-                                <span className="text-[10px] font-mono font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200" title="ক্যাটাগরি আইডি (Category Id / Slug)">
-                                  Id: {cat.id}
+                                <span className="text-[11px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200 shadow-2xs font-['Hind_Siliguri']">
+                                  Id: {cat.title}
                                 </span>
                               </div>
                             </div>
@@ -3652,7 +3649,7 @@ export const AdminPanel: React.FC = () => {
                               type="button"
                               onClick={() => {
                                 setEditingCategoryItem(cat);
-                                setCategoryFormId(cat.id);
+                                setCategoryFormId(cat.title);
                                 setCategoryFormTitle(cat.title);
                                 setCategoryFormSubtitle(cat.subtitle);
                                 setCategoryFormImage(activeImg);
@@ -5799,7 +5796,7 @@ export const AdminPanel: React.FC = () => {
                   if (!categoryFormTitle.trim()) return;
 
                   if (editingCategoryItem) {
-                    const finalId = categoryFormId.trim() || editingCategoryItem.id;
+                    const finalId = categoryFormId.trim() || categoryFormTitle.trim() || editingCategoryItem.id;
                     await updateCategory({
                       id: finalId,
                       title: categoryFormTitle.trim(),
@@ -5808,7 +5805,7 @@ export const AdminPanel: React.FC = () => {
                     }, editingCategoryItem.id);
                     setCategoryToast(`"${categoryFormTitle}" ক্যাটাগরি (Id: ${finalId}) সফলভাবে আপডেট করা হয়েছে!`);
                   } else {
-                    const cleanSlug = categoryFormId.trim() || ('cat_' + Date.now());
+                    const cleanSlug = categoryFormId.trim() || categoryFormTitle.trim();
                     await addCategory({
                       id: cleanSlug,
                       title: categoryFormTitle.trim(),
@@ -5835,37 +5832,34 @@ export const AdminPanel: React.FC = () => {
                     onChange={(e) => {
                       const newTitle = e.target.value;
                       setCategoryFormTitle(newTitle);
-                      // Auto-suggest slug for new category if ID is empty
-                      if (!editingCategoryItem && (!categoryFormId || categoryFormId.startsWith('cat_'))) {
-                        const suggested = newTitle.toLowerCase().trim().replace(/[^a-z0-9\u0980-\u09FF]+/g, '_').replace(/^_+|_+$/g, '');
-                        if (suggested) {
-                          setCategoryFormId(suggested);
-                        }
+                      // Auto-set ID directly to Category Name
+                      if (!editingCategoryItem || categoryFormId === editingCategoryItem.title || categoryFormId.startsWith('cat_') || !categoryFormId) {
+                        setCategoryFormId(newTitle);
                       }
                     }}
                     className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
                   />
                 </div>
 
-                {/* Category ID / Slug Field */}
+                {/* Category ID Field */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                      <span>ক্যাটাগরি আইডি (Category Id / Slug) *</span>
+                      <span>Id (Category Name) *</span>
                     </label>
-                    <span className="text-[10px] text-slate-500 font-medium">ইউআরএল ও সিস্টেমে ব্যবহারের জন্য</span>
+                    <span className="text-[10px] text-slate-500 font-medium">ক্যাটাগরি নাম অনুসারে Id</span>
                   </div>
                   <input
                     type="text"
                     required
-                    placeholder="যেমন: readymade_three_piece অথবা saree"
+                    placeholder="যেমন: রেডিমেড থ্রিপিস বা লেহেঙ্গা"
                     value={categoryFormId}
-                    onChange={(e) => setCategoryFormId(e.target.value.trim())}
-                    className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-bold text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    onChange={(e) => setCategoryFormId(e.target.value)}
+                    className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
                   />
                   <p className="text-[11px] text-slate-500 mt-1">
-                    💡 এই Id পরিবর্তন করলে সংশ্লিষ্ট সকল পোশাকের ক্যাটাগরি স্বয়ংক্রিয়ভাবে নতুন Id-তে আপডেট হয়ে যাবে।
+                    💡 এই Id ক্যাটাগরি নাম (Category Name) হিসেবে ব্যবহৃত হবে।
                   </p>
                 </div>
 
