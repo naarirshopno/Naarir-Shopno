@@ -82,13 +82,17 @@ import {
   Filter,
   BarChart3,
   Smartphone,
-  Monitor
+  Monitor,
+  XCircle
 } from 'lucide-react';
 import { InvoiceModal } from './InvoiceModal';
 import { 
   generateOrderEmailHtml, 
+  generateCancellationEmailHtml,
   triggerOrderEmailNotification, 
+  triggerOrderCancellationEmailNotification,
   createGmailDraftUrl,
+  createGmailCancellationDraftUrl,
   fetchFirestoreEmailLogs,
   subscribeToFirestoreEmailLogs,
   clearAllFirestoreEmailLogs
@@ -516,6 +520,11 @@ export const AdminPanel: React.FC = () => {
   const [courierSyncNotice, setCourierSyncNotice] = useState<string | null>(null);
   const [syncingOrderId, setSyncingOrderId] = useState<string | null>(null);
   const [quickSyncToast, setQuickSyncToast] = useState<string | null>(null);
+
+  // Orders dashboard filter & search
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | OrderStatus>('all');
+  const [previewEmailType, setPreviewEmailType] = useState<'confirmation' | 'cancellation'>('confirmation');
 
   // Preview Image Lightbox Modal
   const [previewImageModal, setPreviewImageModal] = useState<{
@@ -1277,6 +1286,9 @@ export const AdminPanel: React.FC = () => {
         emailSettings: {
           ...settings.emailSettings,
           ...emailSettingsForm,
+          smtpUser: emailSettingsForm.smtpUser?.trim() || settings.emailSettings?.smtpUser?.trim() || 'NaarirShopno@Gmail.com',
+          smtpPass: emailSettingsForm.smtpPass?.trim() || settings.emailSettings?.smtpPass?.trim() || 'ahum uvbi less prtl',
+          senderEmail: emailSettingsForm.senderEmail?.trim() || settings.emailSettings?.senderEmail?.trim() || 'NaarirShopno@Gmail.com',
         },
       };
 
@@ -1286,11 +1298,11 @@ export const AdminPanel: React.FC = () => {
       }, liveSettings);
 
       if (res.realDispatched) {
-        setTestEmailSuccess(`✅ অভিনন্দন! টেস্ট ইমেইলটি সফলভাবে ইনবক্সে (${testEmailAddress}) পৌঁছে গেছে! (Message ID: ${res.messageId || 'Delivered'})`);
-      } else if (res.success) {
-        setTestEmailError(`⚠️ ইমেইলটি ফায়ারবেসের /mail কালেকশনে রেকর্ড হয়েছে, কিন্তু সরাসরি ইনবক্সে পৌঁছায়নি কারণ Gmail App Password দেওয়া হয়নি। নিচে ১৬ অক্ষরের Google App Password দিয়ে 'ইমেইল সেটিংস সংরক্ষণ' করুন।`);
+        setTestEmailSuccess(`✅ অভিনন্দন! টেস্ট ইমেইলটি সফলভাবে আপনার ইনবক্সে (${testEmailAddress}) পৌঁছে গেছে! (Message ID: ${res.messageId || 'Delivered'})`);
+      } else if (res.success || res.mailId) {
+        setTestEmailError(`⚠️ ইমেইলটি ফায়ারবেস ক্লাউড ডাটাবেজে ড্রাফট (#${res.mailId}) হিসেবে সেভ হয়েছে, কিন্তু সরাসরি SMTP সেন্ডার রেসপন্স দেয়নি (${res.error || 'সংযোগ অপেক্ষমান'})। পাশের 'Gmail' বাটনে ক্লিক করে সরাসরি গ্রাহককে ইমেইল পাঠাতে পারবেন।`);
       } else {
-        setTestEmailError(`❌ ইমেইল পাঠাতে ব্যর্থ: ${res.error || 'SMTP সংযোগ ত্রুটি'}`);
+        setTestEmailError(`❌ ইমেইল পাঠাতে সমস্যা: ${res.error || 'সার্ভার সংযোগ ত্রুটি'}`);
       }
     } catch (err: any) {
       setTestEmailError(`টেস্ট ইমেইল সমস্যা: ${err?.message || 'অপ্রত্যাশিত ত্রুটি'}`);
@@ -1363,24 +1375,46 @@ export const AdminPanel: React.FC = () => {
     };
   };
 
-  const handleOpenEmailPreviewForOrder = (ord: Order) => {
+  const handleOpenEmailPreviewForOrder = (ord: Order, type?: 'confirmation' | 'cancellation') => {
     setTemplatePreviewOrder(ord);
-    const html = generateOrderEmailHtml(ord, {
-      ...settings,
-      emailSettings: emailSettingsForm,
-    });
-    setPreviewEmailTitle(`অর্ডার #${ord.id} - ${ord.customerName} এর ইমেইল প্রিভিউ`);
+    const resolvedType = type || (ord.status === 'cancelled' ? 'cancellation' : 'confirmation');
+    setPreviewEmailType(resolvedType);
+    const html = resolvedType === 'cancellation'
+      ? generateCancellationEmailHtml(ord, ord.cancelReason, {
+          ...settings,
+          emailSettings: emailSettingsForm,
+        })
+      : generateOrderEmailHtml(ord, {
+          ...settings,
+          emailSettings: emailSettingsForm,
+        });
+    setPreviewEmailTitle(
+      resolvedType === 'cancellation'
+        ? `বাতিল অর্ডার #${ord.id} - ${ord.customerName} এর ক্যান্সেলেশন নোটিশ`
+        : `অর্ডার #${ord.id} - ${ord.customerName} এর কনফার্মেশন ইমেইল`
+    );
     setPreviewEmailHtml(html);
   };
 
-  const handleOpenTemplatePreviewModal = (specificOrder?: Order) => {
+  const handleOpenTemplatePreviewModal = (specificOrder?: Order, type?: 'confirmation' | 'cancellation') => {
     const targetOrder = specificOrder || templatePreviewOrder || getSampleOrderForPreview();
     setTemplatePreviewOrder(targetOrder);
-    const html = generateOrderEmailHtml(targetOrder, {
-      ...settings,
-      emailSettings: emailSettingsForm,
-    });
-    setPreviewEmailTitle(`অটোমেটেড কনফার্মেশন ইমেইল টেমপ্লেট প্রিভিউ (#${targetOrder.id})`);
+    const resolvedType = type || previewEmailType;
+    setPreviewEmailType(resolvedType);
+    const html = resolvedType === 'cancellation'
+      ? generateCancellationEmailHtml(targetOrder, targetOrder.cancelReason || 'গ্রাহকের অনুরোধে অর্ডার বাতিল', {
+          ...settings,
+          emailSettings: emailSettingsForm,
+        })
+      : generateOrderEmailHtml(targetOrder, {
+          ...settings,
+          emailSettings: emailSettingsForm,
+        });
+    setPreviewEmailTitle(
+      resolvedType === 'cancellation'
+        ? `অটোমেটেড ক্যান্সেলেশন ইমেইল টেমপ্লেট প্রিভিউ (#${targetOrder.id})`
+        : `অটোমেটেড কনফার্মেশন ইমেইল টেমপ্লেট প্রিভিউ (#${targetOrder.id})`
+    );
     setPreviewEmailHtml(html);
   };
 
@@ -2200,14 +2234,22 @@ export const AdminPanel: React.FC = () => {
                                 </td>
                                 <td className="p-2.5 font-bold font-['Outfit'] whitespace-nowrap">৳{ord.total.toLocaleString()}</td>
                                 <td className="p-2.5">
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
-                                    ord.status === 'delivered' ? 'bg-emerald-100 text-emerald-800' :
-                                    ord.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                                    ord.status === 'confirmed' ? 'bg-purple-100 text-purple-800' :
-                                    'bg-amber-100 text-amber-800'
-                                  }`}>
-                                    {ord.status}
-                                  </span>
+                                  <div className="space-y-1">
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap inline-block ${
+                                      ord.status === 'delivered' ? 'bg-emerald-100 text-emerald-800' :
+                                      ord.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                                      ord.status === 'confirmed' ? 'bg-purple-100 text-purple-800' :
+                                      ord.status === 'cancelled' ? 'bg-rose-100 text-rose-800 border border-rose-300' :
+                                      'bg-amber-100 text-amber-800'
+                                    }`}>
+                                      {ord.status === 'cancelled' ? 'বাতিল (Cancelled)' : ord.status}
+                                    </span>
+                                    {ord.status === 'cancelled' && ord.cancelReason && (
+                                      <p className="text-[10px] text-rose-700 font-semibold max-w-[150px] truncate" title={ord.cancelReason}>
+                                        কারণ: {ord.cancelReason}
+                                      </p>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             );
@@ -2624,30 +2666,161 @@ export const AdminPanel: React.FC = () => {
               )}
 
               {/* TAB 3: ORDERS MANAGEMENT */}
-              {activeTab === 'orders' && (
+              {activeTab === 'orders' && (() => {
+                const pendingCount = orders.filter((o) => o.status === 'pending').length;
+                const confirmedCount = orders.filter((o) => o.status === 'confirmed').length;
+                const shippedCount = orders.filter((o) => o.status === 'shipped').length;
+                const deliveredCount = orders.filter((o) => o.status === 'delivered').length;
+                const cancelledCount = orders.filter((o) => o.status === 'cancelled').length;
+
+                const filteredOrders = orders.filter((ord) => {
+                  if (orderStatusFilter !== 'all' && ord.status !== orderStatusFilter) return false;
+                  if (orderSearch.trim()) {
+                    const q = orderSearch.toLowerCase().trim();
+                    const matchId = ord.id.toLowerCase().includes(q);
+                    const matchName = ord.customerName.toLowerCase().includes(q);
+                    const matchPhone = ord.phone.includes(q);
+                    const matchReason = ord.cancelReason?.toLowerCase().includes(q);
+                    return matchId || matchName || matchPhone || Boolean(matchReason);
+                  }
+                  return true;
+                });
+
+                return (
                 <div className="space-y-4">
-                  <div>
-                    <h4 className="text-lg font-bold text-slate-900">অর্ডার ম্যানেজমেন্ট ও কুরিয়ার ট্র্যাকিং</h4>
-                    <p className="text-xs text-slate-500">অর্ডার স্ট্যাটাস আপডেট করুন এবং কুরিয়ার ট্র্যাকিং নম্বর বসান</p>
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                    <div>
+                      <h4 className="text-lg font-bold text-slate-900">অর্ডার ম্যানেজমেন্ট ও কুরিয়ার ট্র্যাকিং</h4>
+                      <p className="text-xs text-slate-500">অর্ডার স্ট্যাটাস আপডেট করুন, বাতিলের কারণ দেখুন এবং কুরিয়ার ট্র্যাকিং নম্বর বসান</p>
+                    </div>
+                  </div>
+
+                  {/* Filter & Search Bar */}
+                  <div className="bg-white p-3.5 rounded-2xl border border-rose-100 shadow-2xs space-y-3">
+                    <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center justify-between">
+                      {/* Search Input */}
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={orderSearch}
+                          onChange={(e) => setOrderSearch(e.target.value)}
+                          placeholder="অর্ডার আইডি (#NS...), কাস্টমার নাম, ফোন বা বাতিলের কারণ খুঁজুন..."
+                          className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        />
+                        {orderSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setOrderSearch('')}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Quick Status Pills */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 text-xs shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setOrderStatusFilter('all')}
+                          className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 cursor-pointer ${
+                            orderStatusFilter === 'all'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          <span>সব</span>
+                          <span className="text-[10px] opacity-80">({orders.length})</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setOrderStatusFilter('pending')}
+                          className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 cursor-pointer ${
+                            orderStatusFilter === 'pending'
+                              ? 'bg-amber-500 text-white shadow-xs'
+                              : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+                          }`}
+                        >
+                          <span>পেন্ডিং</span>
+                          <span className="text-[10px] opacity-80">({pendingCount})</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setOrderStatusFilter('confirmed')}
+                          className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 cursor-pointer ${
+                            orderStatusFilter === 'confirmed'
+                              ? 'bg-purple-600 text-white shadow-xs'
+                              : 'bg-purple-50 text-purple-800 hover:bg-purple-100'
+                          }`}
+                        >
+                          <span>কনফার্মড</span>
+                          <span className="text-[10px] opacity-80">({confirmedCount})</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setOrderStatusFilter('shipped')}
+                          className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 cursor-pointer ${
+                            orderStatusFilter === 'shipped'
+                              ? 'bg-blue-600 text-white shadow-xs'
+                              : 'bg-blue-50 text-blue-800 hover:bg-blue-100'
+                          }`}
+                        >
+                          <span>কুরিয়ারে</span>
+                          <span className="text-[10px] opacity-80">({shippedCount})</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setOrderStatusFilter('delivered')}
+                          className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 cursor-pointer ${
+                            orderStatusFilter === 'delivered'
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                          }`}
+                        >
+                          <span>ডেলিভার্ড</span>
+                          <span className="text-[10px] opacity-80">({deliveredCount})</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setOrderStatusFilter('cancelled')}
+                          className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 cursor-pointer ${
+                            orderStatusFilter === 'cancelled'
+                              ? 'bg-rose-600 text-white shadow-xs'
+                              : 'bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200'
+                          }`}
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>বাতিলকৃত ({cancelledCount})</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
-                    {orders.length === 0 ? (
+                    {filteredOrders.length === 0 ? (
                       <div className="bg-white rounded-2xl p-8 sm:p-12 text-center border border-rose-100 shadow-sm space-y-3">
                         <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
                           <Package className="w-7 h-7" />
                         </div>
                         <div className="space-y-1">
                           <h5 className="font-bold text-slate-900 text-base font-['Hind_Siliguri']">
-                            বর্তমানে কোনো সক্রিয় অর্ডার নেই
+                            {orderSearch || orderStatusFilter !== 'all' ? 'কোনো অর্ডার মিল পাওয়া যায়নি' : 'বর্তমানে কোনো সক্রিয় অর্ডার নেই'}
                           </h5>
                           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                            কাস্টমাররা ওয়েবসাইট থেকে কেনাকাটা সম্পন্ন করলে সরাসরি এখানে এবং ক্লাউড ডেটাবেজে লাইভ অর্ডারটি প্রদর্শিত হবে।
+                            {orderSearch || orderStatusFilter !== 'all'
+                              ? 'অনুগ্রহ করে সার্চ ফিল্টার পরিবর্তন করুন বা ফিল্টার ক্লিয়ার করুন।'
+                              : 'কাস্টমাররা ওয়েবসাইট থেকে কেনাকাটা সম্পন্ন করলে সরাসরি এখানে এবং ক্লাউড ডেটাবেজে লাইভ অর্ডারটি প্রদর্শিত হবে।'}
                           </p>
                         </div>
                       </div>
                     ) : (
-                      orders.map((ord) => {
+                      filteredOrders.map((ord) => {
                         const fulfillmentSum = getOrderFulfillmentSummary(ord);
 
                         return (
@@ -2693,8 +2866,25 @@ export const AdminPanel: React.FC = () => {
                               <span className="text-xs font-bold text-slate-700">স্ট্যাটাস:</span>
                               <select
                                 value={ord.status}
-                                onChange={(e) => updateOrderStatus(ord.id, e.target.value as OrderStatus)}
-                                className="text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-300 bg-slate-50 focus:ring-2 focus:ring-rose-500"
+                                onChange={(e) => {
+                                  const newStatus = e.target.value as OrderStatus;
+                                  if (newStatus === 'cancelled') {
+                                    const userReason = window.prompt(
+                                      'অর্ডার বাতিলের কারণ লিখুন (গ্রাহকের কাছে ইমেইল পাঠানো হবে ও ডাটাবেজে সংরক্ষিত হবে):',
+                                      ord.cancelReason || 'অ্যাডমিন প্যানেল থেকে অর্ডার বাতিল করা হয়েছে'
+                                    );
+                                    if (userReason !== null) {
+                                      updateOrderStatus(ord.id, 'cancelled', undefined, userReason || 'অ্যাডমিন প্যানেল থেকে অর্ডার বাতিল করা হয়েছে');
+                                    }
+                                  } else {
+                                    updateOrderStatus(ord.id, newStatus);
+                                  }
+                                }}
+                                className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border focus:ring-2 focus:ring-rose-500 ${
+                                  ord.status === 'cancelled'
+                                    ? 'bg-rose-50 text-rose-800 border-rose-300'
+                                    : 'bg-slate-50 text-slate-800 border-slate-300'
+                                }`}
                               >
                                 <option value="pending">পেন্ডিং (Pending)</option>
                                 <option value="confirmed">কনফার্মড (Confirmed)</option>
@@ -2705,13 +2895,71 @@ export const AdminPanel: React.FC = () => {
                               </select>
                               <button
                                 onClick={() => setOrderToDelete(ord)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 hover:border-red-200 transition"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 hover:border-red-200 transition cursor-pointer"
                                 title="অর্ডারটি মুছুন"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           </div>
+
+                          {/* Prominent Cancellation Reason Banner */}
+                          {ord.status === 'cancelled' && (
+                            <div className="bg-rose-50/90 border-2 border-rose-300 rounded-2xl p-4 text-xs text-rose-950 space-y-2.5 shadow-2xs">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-200/80 pb-2">
+                                <div className="flex items-center gap-2 font-bold text-rose-800 text-sm">
+                                  <XCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                                  <span>❌ অর্ডারটি বাতিল করা হয়েছে (Cancelled Order)</span>
+                                </div>
+                                {ord.cancelledAt && (
+                                  <span className="text-[11px] font-mono text-rose-700 bg-white px-2.5 py-1 rounded-lg border border-rose-200 shrink-0 font-semibold">
+                                    বাতিলের সময়: {ord.cancelledAt}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="bg-white rounded-xl p-3 border border-rose-200 shadow-2xs space-y-2">
+                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                  <span className="font-bold text-rose-900 text-xs flex items-center gap-1.5">
+                                    <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                                    <span>বাতিলের কারণ (Cancellation Reason):</span>
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    {ord.customerEmail && (
+                                      <a
+                                        href={createGmailCancellationDraftUrl(ord, ord.customerEmail, ord.cancelReason)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-[11px] transition"
+                                        title="গ্রাহককে জিমেইলের মাধ্যমে ক্যান্সেলেশন নোটিশ পাঠান"
+                                      >
+                                        <ExternalLink className="w-3 h-3 text-rose-500" />
+                                        <span>Gmail এ নোটিশ পাঠান</span>
+                                      </a>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setTemplatePreviewOrder(ord);
+                                        setPreviewEmailType('cancellation');
+                                        const html = generateCancellationEmailHtml(ord, ord.cancelReason, settings);
+                                        setPreviewEmailTitle(`বাতিল নোটিশ প্রিভিউ (#${ord.id})`);
+                                        setPreviewEmailHtml(html);
+                                      }}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] transition cursor-pointer"
+                                      title="ক্যান্সেলেশন ইমেইল প্রিভিউ দেখুন"
+                                    >
+                                      <Eye className="w-3 h-3 text-slate-600" />
+                                      <span>ইমেইল প্রিভিউ</span>
+                                    </button>
+                                  </div>
+                                </div>
+                                <p className="text-slate-800 font-bold text-xs bg-rose-50/70 p-2.5 rounded-lg border border-rose-100 leading-relaxed whitespace-pre-wrap">
+                                  {ord.cancelReason || 'গ্রাহকের অনুরোধে অর্ডার বাতিল করা হয়েছে'}
+                                </p>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Items Section with Pictures & Colors */}
                           <div className="space-y-2 pt-1">
@@ -2962,7 +3210,8 @@ export const AdminPanel: React.FC = () => {
                 )}
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               {/* TAB 4: DELIVERY CHARGES UPDATE SYSTEM */}
               {activeTab === 'delivery' && (
@@ -5204,18 +5453,16 @@ export const AdminPanel: React.FC = () => {
                         <span>{testEmailLoading ? 'পাঠানো হচ্ছে...' : 'ইনবক্সে পাঠান'}</span>
                       </button>
 
-                      {orders[0] && (
-                        <a
-                          href={createGmailDraftUrl(orders[0], testEmailAddress)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-                          title="ব্রাউজারে সরাসরি Gmail Compose উইন্ডো খুলুন"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5 text-rose-400" />
-                          <span>Gmail</span>
-                        </a>
-                      )}
+                      <a
+                        href={createGmailDraftUrl(orders[0] || getSampleOrderForPreview(), testEmailAddress)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-98"
+                        title="ব্রাউজারে সরাসরি Gmail Compose উইন্ডো খুলুন"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Gmail</span>
+                      </a>
                     </div>
 
                     {testEmailSuccess && (
@@ -5226,9 +5473,25 @@ export const AdminPanel: React.FC = () => {
                     )}
 
                     {testEmailError && (
-                      <div className="p-3.5 bg-rose-50 border border-rose-300 rounded-2xl text-xs text-rose-800 flex items-start gap-2.5 animate-fadeIn font-semibold leading-relaxed">
-                        <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                        <div>{testEmailError}</div>
+                      <div className="p-3.5 bg-rose-50 border border-rose-300 rounded-2xl text-xs text-rose-800 space-y-2.5 animate-fadeIn font-semibold leading-relaxed">
+                        <div className="flex items-start gap-2.5">
+                          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                          <div>{testEmailError}</div>
+                        </div>
+                        <div className="pl-7 flex flex-wrap items-center gap-2">
+                          <a
+                            href={createGmailDraftUrl(orders[0] || getSampleOrderForPreview(), testEmailAddress)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition active:scale-98"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span>১-ক্লিকে Gmail ড্রাফট ওপেন করুন</span>
+                          </a>
+                          <span className="text-[11px] text-slate-500 font-normal">
+                            (গ্রাহককে সরাসরি ইনবক্সে পাঠাতে এই বাটনটি দিয়ে সেন্ড করতে পারেন)
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -7778,11 +8041,11 @@ export const AdminPanel: React.FC = () => {
                       const selectedId = e.target.value;
                       if (selectedId === 'sample') {
                         const sample = getSampleOrderForPreview();
-                        handleOpenEmailPreviewForOrder(sample);
+                        handleOpenEmailPreviewForOrder(sample, previewEmailType);
                       } else {
                         const found = orders.find(o => o.id === selectedId);
                         if (found) {
-                          handleOpenEmailPreviewForOrder(found);
+                          handleOpenEmailPreviewForOrder(found, previewEmailType);
                         }
                       }
                     }}
@@ -7795,6 +8058,40 @@ export const AdminPanel: React.FC = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Template Type Switcher */}
+                <div className="flex items-center gap-1.5 bg-slate-200/80 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (templatePreviewOrder) {
+                        handleOpenEmailPreviewForOrder(templatePreviewOrder, 'confirmation');
+                      }
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                      previewEmailType === 'confirmation'
+                        ? 'bg-purple-600 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    অর্ডার কনফার্মেশন
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (templatePreviewOrder) {
+                        handleOpenEmailPreviewForOrder(templatePreviewOrder, 'cancellation');
+                      }
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                      previewEmailType === 'cancellation'
+                        ? 'bg-rose-600 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    অর্ডার বাতিল (Cancellation)
+                  </button>
                 </div>
 
                 {/* Email Client Simulated Metadata */}
@@ -7907,7 +8204,9 @@ export const AdminPanel: React.FC = () => {
                   {/* Open in Gmail Draft Button */}
                   {templatePreviewOrder && (
                     <a
-                      href={createGmailDraftUrl(templatePreviewOrder, testEmailAddress)}
+                      href={previewEmailType === 'cancellation'
+                        ? createGmailCancellationDraftUrl(templatePreviewOrder, testEmailAddress, templatePreviewOrder.cancelReason)
+                        : createGmailDraftUrl(templatePreviewOrder, testEmailAddress)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"

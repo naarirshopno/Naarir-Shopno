@@ -4,6 +4,7 @@ import { useShop } from '../context/ShopContext';
 import { DEFAULT_CATEGORIES } from '../data/initialData';
 import { CustomCategoryItem, Product } from '../types';
 import { ProductCard } from '../components/ProductCard';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   ChevronRight, 
   Home, 
@@ -24,6 +25,7 @@ import {
 export const CategoryPage: React.FC = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const navigate = useNavigate();
+  const { isEnglish, translateCategory, formatNumber } = useLanguage();
   const { 
     products, 
     settings, 
@@ -196,7 +198,7 @@ export const CategoryPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5">
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 hidden sm:inline">
-              ক্যাটাগরি:
+              {isEnglish ? 'Categories:' : 'ক্যাটাগরি:'}
             </span>
 
             <button
@@ -210,7 +212,7 @@ export const CategoryPage: React.FC = () => {
                   : 'bg-rose-50/80 text-slate-700 hover:bg-rose-100 hover:text-rose-800 border border-rose-100'
               }`}
             >
-              সবগুলো কালেকশন
+              {isEnglish ? 'All Collections' : 'সবগুলো কালেকশন'}
             </button>
 
             {categoryList.map((cat) => {
@@ -240,7 +242,7 @@ export const CategoryPage: React.FC = () => {
                       }}
                     />
                   )}
-                  <span className="whitespace-nowrap">{cat.title}</span>
+                  <span className="whitespace-nowrap">{translateCategory(cat.title)}</span>
                 </button>
               );
             })}
@@ -253,15 +255,15 @@ export const CategoryPage: React.FC = () => {
         <div className="max-w-7xl mx-auto flex items-center gap-2 text-xs text-slate-600">
           <Link to="/" className="flex items-center gap-1 hover:text-rose-600 transition font-medium">
             <Home className="w-3.5 h-3.5" />
-            <span>হোম</span>
+            <span>{isEnglish ? 'Home' : 'হোম'}</span>
           </Link>
           <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <Link to="/" className="hover:text-rose-600 transition font-medium">
-            ক্যাটাগরি সমূহ
+            {isEnglish ? 'Categories' : 'ক্যাটাগরি সমূহ'}
           </Link>
           <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <span className="font-bold text-rose-700 truncate max-w-[200px] sm:max-w-none">
-            {currentCategory.title}
+            {translateCategory(currentCategory.title)}
           </span>
         </div>
       </div>
@@ -285,24 +287,24 @@ export const CategoryPage: React.FC = () => {
           <div className="bg-black/30 backdrop-blur-xs p-5 sm:p-6 rounded-2xl border border-white/20 max-w-xl space-y-3 shadow-none">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600/80 border border-rose-400/60 text-white text-xs font-semibold shadow-none">
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>এক্সক্লুসিভ কালেকশন</span>
+              <span>{isEnglish ? 'Exclusive Collection' : 'এক্সক্লুসিভ কালেকশন'}</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-extrabold font-['Hind_Siliguri'] text-white tracking-tight drop-shadow-sm">
-              {currentCategory.title}
+              {translateCategory(currentCategory.title)}
             </h1>
             {currentCategory.subtitle && (
               <p className="text-xs sm:text-sm text-pink-50 font-medium leading-relaxed drop-shadow-xs">
-                {currentCategory.subtitle}
+                {isEnglish ? 'Exclusive collection from Naarir Shopno' : currentCategory.subtitle}
               </p>
             )}
             <div className="flex items-center gap-2.5 sm:gap-3 pt-1 text-xs text-white flex-wrap">
               <span className="flex items-center gap-1.5 font-bold bg-black/40 px-3 py-1 rounded-full border border-white/20 shadow-none">
                 <ShoppingBag className="w-3.5 h-3.5 text-rose-300" />
-                <span>{filteredProducts.length} টি প্রোডাক্ট</span>
+                <span>{formatNumber(filteredProducts.length)} {isEnglish ? 'Products' : 'টি প্রোডাক্ট'}</span>
               </span>
               <span className="inline-flex items-center gap-1 font-medium bg-black/40 px-3 py-1 rounded-full border border-white/20 shadow-none">
                 <Truck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>ক্যাশ অন ডেলিভারি</span>
+                <span>{isEnglish ? 'Cash on Delivery' : 'ক্যাশ অন ডেলিভারি'}</span>
               </span>
             </div>
           </div>
@@ -315,7 +317,7 @@ export const CategoryPage: React.FC = () => {
           <div className="relative w-full md:w-80">
             <input
               type="text"
-              placeholder={`"${currentCategory.title}" এ খুঁজুন...`}
+              placeholder={isEnglish ? `Search in "${translateCategory(currentCategory.title)}"...` : `"${currentCategory.title}" এ খুঁজুন...`}
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
               className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-rose-50/50 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white text-slate-800 transition"
@@ -342,7 +344,7 @@ export const CategoryPage: React.FC = () => {
               }`}
             >
               <SlidersHorizontal className="w-3.5 h-3.5 text-rose-600" />
-              <span>ফিল্টার মেনু</span>
+              <span>{isEnglish ? 'Filter Menu' : 'ফিল্টার মেনু'}</span>
               {(priceRange[0] > 0 || priceRange[1] < 10000 || selectedMaterials.length > 0) && (
                 <span className="w-2 h-2 rounded-full bg-rose-600"></span>
               )}
@@ -356,11 +358,11 @@ export const CategoryPage: React.FC = () => {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-1"
               >
-                <option value="default">জনপ্রিয় কালেকশন</option>
-                <option value="price_asc">মূল্য: কম থেকে বেশি</option>
-                <option value="price_desc">মূল্য: বেশি থেকে কম</option>
-                <option value="rating">সর্বোচ্চ রেটিং</option>
-                <option value="newest">নতুন কালেকশন</option>
+                <option value="default">{isEnglish ? 'Popular Collection' : 'জনপ্রিয় কালেকশন'}</option>
+                <option value="price_asc">{isEnglish ? 'Price: Low to High' : 'মূল্য: কম থেকে বেশি'}</option>
+                <option value="price_desc">{isEnglish ? 'Price: High to Low' : 'মূল্য: বেশি থেকে কম'}</option>
+                <option value="rating">{isEnglish ? 'Highest Rated' : 'সর্বোচ্চ রেটিং'}</option>
+                <option value="newest">{isEnglish ? 'Newest Arrivals' : 'নতুন কালেকশন'}</option>
               </select>
             </div>
 
@@ -373,7 +375,7 @@ export const CategoryPage: React.FC = () => {
                   resetFilters();
                 }}
                 className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
-                title="সব ফিল্টার মুছুন"
+                title={isEnglish ? 'Reset all filters' : 'সব ফিল্টার মুছুন'}
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
@@ -482,7 +484,7 @@ export const CategoryPage: React.FC = () => {
             <div className="flex items-center justify-between border-b border-rose-100 pb-3">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 font-['Hind_Siliguri']">
                 <SlidersHorizontal className="w-4 h-4 text-rose-600" />
-                <span>ফিল্টার ও বাজেট মেনু</span>
+                <span>{isEnglish ? 'Filter & Budget' : 'ফিল্টার ও বাজেট মেনু'}</span>
               </h3>
               {(priceRange[0] > 0 || priceRange[1] < 10000 || selectedMaterials.length > 0) && (
                 <button
@@ -492,14 +494,14 @@ export const CategoryPage: React.FC = () => {
                   }}
                   className="text-xs text-rose-600 hover:underline font-semibold cursor-pointer"
                 >
-                  ক্লিয়ার
+                  {isEnglish ? 'Clear' : 'ক্লিয়ার'}
                 </button>
               )}
             </div>
 
             {/* Price Range Filter */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-700">মূল্য পরিসীমা (Price Range):</h4>
+              <h4 className="text-xs font-bold text-slate-700">{isEnglish ? 'Price Range:' : 'মূল্য পরিসীমা (Price Range):'}</h4>
               <div className="flex items-center justify-between text-xs font-semibold text-rose-700 font-mono">
                 <span>৳{priceRange[0]}</span>
                 <span>৳{priceRange[1]}</span>
@@ -515,10 +517,10 @@ export const CategoryPage: React.FC = () => {
               />
               <div className="grid grid-cols-2 gap-1.5 pt-1">
                 {[
-                  { label: 'সব মূল্য', range: [0, 10000] as [number, number] },
-                  { label: '৳১৫০০ নিচে', range: [0, 1500] as [number, number] },
-                  { label: '৳৩০০০ নিচে', range: [0, 3000] as [number, number] },
-                  { label: '৳৫০০০+', range: [5000, 10000] as [number, number] },
+                  { label: isEnglish ? 'All Prices' : 'সব মূল্য', range: [0, 10000] as [number, number] },
+                  { label: isEnglish ? 'Under ৳1,500' : '৳১৫০০ নিচে', range: [0, 1500] as [number, number] },
+                  { label: isEnglish ? 'Under ৳3,000' : '৳৩০০০ নিচে', range: [0, 3000] as [number, number] },
+                  { label: isEnglish ? '৳5,000+' : '৳৫০০০+', range: [5000, 10000] as [number, number] },
                 ].map((preset, idx) => (
                   <button
                     key={idx}
@@ -534,7 +536,7 @@ export const CategoryPage: React.FC = () => {
             {/* Material / Brand Fabric Filter */}
             {availableMaterials.length > 0 && (
               <div className="space-y-3 pt-3 border-t border-rose-100">
-                <h4 className="text-xs font-bold text-slate-700">ম্যাটেরিয়াল ও ফেব্রিক (Fabric):</h4>
+                <h4 className="text-xs font-bold text-slate-700">{isEnglish ? 'Material & Fabric:' : 'ম্যাটেরিয়াল ও ফেব্রিক (Fabric):'}</h4>
                 <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto pr-1">
                   {availableMaterials.map((mat) => {
                     const isSelected = selectedMaterials.includes(mat);
@@ -562,11 +564,11 @@ export const CategoryPage: React.FC = () => {
             {/* Active Filters Summary */}
             {(priceRange[0] > 0 || priceRange[1] < 10000 || selectedMaterials.length > 0) && (
               <div className="pt-3 border-t border-rose-100 space-y-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">সক্রিয় ফিল্টার:</span>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{isEnglish ? 'Active Filters:' : 'সক্রিয় ফিল্টার:'}</span>
                 <div className="flex flex-wrap gap-1">
                   {priceRange[1] < 10000 && (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-[11px] font-semibold">
-                      সর্বোচ্চ ৳{priceRange[1]}
+                      {isEnglish ? `Max ৳${priceRange[1]}` : `সর্বোচ্চ ৳${priceRange[1]}`}
                       <button onClick={() => setPriceRange([0, 10000])} className="hover:text-rose-900 cursor-pointer">×</button>
                     </span>
                   )}
@@ -585,8 +587,8 @@ export const CategoryPage: React.FC = () => {
           <div className="lg:col-span-3 space-y-4">
             {filteredProducts.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-5">
-                {filteredProducts.map((product: Product) => (
-                  <ProductCard key={product.id} product={product} />
+                {filteredProducts.map((product: Product, index: number) => (
+                  <ProductCard key={product.id} product={product} index={index} />
                 ))}
               </div>
             ) : (
@@ -597,12 +599,16 @@ export const CategoryPage: React.FC = () => {
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-lg font-bold text-slate-800 font-['Hind_Siliguri']">
-                    এই মুহূর্তে কোনো প্রোডাক্ট খুঁজে পাওয়া যায়নি
+                    {isEnglish ? 'No products found matching criteria' : 'এই মুহূর্তে কোনো প্রোডাক্ট খুঁজে পাওয়া যায়নি'}
                   </h3>
                   <p className="text-xs text-slate-500 leading-relaxed">
                     {localSearch || selectedMaterials.length > 0 || priceRange[1] < 10000
-                      ? `আপনার নির্বাচিত ফিল্টার বা খোঁজার সাথে মিল রয়েছে এমন কোনো পোশাক পাওয়া যায়নি। ফিল্টার রিসেট করে আবার চেষ্টা করুন।`
-                      : 'এই ক্যাটাগরিতে বর্তমানে নতুন স্টক আপডেট করা হচ্ছে অথবা ফিল্টার অনুযায়ী কোনো পণ্য নেই।'}
+                      ? (isEnglish 
+                          ? 'No dresses matched your current search or filters. Try resetting filters to view all dresses.' 
+                          : 'আপনার নির্বাচিত ফিল্টার বা খোঁজার সাথে মিল রয়েছে এমন কোনো পোশাক পাওয়া যায়নি। ফিল্টার রিসেট করে আবার চেষ্টা করুন।')
+                      : (isEnglish 
+                          ? 'Currently updating new stock in this category or no items match filters.' 
+                          : 'এই ক্যাটাগরিতে বর্তমানে নতুন স্টক আপডেট করা হচ্ছে অথবা ফিল্টার অনুযায়ী কোনো পণ্য নেই।')}
                   </p>
                 </div>
 
@@ -615,7 +621,7 @@ export const CategoryPage: React.FC = () => {
                     }}
                     className="px-4 py-2 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition cursor-pointer"
                   >
-                    ফিল্টার রিসেট করুন
+                    {isEnglish ? 'Reset Filters' : 'ফিল্টার রিসেট করুন'}
                   </button>
                   <button
                     onClick={() => {
@@ -624,7 +630,7 @@ export const CategoryPage: React.FC = () => {
                     }}
                     className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
                   >
-                    সবগুলো কালেকশন দেখুন
+                    {isEnglish ? 'View All Collections' : 'সবগুলো কালেকশন দেখুন'}
                   </button>
                 </div>
               </div>
@@ -643,10 +649,10 @@ export const CategoryPage: React.FC = () => {
             </div>
             <div>
               <h4 className="text-sm font-bold text-slate-800 font-['Hind_Siliguri']">
-                ১০০% অরিজিনাল কোয়ালিটি ও বিশ্বস্ত শপিং
+                {isEnglish ? '100% Original Quality & Trusted Shopping' : '১০০% অরিজিনাল কোয়ালিটি ও বিশ্বস্ত শপিং'}
               </h4>
               <p className="text-xs text-slate-600">
-                পণ্য হাতে পেয়ে দেখে ডেলিভারিম্যানকে মূল্য পরিশোধ করার পূর্ণ নিশ্চয়তা
+                {isEnglish ? 'Check your parcel upon delivery before paying the rider' : 'পণ্য হাতে পেয়ে দেখে ডেলিভারিম্যানকে মূল্য পরিশোধ করার পূর্ণ নিশ্চয়তা'}
               </p>
             </div>
           </div>
@@ -657,14 +663,14 @@ export const CategoryPage: React.FC = () => {
               className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
             >
               <Phone className="w-3.5 h-3.5 text-emerald-400" />
-              <span>হটলাইন: {settings.hotline1 || '09617-541717'}</span>
+              <span>{isEnglish ? `Hotline: ${settings.hotline1 || '09617-541717'}` : `হটলাইন: ${settings.hotline1 || '09617-541717'}`}</span>
             </a>
             <Link
               to="/checkout"
               className="flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>অর্ডার সম্পন্ন করুন</span>
+              <span>{isEnglish ? 'Complete Order' : 'অর্ডার সম্পন্ন করুন'}</span>
             </Link>
           </div>
         </div>

@@ -675,7 +675,19 @@ export async function testMohasagorConnection(settings?: Partial<MohasagorApiSet
         secretKey: settings?.secretKey || '2ff380917a11d3a7c97bcf6dddfb8adf38194c7d6b726ab12c4d0d5fb136fef8',
       }),
     });
-    return await res.json();
+    const text = await res.text().catch(() => '');
+    if (text) {
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { success: false, status: res.status, message: text.substring(0, 100) };
+      }
+    }
+    return {
+      success: false,
+      status: res.status,
+      message: res.ok ? 'সার্ভার থেকে সফল কিন্তু খালি উত্তর এসেছে।' : `সার্ভার সংযোগ সমস্যা (HTTP ${res.status})`,
+    };
   } catch (err: any) {
     return {
       success: false,
@@ -693,7 +705,23 @@ export async function fetchMohasagorProducts(
     const apiKey = encodeURIComponent(settings?.apiKey || 'A8niclztH9JtzS4t');
     const secretKey = encodeURIComponent(settings?.secretKey || '2ff380917a11d3a7c97bcf6dddfb8adf38194c7d6b726ab12c4d0d5fb136fef8');
     const res = await fetch(`/api/mohasagor/products?page=${page}&apiKey=${apiKey}&secretKey=${secretKey}`);
-    return await res.json();
+    const text = await res.text().catch(() => '');
+    if (text) {
+      try {
+        return JSON.parse(text);
+      } catch {
+        // Fallback
+      }
+    }
+    return {
+      success: false,
+      source: 'preview_fallback',
+      page,
+      total: 0,
+      last_page: 1,
+      products: [],
+      error: `সার্ভার রেসপন্স পাওয়া যায়নি (HTTP ${res.status})`,
+    };
   } catch (err: any) {
     return {
       success: false,

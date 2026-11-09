@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   Phone, 
   MapPin, 
@@ -22,6 +23,8 @@ export const Footer: React.FC = () => {
     setIsOrderTrackingOpen, 
     setIsCustomerChatOpen
   } = useShop();
+
+  const { t, isEnglish } = useLanguage();
 
   return (
     <footer className="relative bg-neutral-950 text-slate-200 pt-14 pb-48 sm:pb-14 border-t border-rose-950/40 overflow-hidden">
@@ -45,8 +48,12 @@ export const Footer: React.FC = () => {
               <Truck className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="font-bold text-white text-sm">সারাদেশে দ্রুত হোম ডেলিভারি</h4>
-              <p className="text-xs text-slate-300">ঢাকা সিটিতে ২৪-৪৮ ঘণ্টা, সারাদেশে ২-৩ দিন</p>
+              <h4 className="font-bold text-white text-sm">
+                {isEnglish ? 'Fast Nationwide Home Delivery' : 'সারাদেশে দ্রুত হোম ডেলিভারি'}
+              </h4>
+              <p className="text-xs text-slate-300">
+                {isEnglish ? '24-48 hours in Dhaka City, 2-3 days nationwide' : 'ঢাকা সিটিতে ২৪-৪৮ ঘণ্টা, সারাদেশে ২-৩ দিন'}
+              </p>
             </div>
           </div>
 
@@ -55,8 +62,12 @@ export const Footer: React.FC = () => {
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="font-bold text-white text-sm">ক্যাশ অন ডেলিভারি (COD)</h4>
-              <p className="text-xs text-slate-300">পণ্য দেখে ও চেক করে পরিশোধের সুযোগ</p>
+              <h4 className="font-bold text-white text-sm">
+                {isEnglish ? 'Cash on Delivery (COD)' : 'ক্যাশ অন ডেলিভারি (COD)'}
+              </h4>
+              <p className="text-xs text-slate-300">
+                {isEnglish ? 'Pay on delivery after checking your order' : 'পণ্য দেখে ও চেক করে পরিশোধের সুযোগ'}
+              </p>
             </div>
           </div>
 
@@ -65,8 +76,12 @@ export const Footer: React.FC = () => {
               <RotateCcw className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="font-bold text-white text-sm">সহজ রিটার্ন ও এক্সচেঞ্জ</h4>
-              <p className="text-xs text-slate-300">৩ দিনের মধ্যে সাইজ পরিবর্তনের নিশ্চয়তা</p>
+              <h4 className="font-bold text-white text-sm">
+                {isEnglish ? 'Easy Return & Exchange' : 'সহজ রিটার্ন ও এক্সচেঞ্জ'}
+              </h4>
+              <p className="text-xs text-slate-300">
+                {isEnglish ? '3-day size replacement guarantee' : '৩ দিনের মধ্যে সাইজ পরিবর্তনের নিশ্চয়তা'}
+              </p>
             </div>
           </div>
 
@@ -75,9 +90,11 @@ export const Footer: React.FC = () => {
               <Phone className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="font-bold text-white text-sm">সরাসরি ফোন সাপোর্ট</h4>
+              <h4 className="font-bold text-white text-sm">
+                {isEnglish ? 'Direct Phone Support' : 'সরাসরি ফোন সাপোর্ট'}
+              </h4>
               <p className="text-xs text-slate-300">
-                {settings.supportHours || 'সকাল ১০টা - রাত ১০টা সার্বক্ষণিক সেবা'}
+                {settings.supportHours || (isEnglish ? '10 AM - 10 PM daily support' : 'সকাল ১০টা - রাত ১০টা সার্বক্ষণিক সেবা')}
               </p>
             </div>
           </div>
@@ -160,41 +177,43 @@ export const Footer: React.FC = () => {
 
           {/* Quick Links */}
           <div className="lg:col-span-2 space-y-3">
-            <h4 className="text-white font-bold text-sm font-['Hind_Siliguri']">জরুরি লিংক</h4>
+            <h4 className="text-white font-bold text-sm font-['Hind_Siliguri']">
+              {isEnglish ? 'Quick Links' : 'জরুরি লিংক'}
+            </h4>
             <ul className="space-y-2 text-xs text-slate-400">
               <li>
                 <Link to="/profile" className="hover:text-rose-400 font-semibold text-rose-300 transition text-left block">
-                  আমার প্রোফাইল ও অর্ডার হিস্টোরি
+                  {isEnglish ? 'My Profile & Orders' : 'আমার প্রোফাইল ও অর্ডার হিস্টোরি'}
                 </Link>
               </li>
               <li>
                 <Link to="/track" className="hover:text-rose-400 transition text-left block">
-                  পার্সেল ট্র্যাকিং
+                  {isEnglish ? 'Parcel Tracking' : 'পার্সেল ট্র্যাকিং'}
                 </Link>
               </li>
               <li>
                 <Link to="/delivery-info" className="hover:text-rose-400 transition text-left block">
-                  ডেলিভারি চার্জ ও সময়
+                  {isEnglish ? 'Delivery & Charges' : 'ডেলিভারি চার্জ ও সময়'}
                 </Link>
               </li>
               <li>
                 <button onClick={() => setIsFacebookModalOpen(true)} className="hover:text-rose-400 transition text-left cursor-pointer">
-                  অফিসিয়াল ফেসবুক পেজ
+                  {isEnglish ? 'Official Facebook Page' : 'অফিসিয়াল ফেসবুক পেজ'}
                 </button>
               </li>
               <li>
                 <button onClick={() => setIsCustomerChatOpen(true)} className="hover:text-rose-400 transition text-left cursor-pointer">
-                  সরাসরি বার্তা পাঠান
+                  {isEnglish ? 'Send Direct Message' : 'সরাসরি বার্তা পাঠান'}
                 </button>
               </li>
               <li>
                 <Link to="/delivery-info" className="hover:text-rose-400 transition text-left block">
-                  রিটার্ন ও এক্সচেঞ্জ পলিসি
+                  {isEnglish ? 'Return & Exchange Policy' : 'রিটার্ন ও এক্সচেঞ্জ পলিসি'}
                 </Link>
               </li>
               <li>
                 <Link to="/admin" className="hover:text-rose-400 text-slate-500 transition text-left block">
-                  অ্যাডমিন প্যানেল
+                  {isEnglish ? 'Admin Panel' : 'অ্যাডমিন প্যানেল'}
                 </Link>
               </li>
             </ul>
@@ -202,7 +221,9 @@ export const Footer: React.FC = () => {
 
           {/* Customer Care */}
           <div className="lg:col-span-3 space-y-3">
-            <h4 className="text-white font-bold text-sm font-['Hind_Siliguri']">কাস্টমার সাপোর্ট</h4>
+            <h4 className="text-white font-bold text-sm font-['Hind_Siliguri']">
+              {isEnglish ? 'Customer Support' : 'কাস্টমার সাপোর্ট'}
+            </h4>
             <div className="space-y-2.5 text-xs text-slate-400">
               <div className="flex items-start gap-2">
                 <Phone className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />

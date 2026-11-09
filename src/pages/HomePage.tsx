@@ -8,6 +8,7 @@ import { CategoryShowcase } from '../components/CategoryShowcase';
 import { ProductToolbar } from '../components/ProductToolbar';
 import { ProductCard } from '../components/ProductCard';
 import { RecentlyViewedSection } from '../components/RecentlyViewedSection';
+import { useLanguage } from '../context/LanguageContext';
 import { Link } from 'react-router-dom';
 import { 
   Truck, 
@@ -29,6 +30,8 @@ export const HomePage: React.FC = () => {
     resetFilters,
     settings 
   } = useShop();
+
+  const { t, formatNumber } = useLanguage();
 
   // Filter & Sort Logic
   const filteredProducts = useMemo(() => {
@@ -137,8 +140,8 @@ export const HomePage: React.FC = () => {
         {filteredProducts.length > 0 ? (
           <div className="space-y-8">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 animate-fadeIn">
-              {displayedProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+              {displayedProducts.map((product, index) => (
+                <ProductCard key={product.id} product={product} index={index} />
               ))}
             </div>
 
@@ -146,9 +149,9 @@ export const HomePage: React.FC = () => {
               <div className="flex flex-col items-center justify-center pt-4 pb-2 space-y-3.5">
                 <div className="w-full max-w-xs space-y-1.5 text-center">
                   <div className="flex justify-between text-xs text-slate-500 font-medium">
-                    <span>প্রদর্শিত হচ্ছে</span>
+                    <span>{t('toolbar.showing')}</span>
                     <span className="font-bold text-slate-800">
-                      {displayedProducts.length} / {filteredProducts.length} টি পোশাক
+                      {formatNumber(displayedProducts.length)} / {formatNumber(filteredProducts.length)} {t('toolbar.total_items')}
                     </span>
                   </div>
                   <div className="w-full bg-rose-100 rounded-full h-2 overflow-hidden shadow-inner">
@@ -170,19 +173,19 @@ export const HomePage: React.FC = () => {
                     {isLoadingMore ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin text-white" />
-                        <span>নতুন পণ্য লোড হচ্ছে...</span>
+                        <span>{t('toolbar.loading')}</span>
                       </>
                     ) : (
                       <>
                         <ArrowDownCircle className="w-4 h-4 sm:w-5 sm:h-5 text-rose-200 group-hover:translate-y-0.5 transition-transform" />
-                        <span>আরও পণ্য দেখুন (বাকি {filteredProducts.length - displayedProducts.length}টি)</span>
+                        <span>{t('toolbar.load_more')} ({formatNumber(filteredProducts.length - displayedProducts.length)} {t('common.items')})</span>
                       </>
                     )}
                   </button>
                 ) : (
                   <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-rose-50 border border-rose-200 text-xs text-rose-700 font-semibold shadow-xs">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>সকল {filteredProducts.length}টি চমৎকার কালেকশন প্রদর্শিত হয়েছে</span>
+                    <span>{t('toolbar.all_loaded')} ({formatNumber(filteredProducts.length)} {t('common.items')})</span>
                   </div>
                 )}
               </div>

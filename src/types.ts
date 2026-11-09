@@ -107,6 +107,8 @@ export interface Order {
     lastSyncedAt?: string;
   };
   deliveredAt?: string;
+  cancelledAt?: string;
+  cancelReason?: string;
   dropshipping?: {
     synced: boolean;
     syncedAt?: string;

@@ -1,7 +1,10 @@
 import React from 'react';
+import { useLanguage } from '../context/LanguageContext';
 import { Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const WelcomeStorySection: React.FC = () => {
+  const { isEnglish } = useLanguage();
+
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 my-5 sm:my-8">
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-50 via-white to-pink-50/80 border border-rose-200/80 shadow-md p-6 sm:p-8 md:p-10">
@@ -13,16 +16,20 @@ export const WelcomeStorySection: React.FC = () => {
           {/* Header Badge */}
           <div className="inline-flex items-center gap-2 bg-rose-100/80 text-rose-700 border border-rose-200 text-xs sm:text-sm font-bold px-4 py-1.5 rounded-full shadow-2xs">
             <Sparkles className="w-4 h-4 text-rose-600" />
-            <span>"নারীর স্বপ্ন"—এ আপনাকে স্বাগতম! ✨</span>
+            <span>{isEnglish ? 'Welcome to "Naarir Shopno"! ✨' : '"নারীর স্বপ্ন"—এ আপনাকে স্বাগতম! ✨'}</span>
           </div>
 
           {/* Emotional Headline */}
           <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 font-['Hind_Siliguri'] leading-relaxed sm:leading-snug">
-            প্রতিটি নারীর স্বপ্ন থাকে নিজের পছন্দমতো ও আরামদায়ক পোশাক পরে নিজেকে সুন্দরভাবে ফুটিয়ে তোলার।
+            {isEnglish
+              ? 'Every woman dreams of expressing her elegance with comfortable and exquisite attire.'
+              : 'প্রতিটি নারীর স্বপ্ন থাকে নিজের পছন্দমতো ও আরামদায়ক পোশাক পরে নিজেকে সুন্দরভাবে ফুটিয়ে তোলার।'}
           </h2>
 
           <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            আপনার সেই স্বপ্নকে বাস্তবে রূপ দিতেই আমাদের এই পথচলা। আভিজাত্য, সেরা ফেব্রিক এবং অনন্য ডিজাইনের সমন্বয়ে তৈরি আমাদের প্রতিটি পোশাক।
+            {isEnglish
+              ? 'We are here to bring that dream to life. Every garment blends sophistication, finest fabrics, and exclusive craftsmanship.'
+              : 'আপনার সেই স্বপ্নকে বাস্তবে রূপ দিতেই আমাদের এই পথচলা। আভিজাত্য, সেরা ফেব্রিক এবং অনন্য ডিজাইনের সমন্বয়ে তৈরি আমাদের প্রতিটি পোশাক।'}
           </p>
 
           {/* Feature Highlights Grid - 2 Divs Left and Right (50% each) */}
@@ -32,20 +39,20 @@ export const WelcomeStorySection: React.FC = () => {
               <div>
                 <div className="flex items-center gap-1.5 sm:gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-0.5 sm:mb-1 font-['Hind_Siliguri']">
                   <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-600" />
-                  <span>ট্রেন্ডি ও প্রিমিয়াম কোয়ালিটি</span>
+                  <span>{isEnglish ? 'Trendy & Premium Quality' : 'ট্রেন্ডি ও প্রিমিয়াম কোয়ালিটি'}</span>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-500 pl-5 sm:pl-6 leading-relaxed">
-                  এক্সক্লুসিভ কালেকশন ও ঐতিহ্যবাহী শাড়ির সেরা মেলা
+                  {isEnglish ? 'Exclusive collections & heritage sarees' : 'এক্সক্লুসিভ কালেকশন ও ঐতিহ্যবাহী শাড়ির সেরা মেলা'}
                 </p>
               </div>
 
               <div className="border-t border-rose-100/70 pt-2.5 sm:pt-3">
                 <div className="flex items-center gap-1.5 sm:gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-0.5 sm:mb-1 font-['Hind_Siliguri']">
                   <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-600" />
-                  <span>ক্যাজুয়াল ও গর্জিয়াস কালেকশন</span>
+                  <span>{isEnglish ? 'Casual & Festive Styles' : 'ক্যাজুয়াল ও গর্জিয়াস কালেকশন'}</span>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-500 pl-5 sm:pl-6 leading-relaxed">
-                  প্রতিদিনের স্বাচ্ছন্দ্য ও উৎসবের জাঁকজমকপূর্ণ আয়োজন
+                  {isEnglish ? 'Daily comfort & festive glamour' : 'প্রতিদিনের স্বাচ্ছন্দ্য ও উৎসবের জাঁকজমকপূর্ণ আয়োজন'}
                 </p>
               </div>
             </div>
@@ -55,27 +62,27 @@ export const WelcomeStorySection: React.FC = () => {
               <div>
                 <div className="flex items-center gap-1.5 sm:gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-0.5 sm:mb-1 font-['Hind_Siliguri']">
                   <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-600" />
-                  <span>বাজেটবান্ধব সেরা ফেব্রিকস</span>
+                  <span>{isEnglish ? 'Budget-Friendly Best Fabrics' : 'বাজেটবান্ধব সেরা ফেব্রিকস'}</span>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-500 pl-5 sm:pl-6 leading-relaxed">
-                  অতুলনীয় মানের পিওর সুতি, জর্জেট, সিল্ক ও দুবাই চেরি
+                  {isEnglish ? 'Pure cotton, georgette, silk & Dubai cherry' : 'অতুলনীয় মানের পিওর সুতি, জর্জেট, সিল্ক ও দুবাই চেরি'}
                 </p>
               </div>
 
               <div className="border-t border-rose-100/70 pt-2.5 sm:pt-3">
                 <div className="flex items-center gap-1.5 sm:gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-0.5 sm:mb-1 font-['Hind_Siliguri']">
                   <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-600" />
-                  <span>ক্যাশ অন ডেলিভারি</span>
+                  <span>{isEnglish ? 'Cash on Delivery' : 'ক্যাশ অন ডেলিভারি'}</span>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-500 pl-5 sm:pl-6 leading-relaxed">
-                  সারাদেশে ঘরে বসে পণ্য দেখে মূল্য পরিশোধের সুবিধা
+                  {isEnglish ? 'Inspect item at home before payment' : 'সারাদেশে ঘরে বসে পণ্য দেখে মূল্য পরিশোধের সুবিধা'}
                 </p>
               </div>
             </div>
           </div>
 
           <p className="text-xs text-rose-600 font-semibold italic pt-1">
-            🌸 আপনার পথচলায় 'নারীর স্বপ্ন' থাকুক আপনার সাথে। 🌸
+            🌸 {isEnglish ? 'May "Naarir Shopno" accompany you on your fashion journey. 🌸' : "আপনার পথচলায় 'নারীর স্বপ্ন' থাকুক আপনার সাথে। 🌸"}
           </p>
         </div>
       </div>

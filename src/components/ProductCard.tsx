@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { Product } from '../types';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Eye, Star, Heart, Flame, Share2, Sparkles, Video } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
+  index?: number;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
   const { 
     toggleWishlist,
     isInWishlist,
     settings
   } = useShop();
+
+  const { t, formatPrice, formatNumber, isEnglish } = useLanguage();
 
   const navigate = useNavigate();
 
@@ -127,7 +132,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const isOutOfStock = product.stockCount === 0 || (product.stockCount !== undefined && product.stockCount <= 0) || !product.inStock;
 
   return (
-    <div 
+    <motion.div 
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-20px' }}
+      transition={{
+        duration: 0.38,
+        ease: [0.22, 1, 0.36, 1],
+        delay: index !== undefined ? Math.min((index % 4) * 0.05, 0.2) : 0,
+      }}
       className="group bg-white rounded-2xl border border-rose-100/80 hover:border-pink-300 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden relative cursor-pointer"
       onClick={() => navigate(`/product/${product.id}`)}
     >
@@ -135,31 +148,31 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       <div className="absolute top-2.5 sm:top-3 left-2.5 sm:left-3 z-10 flex flex-col gap-1 pointer-events-none max-w-[55%]">
         {discountPercent > 0 && !isOutOfStock && (
           <span className="bg-rose-600 text-white font-bold text-[9px] sm:text-[11px] px-2 py-0.5 rounded-full shadow-sm w-fit">
-            {discountPercent}% ছাড়
+            {formatNumber(discountPercent)}% {t('card.off')}
           </span>
         )}
         {product.isNew && !isOutOfStock && (
           <span className="bg-emerald-600 text-white font-semibold text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full shadow-sm w-fit">
-            নতুন
+            {t('card.new')}
           </span>
         )}
         {product.isTrending && !isOutOfStock && (
           <span className="bg-amber-500 text-white font-semibold text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full shadow-sm w-fit">
-            হট
+            {t('card.hot')}
           </span>
         )}
         {/* Low Stock Badge (Urgency for customers when stock < 5 and > 0) */}
         {!isOutOfStock && product.stockCount !== undefined && product.stockCount > 0 && product.stockCount < 5 && (
           <span className="bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full shadow-md flex items-center gap-1 border border-white/20 animate-pulse w-fit whitespace-nowrap">
             <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-300 fill-amber-300 shrink-0" />
-            <span>Low Stock ({product.stockCount}টি)</span>
+            <span>{t('card.low_stock')} ({formatNumber(product.stockCount)}{t('card.items')})</span>
           </span>
         )}
         {/* Conditional 'স্টক আউট' UI Badge when stock count is zero */}
         {isOutOfStock && (
           <span className="bg-rose-950/95 text-rose-100 font-bold text-[9px] sm:text-[10px] px-2.5 py-0.5 rounded-full shadow-md flex items-center gap-1 border border-rose-500/50 w-fit backdrop-blur-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-            <span>স্টক আউট</span>
+            <span>{t('card.out_of_stock')}</span>
           </span>
         )}
       </div>
@@ -171,8 +184,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           id={`btn-wishlist-${product.id}`}
           type="button"
           onClick={handleToggleWishlist}
-          title={isSaved ? "পছন্দের তালিকা থেকে সরান" : "পছন্দের তালিকায় যোগ করুন"}
-          aria-label={isSaved ? "পছন্দের তালিকা থেকে সরান" : "পছন্দের তালিকায় যোগ করুন"}
+          title={isSaved ? t('card.remove_wishlist') : t('card.add_wishlist')}
+          aria-label={isSaved ? t('card.remove_wishlist') : t('card.add_wishlist')}
           className={`w-7.5 h-7.5 sm:w-8.5 sm:h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shadow-md ${
             isSaved 
               ? 'bg-rose-600 text-white scale-105 shadow-rose-300/60 ring-2 ring-white' 
@@ -235,7 +248,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-10">
             <div className="bg-slate-900/80 text-white text-xs font-bold py-2 px-4 rounded-full shadow-xl border border-white/30 backdrop-blur-xs flex items-center gap-1.5 transform scale-90 group-hover:scale-100 transition-transform">
               <Eye className="w-4 h-4 text-rose-300" />
-              <span>বিস্তারিত দেখুন</span>
+              <span>{t('card.view_details')}</span>
             </div>
           </div>
         )}
@@ -251,16 +264,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </span>
             <div className="flex items-center gap-1 text-[11px] text-amber-500 font-semibold shrink-0">
               <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-              <span>{product.rating}</span>
+              <span>{formatNumber(product.rating)}</span>
             </div>
           </div>
 
-          {/* Bengali Title */}
+          {/* Title (Bengali / English based on language preference) */}
           <h3 
             className="text-xs sm:text-sm font-bold text-slate-800 line-clamp-2 hover:text-rose-600 transition-colors font-['Hind_Siliguri'] leading-snug cursor-pointer"
-            title={product.bengaliName}
+            title={isEnglish ? (product.name || product.bengaliName) : product.bengaliName}
           >
-            {product.bengaliName}
+            {isEnglish ? (product.name || product.bengaliName) : product.bengaliName}
           </h3>
         </div>
 
@@ -269,11 +282,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {/* Price & Crossed-Out Regular Price */}
           <div className="flex items-baseline gap-1.5 flex-wrap">
             <span className="text-base sm:text-lg font-black text-rose-700 font-['Outfit']">
-              ৳{product.price.toLocaleString()}
+              {formatPrice(product.price)}
             </span>
             {product.regularPrice > product.price && (
               <span className="text-xs text-slate-400 line-through font-['Outfit']">
-                ৳{product.regularPrice.toLocaleString()}
+                {formatPrice(product.regularPrice)}
               </span>
             )}
           </div>
@@ -288,22 +301,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   ? 'text-red-700 bg-red-50 border border-red-200 shadow-2xs font-extrabold'
                   : 'text-emerald-700 bg-emerald-50 border border-emerald-100 font-semibold'
               }`}
-              title={isOutOfStock ? 'পণ্যটি বর্তমানে স্টক আউট' : `বর্তমান স্টক সংখ্যা: ${product.stockCount}টি`}
+              title={isOutOfStock ? t('card.out_of_stock') : `${t('card.stock')}: ${formatNumber(product.stockCount)}${t('card.items')}`}
             >
               {isOutOfStock ? (
-                <span>স্টক আউট</span>
+                <span>{t('card.out_of_stock')}</span>
               ) : product.stockCount < 5 ? (
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
-                  <span>স্টক: {product.stockCount}টি</span>
+                  <span>{t('card.stock')}: {formatNumber(product.stockCount)}{t('card.items')}</span>
                 </>
               ) : (
-                <span>স্টক: {product.stockCount}টি</span>
+                <span>{t('card.stock')}: {formatNumber(product.stockCount)}{t('card.items')}</span>
               )}
             </span>
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Order, OrderStatus, CartItem, CustomerProfile, Product } from '../types';
 import { BANGLADESH_DISTRICTS, getThanasForDistrict } from '../data/bangladeshData';
 import { OrderProgressTracker } from '../components/OrderProgressTracker';
 import { InvoiceModal } from '../components/InvoiceModal';
+import { CancelOrderModal } from '../components/CancelOrderModal';
 import { 
   User, 
   ShoppingBag, 
@@ -31,7 +33,8 @@ import {
   ChevronUp, 
   Heart, 
   X,
-  CreditCard
+  CreditCard,
+  XCircle
 } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
@@ -45,6 +48,19 @@ export const ProfilePage: React.FC = () => {
     setTrackingOrderId,
     settings 
   } = useShop();
+  const { 
+    isEnglish, 
+    formatPrice, 
+    formatNumber, 
+    translateProductName, 
+    translateColor, 
+    translateSize, 
+    translateStatus, 
+    translateDistrict 
+  } = useLanguage();
+
+  // Selected order for cancellation modal
+  const [selectedCancelOrder, setSelectedCancelOrder] = useState<Order | null>(null);
 
   // 1. Profile State (Stored in localStorage)
   const [profile, setProfile] = useState<CustomerProfile>(() => {
@@ -249,43 +265,43 @@ export const ProfilePage: React.FC = () => {
     switch (status) {
       case 'pending':
         return {
-          label: 'অর্ডার গৃহীত (Pending)',
+          label: isEnglish ? 'Pending' : 'অর্ডার গৃহীত (Pending)',
           color: 'bg-amber-50 text-amber-800 border-amber-200',
           icon: Clock
         };
       case 'confirmed':
         return {
-          label: 'নিশ্চিতকৃত (Confirmed)',
+          label: isEnglish ? 'Confirmed' : 'নিশ্চিতকৃত (Confirmed)',
           color: 'bg-blue-50 text-blue-800 border-blue-200',
           icon: CheckCircle2
         };
       case 'processing':
         return {
-          label: 'প্রসেসিং ও প্যাকেজিং',
+          label: isEnglish ? 'Processing' : 'প্রসেসিং ও প্যাকেজিং',
           color: 'bg-purple-50 text-purple-800 border-purple-200',
           icon: Package
         };
       case 'shipped':
         return {
-          label: 'কুরিয়ারে ট্রানজিট',
+          label: isEnglish ? 'Shipped (In Transit)' : 'কুরিয়ারে ট্রানজিট',
           color: 'bg-sky-50 text-sky-800 border-sky-200',
           icon: Truck
         };
       case 'delivered':
         return {
-          label: 'ডেলিভারি সম্পন্ন',
+          label: isEnglish ? 'Delivered' : 'ডেলিভারি সম্পন্ন',
           color: 'bg-emerald-50 text-emerald-800 border-emerald-200',
           icon: CheckCircle2
         };
       case 'cancelled':
         return {
-          label: 'অর্ডার বাতিল',
+          label: isEnglish ? 'Cancelled' : 'অর্ডার বাতিল',
           color: 'bg-red-50 text-red-800 border-red-200',
           icon: AlertCircle
         };
       default:
         return {
-          label: 'চলমান',
+          label: isEnglish ? 'Active' : 'চলমান',
           color: 'bg-slate-50 text-slate-800 border-slate-200',
           icon: Clock
         };
@@ -298,9 +314,13 @@ export const ProfilePage: React.FC = () => {
         
         {/* Breadcrumb Navigation */}
         <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-          <Link to="/" className="hover:text-rose-600 transition-colors">হোম</Link>
+          <Link to="/" className="hover:text-rose-600 transition-colors">
+            {isEnglish ? 'Home' : 'হোম'}
+          </Link>
           <span>/</span>
-          <span className="text-rose-700 font-bold">গ্রাহক প্রোফাইল ও অর্ডার হিস্টোরি</span>
+          <span className="text-rose-700 font-bold">
+            {isEnglish ? 'Customer Profile & Order History' : 'গ্রাহক প্রোফাইল ও অর্ডার হিস্টোরি'}
+          </span>
         </div>
 
         {/* Re-order Toast Notification */}
@@ -410,27 +430,51 @@ export const ProfilePage: React.FC = () => {
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-rose-100 relative z-10">
             <div className="bg-rose-50/50 p-3.5 rounded-2xl border border-rose-100/70 text-center space-y-0.5">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">মোট অর্ডার</span>
-              <p className="text-xl sm:text-2xl font-black text-slate-900 font-['Outfit']">{stats.totalOrders}</p>
-              <p className="text-[10px] text-rose-600 font-medium">লাইফটাইম ক্রয়</p>
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                {isEnglish ? 'Total Orders' : 'মোট অর্ডার'}
+              </span>
+              <p className="text-xl sm:text-2xl font-black text-slate-900 font-['Outfit']">
+                {formatNumber(stats.totalOrders)}
+              </p>
+              <p className="text-[10px] text-rose-600 font-medium">
+                {isEnglish ? 'Lifetime Orders' : 'লাইফটাইম ক্রয়'}
+              </p>
             </div>
 
             <div className="bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-100/70 text-center space-y-0.5">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">ডেলিভারি সম্পন্ন</span>
-              <p className="text-xl sm:text-2xl font-black text-emerald-700 font-['Outfit']">{stats.deliveredCount}</p>
-              <p className="text-[10px] text-emerald-600 font-medium">সফল ডেলিভারি</p>
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                {isEnglish ? 'Delivered' : 'ডেলিভারি সম্পন্ন'}
+              </span>
+              <p className="text-xl sm:text-2xl font-black text-emerald-700 font-['Outfit']">
+                {formatNumber(stats.deliveredCount)}
+              </p>
+              <p className="text-[10px] text-emerald-600 font-medium">
+                {isEnglish ? 'Successful Delivery' : 'সফল ডেলিভারি'}
+              </p>
             </div>
 
             <div className="bg-purple-50/50 p-3.5 rounded-2xl border border-purple-100/70 text-center space-y-0.5">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">মোট কেনাকাটা</span>
-              <p className="text-xl sm:text-2xl font-black text-purple-900 font-['Outfit']">৳{stats.totalSpent.toLocaleString()}</p>
-              <p className="text-[10px] text-purple-600 font-medium">পরিশোধিত মূল্য</p>
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                {isEnglish ? 'Total Spent' : 'মোট কেনাকাটা'}
+              </span>
+              <p className="text-xl sm:text-2xl font-black text-purple-900 font-['Outfit']">
+                {formatPrice(stats.totalSpent)}
+              </p>
+              <p className="text-[10px] text-purple-600 font-medium">
+                {isEnglish ? 'Paid Amount' : 'পরিশোধিত মূল্য'}
+              </p>
             </div>
 
             <div className="bg-amber-50/50 p-3.5 rounded-2xl border border-amber-100/70 text-center space-y-0.5">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">পছন্দের আইটেম</span>
-              <p className="text-xl sm:text-2xl font-black text-amber-900 font-['Outfit']">{stats.wishlistCount}</p>
-              <p className="text-[10px] text-amber-600 font-medium">উইশলিস্টে সেভ করা</p>
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                {isEnglish ? 'Wishlist' : 'পছন্দের আইটেম'}
+              </span>
+              <p className="text-xl sm:text-2xl font-black text-amber-900 font-['Outfit']">
+                {formatNumber(stats.wishlistCount)}
+              </p>
+              <p className="text-[10px] text-amber-600 font-medium">
+                {isEnglish ? 'Saved in Wishlist' : 'উইশলিস্টে সেভ করা'}
+              </p>
             </div>
           </div>
         </div>
@@ -570,11 +614,13 @@ export const ProfilePage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5 text-rose-600" />
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-['Hind_Siliguri']">
-                  অর্ডার ইতিহাস ও পূর্ববর্তী কেনাকাটা (Order History)
+                  {isEnglish ? 'Order History & Previous Purchases' : 'অর্ডার ইতিহাস ও পূর্ববর্তী কেনাকাটা (Order History)'}
                 </h2>
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                আপনার সম্পন্নকৃত ও চলমান সকল পার্সেলের বিবরণ দেখুন এবং ১-ক্লিকে যেকোনো পণ্য পুনরায় অর্ডার করুন।
+                {isEnglish
+                  ? 'View details of your past and active parcels, or re-order any dress in 1 click.'
+                  : 'আপনার সম্পন্নকৃত ও চলমান সকল পার্সেলের বিবরণ দেখুন এবং ১-ক্লিকে যেকোনো পণ্য পুনরায় অর্ডার করুন।'}
               </p>
             </div>
 
@@ -584,7 +630,7 @@ export const ProfilePage: React.FC = () => {
               className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 px-3.5 py-2 rounded-xl border border-rose-200 transition shrink-0 self-start sm:self-auto cursor-pointer"
             >
               <Truck className="w-4 h-4 text-rose-600" />
-              <span>লাইভ কুরিয়ার ট্র্যাক পেজ</span>
+              <span>{isEnglish ? 'Live Courier Tracking Page' : 'লাইভ কুরিয়ার ট্র্যাক পেজ'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -603,7 +649,9 @@ export const ProfilePage: React.FC = () => {
                       : 'bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700'
                   }`}
                 >
-                  সকল অর্ডার ({userOrders.length})
+                  {isEnglish 
+                    ? `All Orders (${formatNumber(userOrders.length)})` 
+                    : `সকল অর্ডার (${formatNumber(userOrders.length)})`}
                 </button>
 
                 <button
@@ -614,7 +662,9 @@ export const ProfilePage: React.FC = () => {
                       : 'bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700'
                   }`}
                 >
-                  চলমান ({userOrders.filter(o => ['pending', 'confirmed', 'processing', 'shipped'].includes(o.status)).length})
+                  {isEnglish 
+                    ? `Active (${formatNumber(userOrders.filter(o => ['pending', 'confirmed', 'processing', 'shipped'].includes(o.status)).length)})` 
+                    : `চলমান (${formatNumber(userOrders.filter(o => ['pending', 'confirmed', 'processing', 'shipped'].includes(o.status)).length)})`}
                 </button>
 
                 <button
@@ -625,7 +675,9 @@ export const ProfilePage: React.FC = () => {
                       : 'bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700'
                   }`}
                 >
-                  ডেলিভারি সম্পন্ন ({userOrders.filter(o => o.status === 'delivered').length})
+                  {isEnglish 
+                    ? `Delivered (${formatNumber(userOrders.filter(o => o.status === 'delivered').length)})` 
+                    : `ডেলিভারি সম্পন্ন (${formatNumber(userOrders.filter(o => o.status === 'delivered').length)})`}
                 </button>
 
                 <button
@@ -636,7 +688,9 @@ export const ProfilePage: React.FC = () => {
                       : 'bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-700'
                   }`}
                 >
-                  বাতিল ({userOrders.filter(o => o.status === 'cancelled').length})
+                  {isEnglish 
+                    ? `Cancelled (${formatNumber(userOrders.filter(o => o.status === 'cancelled').length)})` 
+                    : `বাতিল (${formatNumber(userOrders.filter(o => o.status === 'cancelled').length)})`}
                 </button>
               </div>
 
@@ -644,7 +698,7 @@ export const ProfilePage: React.FC = () => {
               <div className="relative w-full md:w-72">
                 <input
                   type="text"
-                  placeholder="অর্ডার আইডি বা পণ্যের নাম দিয়ে খুঁজুন..."
+                  placeholder={isEnglish ? 'Search by Order ID or Product name...' : 'অর্ডার আইডি বা পণ্যের নাম দিয়ে খুঁজুন...'}
                   value={orderSearchQuery}
                   onChange={(e) => setOrderSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-8 py-1.5 text-xs bg-rose-50/40 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none text-slate-800"
@@ -670,12 +724,12 @@ export const ProfilePage: React.FC = () => {
               </div>
               <div className="space-y-1">
                 <h3 className="text-base sm:text-lg font-bold text-slate-800 font-['Hind_Siliguri']">
-                  কোনো অর্ডার খুঁজে পাওয়া যায়নি
+                  {isEnglish ? 'No Orders Found' : 'কোনো অর্ডার খুঁজে পাওয়া যায়নি'}
                 </h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
                   {orderSearchQuery 
-                    ? 'আপনার সার্চ কুয়েরির সাথে কোনো অর্ডার মিল পাওয়া যায়নি। আবার চেষ্টা করুন।'
-                    : 'আপনার এই অ্যাকাউন্টে এখনও কোনো পূর্ববর্তী ক্রয়ের রেকর্ড নেই। আপনার পছন্দের পোশাকটি এখনই অর্ডার করুন!'}
+                    ? (isEnglish ? 'No orders matched your search query. Please try again.' : 'আপনার সার্চ কুয়েরির সাথে কোনো অর্ডার মিল পাওয়া যায়নি। আবার চেষ্টা করুন।')
+                    : (isEnglish ? 'You have no previous purchase records in this account yet. Order your favorite dress today!' : 'আপনার এই অ্যাকাউন্টে এখনও কোনো পূর্ববর্তী ক্রয়ের রেকর্ড নেই। আপনার পছন্দের পোশাকটি এখনই অর্ডার করুন!')}
                 </p>
               </div>
               <div className="pt-2">
@@ -684,7 +738,7 @@ export const ProfilePage: React.FC = () => {
                   className="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-md transition cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>লেটেস্ট কালেকশন দেখুন</span>
+                  <span>{isEnglish ? 'Explore Latest Collection' : 'লেটেস্ট কালেকশন দেখুন'}</span>
                 </button>
               </div>
             </div>
@@ -724,10 +778,32 @@ export const ProfilePage: React.FC = () => {
                           <StatusIcon className="w-3 h-3" />
                           <span>{statusInfo.label}</span>
                         </span>
+
+                        {order.status === 'cancelled' && order.cancelReason && (
+                          <span className="text-[10px] text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full font-medium">
+                            {isEnglish ? 'Reason: ' : 'কারণ: '}{order.cancelReason}
+                          </span>
+                        )}
                       </div>
 
-                      {/* Header Actions: Re-order Entire Order + Invoice */}
-                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                      {/* Header Actions: Re-order Entire Order + Cancel Order + Invoice */}
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto flex-wrap">
+                        {/* Cancel Order Action if order is pending or confirmed */}
+                        {(order.status === 'pending' || order.status === 'confirmed') && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCancelOrder(order);
+                            }}
+                            title={isEnglish ? 'Cancel this order' : 'অর্ডারটি বাতিল করুন'}
+                            className="inline-flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800 border border-red-200 font-bold text-xs px-3 py-1.5 rounded-xl transition active:scale-95 cursor-pointer"
+                          >
+                            <XCircle className="w-3.5 h-3.5 text-red-600" />
+                            <span>{isEnglish ? 'Cancel' : 'বাতিল করুন'}</span>
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           onClick={(e) => handleReorderEntireOrder(order, e)}
@@ -735,7 +811,7 @@ export const ProfilePage: React.FC = () => {
                           className="inline-flex items-center gap-1.5 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm transition active:scale-95 cursor-pointer"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
-                          <span>পুনরায় অর্ডার (Re-order)</span>
+                          <span>{isEnglish ? 'Re-order' : 'পুনরায় অর্ডার (Re-order)'}</span>
                         </button>
 
                         <button
@@ -903,6 +979,13 @@ export const ProfilePage: React.FC = () => {
             onClose={() => setSelectedInvoiceOrder(null)} 
           />
         )}
+
+        {/* Cancel Order Modal */}
+        <CancelOrderModal
+          order={selectedCancelOrder}
+          isOpen={Boolean(selectedCancelOrder)}
+          onClose={() => setSelectedCancelOrder(null)}
+        />
 
       </div>
     </div>

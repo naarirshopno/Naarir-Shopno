@@ -4,7 +4,7 @@ import { INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_SETTINGS, INITIAL_MESSAGES, D
 import { INITIAL_PRODUCT_REVIEWS, getDefaultReviewsForProduct } from '../data/initialReviews';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { runFirestoreHealthCheck, HealthCheckResult } from '../services/dbHealthCheck';
-import { triggerOrderEmailNotification } from '../services/emailNotificationService';
+import { triggerOrderEmailNotification, triggerOrderCancellationEmailNotification } from '../services/emailNotificationService';
 import { 
   collection, 
   doc, 
@@ -63,6 +63,10 @@ interface ShopContextType {
   setDirectCheckoutItem: (item: CartItem | null) => void;
   trackingOrderId: string;
   setTrackingOrderId: (id: string) => void;
+  orderSuccessModalData: Order | null;
+  setOrderSuccessModalData: (order: Order | null) => void;
+  openOrderSuccessModal: (order: Order) => void;
+  closeOrderSuccessModal: () => void;
 
   // Wishlist
   wishlist: string[];
@@ -82,9 +86,10 @@ interface ShopContextType {
   
   // Checkout & Orders
   createOrder: (order: Omit<Order, 'id' | 'createdAt'>) => Order;
-  updateOrderStatus: (orderId: string, status: OrderStatus, courier?: Order['courier']) => void;
+  updateOrderStatus: (orderId: string, status: OrderStatus, courier?: Order['courier'], cancelReason?: string) => void;
   updateOrderDropshipping: (orderId: string, dropshippingData: NonNullable<Order['dropshipping']>) => void;
   deleteOrder: (orderId: string) => void;
+  cancelOrder: (orderId: string, reason?: string) => Promise<{ success: boolean; message: string }>;
   
   // Products Management
   addProduct: (product: Omit<Product, 'id'>) => void;
@@ -286,6 +291,15 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [selectedProductModal, setSelectedProductModal] = useState<Product | null>(null);
   const [directCheckoutItem, setDirectCheckoutItem] = useState<CartItem | null>(null);
   const [trackingOrderId, setTrackingOrderId] = useState<string>('');
+  const [orderSuccessModalData, setOrderSuccessModalData] = useState<Order | null>(null);
+
+  const openOrderSuccessModal = (order: Order) => {
+    setOrderSuccessModalData(order);
+  };
+
+  const closeOrderSuccessModal = () => {
+    setOrderSuccessModalData(null);
+  };
 
   // Wishlist state initialized from localStorage
   const [wishlist, setWishlist] = useState<string[]>(() => {
@@ -821,6 +835,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setOrders(prev => [newOrder, ...prev]);
+    setOrderSuccessModalData(newOrder);
     setDoc(doc(db, 'orders', newOrder.id), sanitizeForFirestore(newOrder))
       .catch(err => handleFirestoreError(err, OperationType.CREATE, `orders/${newOrder.id}`));
 
@@ -866,17 +881,34 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
-  const updateOrderStatus = (orderId: string, status: OrderStatus, courier?: Order['courier']) => {
+  const updateOrderStatus = (orderId: string, status: OrderStatus, courier?: Order['courier'], cancelReason?: string) => {
     setOrders(prev =>
       prev.map(ord => {
         if (ord.id === orderId) {
-          const updatedOrd = {
+          const isCancelling = status === 'cancelled';
+          const cancelTimestamp = isCancelling
+            ? (ord.cancelledAt || new Date().toISOString().replace('T', ' ').substring(0, 16))
+            : ord.cancelledAt;
+          const resolvedCancelReason = isCancelling
+            ? (cancelReason || ord.cancelReason || 'অ্যাডমিন প্যানেল থেকে অর্ডার বাতিল করা হয়েছে')
+            : ord.cancelReason;
+
+          const updatedOrd: Order = {
             ...ord,
             status,
             courier: courier ? { ...ord.courier, ...courier } : ord.courier,
+            cancelledAt: isCancelling ? cancelTimestamp : ord.cancelledAt,
+            cancelReason: isCancelling ? resolvedCancelReason : ord.cancelReason,
           };
+
           setDoc(doc(db, 'orders', orderId), sanitizeForFirestore(updatedOrd), { merge: true })
             .catch(err => handleFirestoreError(err, OperationType.UPDATE, `orders/${orderId}`));
+
+          if (isCancelling && ord.status !== 'cancelled') {
+            triggerOrderCancellationEmailNotification(updatedOrd, resolvedCancelReason, settings)
+              .catch(err => console.warn('Cancellation email notification warning:', err));
+          }
+
           return updatedOrd;
         }
         return ord;
@@ -894,6 +926,55 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     deleteDoc(doc(db, 'orders', orderId))
       .catch(err => handleFirestoreError(err, OperationType.DELETE, `orders/${orderId}`));
+  };
+
+  const cancelOrder = async (orderId: string, reason?: string): Promise<{ success: boolean; message: string }> => {
+    const existing = orders.find(o => o.id === orderId);
+    if (!existing) {
+      return { success: false, message: 'অর্ডারটি খুঁজে পাওয়া যায়নি।' };
+    }
+
+    if (existing.status === 'delivered') {
+      return { success: false, message: 'অর্ডারটি ইতোমধ্যে ডেলিভারি সম্পন্ন হয়েছে, তাই বাতিল করা সম্ভব নয়।' };
+    }
+
+    if (existing.status === 'shipped') {
+      return { success: false, message: 'পার্সেলটি ইতোমধ্যে কুরিয়ারে হস্তান্তর করা হয়েছে। রিটার্নের জন্য অনুগ্রহ করে কাস্টমার কেয়ারে যোগাযোগ করুন।' };
+    }
+
+    if (existing.status === 'cancelled') {
+      return { success: false, message: 'অর্ডারটি ইতোমধ্যে বাতিল করা হয়েছে।' };
+    }
+
+    const cancelTimestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    const resolvedReason = reason?.trim() || 'গ্রাহকের অনুরোধে অর্ডার বাতিল করা হয়েছে';
+
+    const updatedOrder: Order = {
+      ...existing,
+      status: 'cancelled',
+      cancelledAt: cancelTimestamp,
+      cancelReason: resolvedReason,
+    };
+
+    setOrders(prev => {
+      const updated = prev.map(o => o.id === orderId ? updatedOrder : o);
+      try {
+        localStorage.setItem('ns_orders', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    try {
+      await setDoc(doc(db, 'orders', orderId), sanitizeForFirestore(updatedOrder), { merge: true });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `orders/${orderId}`);
+    }
+
+    // Trigger automated cancellation email notification to customer and admin
+    triggerOrderCancellationEmailNotification(updatedOrder, resolvedReason, settings)
+      .catch(err => console.warn('Cancel order email notification warning:', err));
+
+    return { success: true, message: 'আপনার অর্ডারটি সফলভাবে বাতিল করা হয়েছে।' };
   };
 
   // Products
@@ -1239,6 +1320,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setDirectCheckoutItem,
         trackingOrderId,
         setTrackingOrderId,
+        orderSuccessModalData,
+        setOrderSuccessModalData,
+        openOrderSuccessModal,
+        closeOrderSuccessModal,
         addToCart,
         removeFromCart,
         updateQuantity,
@@ -1249,6 +1334,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateOrderStatus,
         updateOrderDropshipping,
         deleteOrder,
+        cancelOrder,
         addProduct,
         updateProduct,
         deleteProduct,

@@ -10,8 +10,27 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.NODE_ENV === 'production' ? (process.env.PORT || 3000) : 3000;
 
+// Global CORS headers for all routes (enables mobile WebView, PWA, cross-origin admin requests)
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, api-key, secret-key');
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  next();
+});
+
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+// Health check endpoint for connectivity testing
+app.get('/api/health', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.json({ status: 'ok', time: new Date().toISOString() });
+});
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -97,7 +116,21 @@ app.get('/api/courier/steadfast/track', async (req, res) => {
 });
 
 // 2. API: Live Email Dispatch via Nodemailer / Google App Password
+app.get('/api/email/send', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.json({
+    success: true,
+    status: 'online',
+    message: 'ইমেইল ডিসপ্যাচ এন্ডপয়েন্ট সক্রিয় রয়েছে। POST রিকোয়েস্ট পাঠান।',
+    time: new Date().toISOString(),
+  });
+});
+
 app.post('/api/email/send', async (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
   try {
     const { to, cc, subject, html, smtpConfig } = req.body || {};
 
@@ -108,7 +141,7 @@ app.post('/api/email/send', async (req, res) => {
     const senderName = smtpConfig?.senderName || 'নারীর স্বপ্ন (Naarir Shopno)';
 
     if (!to) {
-      res.status(400).json({ success: false, error: 'Recipient email address (to) is missing.' });
+      res.status(400).json({ success: false, error: 'গ্রাহকের ইমেইল অ্যাড্রেস (to) পাওয়া যায়নি।' });
       return;
     }
 
@@ -126,6 +159,9 @@ app.post('/api/email/send', async (req, res) => {
       secure: port === 465,
       auth: { user, pass: pass.replace(/\s+/g, '') },
       tls: { rejectUnauthorized: false },
+      connectionTimeout: 12000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
 
     const info = await transporter.sendMail({
@@ -136,7 +172,7 @@ app.post('/api/email/send', async (req, res) => {
       html: html || '<p>অর্ডার নিশ্চিত করা হয়েছে।</p>',
     });
 
-    res.json({
+    res.status(200).json({
       success: true,
       messageId: info.messageId,
       message: `ইমেইলটি সফলভাবে সেন্ডার সার্ভারের মাধ্যমে ${to}-এর ইনবক্সে পাঠানো হয়েছে!`,
@@ -146,6 +182,8 @@ app.post('/api/email/send', async (req, res) => {
     let helpfulMsg = errMsg;
     if (errMsg.includes('Invalid login') || errMsg.includes('Username and Password not accepted')) {
       helpfulMsg = 'জিমেইল লগইন প্রত্যাখ্যান করেছে! জিমেইলের আসল পাসওয়ার্ডের বদলে ১৬ অক্ষরের Google App Password ব্যবহার করতে হবে।';
+    } else if (errMsg.includes('ETIMEDOUT') || errMsg.includes('ESOCKETTIMEDOUT')) {
+      helpfulMsg = 'জিমেইল সার্ভারের সাথে সংযোগে সময়সীমা অতিক্রম করেছে (Timeout)। নেটওয়ার্ক কানেকশন চেক করুন।';
     }
     res.status(500).json({ success: false, error: helpfulMsg });
   }

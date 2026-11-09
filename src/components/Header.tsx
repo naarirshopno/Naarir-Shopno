@@ -3,6 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { CategoryType } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/initialData';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   Phone, 
   Search, 
@@ -23,7 +24,8 @@ import {
   Tag,
   TrendingUp,
   ArrowRight,
-  SearchX
+  SearchX,
+  Globe
 } from 'lucide-react';
 
 const LiveClockBadge: React.FC<{ isMobile?: boolean }> = React.memo(({ isMobile }) => {
@@ -151,6 +153,8 @@ export const Header: React.FC = () => {
     searchQuery, 
     setSearchQuery
   } = useShop();
+
+  const { language, setLanguage, toggleLanguage, t, isEnglish } = useLanguage();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -514,7 +518,7 @@ export const Header: React.FC = () => {
                 <input
                   id="input-desktop-search"
                   type="text"
-                  placeholder="থ্রি-পিস, শাড়ি, কুর্তি, গাউন বা প্রোডাক্ট সার্চ করুন..."
+                  placeholder={t('nav.search_placeholder')}
                   value={searchQuery}
                   onFocus={() => setIsDesktopSearchOpen(true)}
                   onChange={(e) => {
@@ -539,7 +543,7 @@ export const Header: React.FC = () => {
                         setIsDesktopSearchOpen(true);
                       }}
                       className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                      title="মুছে ফেলুন"
+                      title={t('nav.clear_search')}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -554,15 +558,30 @@ export const Header: React.FC = () => {
 
           {/* Header Action Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Bilingual Language Switcher (Bangla / English) */}
+            <button
+              id="btn-language-header"
+              type="button"
+              onClick={toggleLanguage}
+              className="flex items-center gap-1 px-2 sm:px-2.5 py-1 text-xs font-bold rounded-full border transition-all cursor-pointer shadow-xs active:scale-95 bg-white hover:bg-rose-50 border-rose-200 text-slate-700 hover:border-rose-300"
+              title={isEnglish ? 'বাংলা ভাষায় পরিবর্তন করুন' : 'Switch to English'}
+              aria-label="Change Language"
+            >
+              <Globe className="w-3.5 h-3.5 text-rose-600" />
+              <span className={`text-[11px] ${!isEnglish ? 'text-rose-700 font-black' : 'text-slate-400'}`}>বাং</span>
+              <span className="text-slate-300 text-[10px]">/</span>
+              <span className={`text-[11px] ${isEnglish ? 'text-rose-700 font-black' : 'text-slate-400'}`}>EN</span>
+            </button>
+
             {/* Track Order Direct Button (Desktop) */}
             <button
               id="btn-track-header"
               onClick={() => navigate('/track')}
               className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all border border-slate-200 hover:border-rose-300 cursor-pointer"
-              title="অর্ডার ট্র্যাক করুন"
+              title={t('nav.track_order')}
             >
               <Truck className="w-3.5 h-3.5 text-rose-600" />
-              <span>অর্ডার ট্র্যাক</span>
+              <span>{t('nav.track_order')}</span>
             </button>
 
             {/* User Profile & Order History Button */}
@@ -570,11 +589,11 @@ export const Header: React.FC = () => {
               id="btn-profile-header"
               onClick={() => navigate('/profile')}
               className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all border border-slate-200 hover:border-rose-300 cursor-pointer"
-              title="গ্রাহক প্রোফাইল ও অর্ডার হিস্টোরি"
-              aria-label="গ্রাহক প্রোফাইল ও অর্ডার হিস্টোরি"
+              title={t('nav.profile')}
+              aria-label={t('nav.profile')}
             >
               <User className="w-3.5 h-3.5 text-rose-600" />
-              <span className="hidden sm:inline">প্রোফাইল</span>
+              <span className="hidden sm:inline">{t('nav.profile')}</span>
             </button>
 
             {/* Wishlist Button with Saved Items Count */}
@@ -582,8 +601,8 @@ export const Header: React.FC = () => {
               id="btn-wishlist-header"
               onClick={() => navigate('/wishlist')}
               className="relative p-2 text-slate-700 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all group flex items-center justify-center cursor-pointer"
-              title="পছন্দের তালিকা (উইশলিস্ট)"
-              aria-label="পছন্দের তালিকা (উইশলিস্ট)"
+              title={t('nav.wishlist')}
+              aria-label={t('nav.wishlist')}
             >
               <Heart 
                 className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${
@@ -602,8 +621,8 @@ export const Header: React.FC = () => {
               id="btn-admin-header"
               onClick={() => navigate('/admin')}
               className="p-2 text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all group flex items-center justify-center cursor-pointer"
-              title="এডমিন প্যানেল (মালিকের লগইন ও প্রোডাক্ট যোগ)"
-              aria-label="এডমিন প্যানেল"
+              title={t('nav.admin')}
+              aria-label={t('nav.admin')}
             >
               <ShieldCheck className="w-5 h-5 text-slate-600 group-hover:text-rose-600 transition-colors" />
             </button>
@@ -632,11 +651,11 @@ export const Header: React.FC = () => {
               id="btn-mobile-menu"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="flex items-center gap-1 p-1.5 sm:p-2 text-slate-700 hover:text-rose-600 hover:bg-rose-100/50 rounded-lg transition-colors"
-              title="ক্যাটাগরি ও মেনু"
-              aria-label="ক্যাটাগরি ও মেনু"
+              title={t('nav.categories')}
+              aria-label={t('nav.categories')}
             >
               {mobileMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
-              <span className="text-xs font-bold text-rose-700 hidden sm:inline">ক্যাটাগরি</span>
+              <span className="text-xs font-bold text-rose-700 hidden sm:inline">{t('nav.categories')}</span>
             </button>
           </div>
         </div>
@@ -652,7 +671,7 @@ export const Header: React.FC = () => {
             <input
               id="input-mobile-search"
               type="text"
-              placeholder="থ্রি-পিস, শাড়ি, কুর্তি সার্চ করুন..."
+              placeholder={t('nav.search_placeholder')}
               value={searchQuery}
               onFocus={() => setIsMobileSearchOpen(true)}
               onChange={(e) => {
@@ -677,7 +696,7 @@ export const Header: React.FC = () => {
                     setIsMobileSearchOpen(true);
                   }}
                   className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                  title="মুছে ফেলুন"
+                  title={t('nav.clear_search')}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -696,7 +715,7 @@ export const Header: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-1.5 flex items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
-              ক্যাটাগরি:
+              {t('nav.categories')}:
             </span>
             {categories.map((cat) => {
               const isActive = location.pathname === `/category/${cat.id}` || (cat.id === 'all' && (location.pathname === '/' || location.pathname === '/category/all'));
@@ -721,7 +740,7 @@ export const Header: React.FC = () => {
                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
                   )}
-                  <span>{cat.label}</span>
+                  <span>{cat.id === 'all' ? t('nav.all_collections') : cat.label}</span>
                 </button>
               );
             })}
@@ -730,7 +749,7 @@ export const Header: React.FC = () => {
           <div className="flex items-center gap-2 shrink-0 text-slate-500 font-medium">
             <span className="flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-semibold">
               <Sparkles className="w-3 h-3 text-amber-500" />
-              <span>নতুন স্টক লাইভ</span>
+              <span>{isEnglish ? 'New Stock Live' : 'নতুন স্টক লাইভ'}</span>
             </span>
           </div>
         </div>
@@ -739,12 +758,40 @@ export const Header: React.FC = () => {
       {/* Drawer Menu with Categories Navigation inside the SVG Menu */}
       {mobileMenuOpen && (
         <div className="bg-white border-b border-rose-200 shadow-2xl px-4 py-4 space-y-4 animate-fadeIn">
+          {/* Mobile Language Switcher Row */}
+          <div className="flex items-center justify-between pb-3 border-b border-rose-100">
+            <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <Globe className="w-4 h-4 text-rose-600" />
+              <span>{isEnglish ? 'Language / ভাষা:' : 'ভাষা / Language:'}</span>
+            </span>
+            <div className="inline-flex rounded-full p-0.5 bg-rose-50 border border-rose-200">
+              <button
+                type="button"
+                onClick={() => setLanguage('bn')}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                  !isEnglish ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-600 hover:text-rose-600'
+                }`}
+              >
+                বাংলা
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage('en')}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                  isEnglish ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-600 hover:text-rose-600'
+                }`}
+              >
+                English
+              </button>
+            </div>
+          </div>
+
           {/* Category Navigation (<nav>) inside the SVG menu */}
           <nav className="space-y-2.5">
             <div className="flex items-center justify-between border-b border-rose-100 pb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-rose-700 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></span>
-                প্রোডাক্ট ক্যাটাগরি সমূহ
+                {t('nav.categories')}
               </span>
               <span className="text-[11px] text-slate-500 font-medium">
                 {categories.length} টি ক্যাটাগরি

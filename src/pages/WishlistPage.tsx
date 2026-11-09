@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { ProductCard } from '../components/ProductCard';
-import { Heart, ArrowLeft, ChevronRight, ShoppingBag, Trash2 } from 'lucide-react';
+import { Heart, ArrowLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 
 export const WishlistPage: React.FC = () => {
-  const { wishlist, products, toggleWishlist } = useShop();
+  const { wishlist, products } = useShop();
+  const { isEnglish, formatNumber } = useLanguage();
   const navigate = useNavigate();
 
   const savedProducts = products.filter((p) => wishlist.includes(p.id));
@@ -16,10 +18,12 @@ export const WishlistPage: React.FC = () => {
       <div className="flex items-center justify-between gap-3 text-xs text-slate-500 border-b border-rose-100 pb-3">
         <div className="flex items-center gap-1.5 flex-wrap">
           <Link to="/" className="text-slate-600 hover:text-rose-600 font-medium">
-            হোম
+            {isEnglish ? 'Home' : 'হোম'}
           </Link>
           <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-rose-700 font-bold">পছন্দের তালিকা (উইশলিস্ট)</span>
+          <span className="text-rose-700 font-bold">
+            {isEnglish ? 'Saved Wishlist' : 'পছন্দের তালিকা (উইশলিস্ট)'}
+          </span>
         </div>
 
         <button
@@ -27,7 +31,7 @@ export const WishlistPage: React.FC = () => {
           className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 hover:text-rose-600 bg-white hover:bg-rose-50 px-3 py-1.5 rounded-full border border-slate-200 transition shadow-2xs cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>পেছনে ফিরুন</span>
+          <span>{isEnglish ? 'Go Back' : 'পেছনে ফিরুন'}</span>
         </button>
       </div>
 
@@ -36,13 +40,17 @@ export const WishlistPage: React.FC = () => {
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-xs px-3 py-1 rounded-full text-xs font-semibold">
             <Heart className="w-4 h-4 fill-white" />
-            <span>আপনার পছন্দের পোশাকসমূহ</span>
+            <span>{isEnglish ? 'Your Favorite Dresses' : 'আপনার পছন্দের পোশাকসমূহ'}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black font-['Hind_Siliguri']">
-            সংরক্ষিত উইশলিস্ট ({savedProducts.length} টি)
+            {isEnglish
+              ? `Saved Wishlist (${formatNumber(savedProducts.length)} items)`
+              : `সংরক্ষিত উইশলিস্ট (${formatNumber(savedProducts.length)} টি)`}
           </h1>
           <p className="text-xs sm:text-sm text-pink-100">
-            আপনার পরবর্তীতে কেনার জন্য সংরক্ষিত পছন্দের পোশাকগুলো এখানে একনজরে পেয়ে যাবেন।
+            {isEnglish
+              ? 'Find all your saved favorites here to purchase whenever you wish.'
+              : 'আপনার পরবর্তীতে কেনার জন্য সংরক্ষিত পছন্দের পোশাকগুলো এখানে একনজরে পেয়ে যাবেন।'}
           </p>
         </div>
       </div>
@@ -50,8 +58,8 @@ export const WishlistPage: React.FC = () => {
       {/* Product Grid or Empty State */}
       {savedProducts.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-          {savedProducts.map((p) => (
-            <ProductCard key={p.id} product={p} />
+          {savedProducts.map((p, idx) => (
+            <ProductCard key={p.id} product={p} index={idx} />
           ))}
         </div>
       ) : (
@@ -60,10 +68,12 @@ export const WishlistPage: React.FC = () => {
             <Heart className="w-8 h-8" />
           </div>
           <h2 className="text-xl font-bold text-slate-800 font-['Hind_Siliguri']">
-            আপনার পছন্দের তালিকা বর্তমানে খালি
+            {isEnglish ? 'Your wishlist is currently empty' : 'আপনার পছন্দের তালিকা বর্তমানে খালি'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-            যেকোনো পোশাকের কার্ডের ওপরের হার্ট (❤️) আইকনে ক্লিক করে আপনার পছন্দের তালিকায় যুক্ত করে রাখুন।
+            {isEnglish
+              ? 'Click the heart (❤️) icon on any dress card to save it to your wishlist.'
+              : 'যেকোনো পোশাকের কার্ডের ওপরের হার্ট (❤️) আইকনে ক্লিক করে আপনার পছন্দের তালিকায় যুক্ত করে রাখুন।'}
           </p>
           <div className="pt-2">
             <Link
@@ -71,7 +81,7 @@ export const WishlistPage: React.FC = () => {
               className="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm px-6 py-3 rounded-full shadow-md transition"
             >
               <ShoppingBag className="w-4 h-4" />
-              <span>পোশাক কালেকশন দেখুন</span>
+              <span>{isEnglish ? 'Browse Dress Collection' : 'পোশাক কালেকশন দেখুন'}</span>
             </Link>
           </div>
         </div>

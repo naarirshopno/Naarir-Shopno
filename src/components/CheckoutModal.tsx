@@ -31,7 +31,8 @@ export const CheckoutModal: React.FC = () => {
     settings, 
     createOrder,
     setIsOrderTrackingOpen,
-    setTrackingOrderId
+    setTrackingOrderId,
+    openOrderSuccessModal
   } = useShop();
 
   // Active items being checked out
@@ -211,6 +212,8 @@ export const CheckoutModal: React.FC = () => {
     }
 
     setPlacedOrder(newOrder);
+    openOrderSuccessModal(newOrder);
+    setIsCheckoutOpen(false);
   };
 
   const handleClose = () => {

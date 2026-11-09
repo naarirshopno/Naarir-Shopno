@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Truck, ShieldCheck, RefreshCw, Sparkles, Phone, ArrowRight } from 'lucide-react';
 
 export const HeroBanner: React.FC = () => {
   const { settings } = useShop();
+  const { isEnglish } = useLanguage();
 
   // Dynamic Open / Closed calculation: 10:00 AM to 10:00 PM (10:00 - 22:00 Asia/Dhaka)
   const [isOpenNow, setIsOpenNow] = useState<boolean>(() => {
@@ -67,8 +69,12 @@ export const HeroBanner: React.FC = () => {
               <Truck className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs sm:text-sm font-bold text-slate-800">সারাদেশে দ্রুত ডেলিভারি</h4>
-              <p className="text-[11px] text-slate-600">ঢাকার ভেতরে ২৪-৪৮ ঘণ্টা</p>
+              <h4 className="text-xs sm:text-sm font-bold text-slate-800">
+                {isEnglish ? 'Fast Nationwide Delivery' : 'সারাদেশে দ্রুত ডেলিভারি'}
+              </h4>
+              <p className="text-[11px] text-slate-600">
+                {isEnglish ? '24-48 hrs in Dhaka' : 'ঢাকার ভেতরে ২৪-৪৮ ঘণ্টা'}
+              </p>
             </div>
           </div>
 
@@ -78,8 +84,12 @@ export const HeroBanner: React.FC = () => {
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs sm:text-sm font-bold text-slate-800">১০০% কোয়ালিটি গ্যারান্টি</h4>
-              <p className="text-[11px] text-slate-600">কালার ও ফেব্রিক শতভাগ খাঁটি</p>
+              <h4 className="text-xs sm:text-sm font-bold text-slate-800">
+                {isEnglish ? '100% Quality Guarantee' : '১০০% কোয়ালিটি গ্যারান্টি'}
+              </h4>
+              <p className="text-[11px] text-slate-600">
+                {isEnglish ? 'Pure fabric & color fast' : 'কালার ও ফেব্রিক শতভাগ খাঁটি'}
+              </p>
             </div>
           </div>
 
@@ -89,8 +99,12 @@ export const HeroBanner: React.FC = () => {
               <RefreshCw className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs sm:text-sm font-bold text-slate-800">সহজ রিটার্ন ও এক্সচেঞ্জ</h4>
-              <p className="text-[11px] text-slate-600">৩ দিনের মধ্যে পরিবর্তনের সুবিধা</p>
+              <h4 className="text-xs sm:text-sm font-bold text-slate-800">
+                {isEnglish ? 'Easy Return & Exchange' : 'সহজ রিটার্ন ও এক্সচেঞ্জ'}
+              </h4>
+              <p className="text-[11px] text-slate-600">
+                {isEnglish ? '3-day size replacement' : '৩ দিনের মধ্যে পরিবর্তনের সুবিধা'}
+              </p>
             </div>
           </div>
 
@@ -103,8 +117,12 @@ export const HeroBanner: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-1.5 flex-wrap">
-                <h4 className="text-xs sm:text-sm font-bold text-slate-800">কাস্টমার সাপোর্ট</h4>
-                <span className="text-[9px] font-bold bg-emerald-100/80 text-emerald-800 px-1.5 py-0.5 rounded">সরাসরি ফোন</span>
+                <h4 className="text-xs sm:text-sm font-bold text-slate-800">
+                  {isEnglish ? 'Customer Care' : 'কাস্টমার সাপোর্ট'}
+                </h4>
+                <span className="text-[9px] font-bold bg-emerald-100/80 text-emerald-800 px-1.5 py-0.5 rounded">
+                  {isEnglish ? 'Direct Call' : 'সরাসরি ফোন'}
+                </span>
               </div>
               <a
                 href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`}
@@ -116,12 +134,12 @@ export const HeroBanner: React.FC = () => {
                 {isOpenNow ? (
                   <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-white/95 px-2 py-0.5 rounded-full border border-emerald-300">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-xs"></span>
-                    <span>ওপেন</span>
+                    <span>{isEnglish ? 'OPEN' : 'ওপেন'}</span>
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-600 bg-white/95 px-2 py-0.5 rounded-full border border-red-300">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                    <span>ক্লোজ</span>
+                    <span>{isEnglish ? 'CLOSED' : 'ক্লোজ'}</span>
                   </span>
                 )}
               </div>
@@ -179,18 +197,18 @@ export const HeroBanner: React.FC = () => {
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2 text-xs sm:text-sm font-bold font-['Hind_Siliguri'] text-pink-200">
                   <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>এক্সক্লুসিভ লাইভ কালেকশন ২০২৬</span>
+                  <span>{isEnglish ? 'Exclusive Live Collection 2026' : 'এক্সক্লুসিভ লাইভ কালেকশন ২০২৬'}</span>
                 </div>
                 <p className="text-[11px] sm:text-xs text-slate-300 hidden sm:block">
-                  প্রিমিয়াম জর্জেট থ্রি-পিস, জামদানি শাড়ি ও ডিজাইনার কুর্তির সেরা সংগ্রহ
+                  {isEnglish ? 'Best collection of premium three-pieces, jamdani sarees & designer kurtis' : 'প্রিমিয়াম জর্জেট থ্রি-পিস, জামদানি শাড়ি ও ডিজাইনার কুর্তির সেরা সংগ্রহ'}
                 </p>
               </div>
 
               <button
                 onClick={scrollToProducts}
-                className="bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white text-xs sm:text-sm font-bold px-4 sm:px-6 py-2 rounded-xl shadow-lg transition flex items-center gap-1.5 active:scale-95 shrink-0"
+                className="bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white text-xs sm:text-sm font-bold px-4 sm:px-6 py-2 rounded-xl shadow-lg transition flex items-center gap-1.5 active:scale-95 shrink-0 cursor-pointer"
               >
-                <span>অর্ডার করুন</span>
+                <span>{isEnglish ? 'Order Now' : 'অর্ডার করুন'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

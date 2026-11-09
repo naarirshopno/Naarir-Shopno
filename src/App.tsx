@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { LanguageProvider } from './context/LanguageContext';
 import { ShopProvider } from './context/ShopContext';
 import { Header } from './components/Header';
 import { CartDrawer } from './components/CartDrawer';
@@ -8,6 +9,7 @@ import { CustomerChatDrawer } from './components/CustomerChatDrawer';
 import { FloatingActions } from './components/FloatingActions';
 import { BackgroundMusicPlayer } from './components/BackgroundMusicPlayer';
 import { Footer } from './components/Footer';
+import { OrderSuccessModal } from './components/OrderSuccessModal';
 
 // Full Page Components (Multiple Page System)
 import { HomePage } from './pages/HomePage';
@@ -119,16 +121,21 @@ const AppLayout: React.FC = () => {
           <CustomerChatDrawer />
         </>
       )}
+
+      {/* 5. Order Success Confirmation Modal */}
+      <OrderSuccessModal />
     </div>
   );
 };
 
 export default function App() {
   return (
-    <ShopProvider>
-      <BrowserRouter>
-        <AppLayout />
-      </BrowserRouter>
-    </ShopProvider>
+    <LanguageProvider>
+      <ShopProvider>
+        <BrowserRouter>
+          <AppLayout />
+        </BrowserRouter>
+      </ShopProvider>
+    </LanguageProvider>
   );
 }
