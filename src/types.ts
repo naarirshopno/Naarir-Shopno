@@ -16,7 +16,7 @@ export interface CustomCategoryItem {
   image: string;
 }
 
-export type ProductFulfillmentType = 'own' | 'dropshipping';
+export type ProductFulfillmentType = 'own' | 'supplier';
 
 export interface Product {
   id: string;
@@ -27,7 +27,13 @@ export interface Product {
   price: number;
   regularPrice: number;
   wholesalePrice?: number;
-  fulfillmentType?: ProductFulfillmentType; // 'own' (দোকানের নিজস্ব স্টক) or 'dropshipping' (ড্রপশিপিং সরবরাহকারী)
+  resellerPrice?: number;
+  fulfillmentType?: ProductFulfillmentType; // 'own' (নিজস্ব স্টক) | 'supplier' (অন্যের/সাপ্লায়ারের প্রোডাক্ট API)
+  supplierId?: string;
+  supplierName?: string;
+  supplierSku?: string;
+  supplierPrice?: number; // সাপ্লায়ারের পাইকারি ক্রয়মূল্য (Supplier Wholesale Cost)
+  supplierProfit?: number; // আপনার নিট লাভ (Your Profit)
   images: string[];
   rating: number;
   reviewsCount: number;
@@ -109,12 +115,72 @@ export interface Order {
   deliveredAt?: string;
   cancelledAt?: string;
   cancelReason?: string;
-  dropshipping?: {
-    synced: boolean;
-    syncedAt?: string;
-    dropshippingOrderId?: string;
-    status?: string;
+  isResellerOrder?: boolean;
+  resellerDetails?: {
+    resellerName: string;
+    resellerPhone: string;
+    payoutMethod: 'bkash' | 'nagad';
+    payoutNumber: string;
+    customerCollectionAmount: number;
+    resellerProfit: number;
+    resellerWholesaleTotal?: number;
+    payoutStatus?: 'pending' | 'paid';
+    resellerStoreName?: string;
   };
+  supplierForwarding?: SupplierOrderForwarding;
+  dropshipping?: {
+    provider?: string;
+    status?: string;
+    forwardedAt?: string;
+    externalOrderId?: string;
+    resellerOrderNumber?: string;
+    trackingId?: string;
+    courier?: string;
+    notes?: string;
+  };
+}
+
+export interface SupplierOrderForwarding {
+  forwarded: boolean;
+  forwardedAt?: string;
+  supplierId?: string;
+  supplierName?: string;
+  supplierOrderId?: string;
+  supplierTrackingCode?: string;
+  courierName?: string;
+  status?: 'pending' | 'sent' | 'processing' | 'shipped' | 'failed';
+  error?: string;
+  wholesaleCost?: number;
+  expectedProfit?: number;
+}
+
+export interface SupplierApiConfig {
+  id: string;
+  name: string; // e.g., 'মহসাগর ড্রপশিপিং', 'Dropshipping.com.bd', 'বিডি ফ্যাশন হাব', বা 'কাস্টম ভেন্ডর'
+  providerType?: 'mohasagor' | 'dropshipping_bd' | 'custom_api';
+  baseUrl: string;
+  apiEndpoint?: string;
+  apiKey: string;
+  secretKey?: string;
+  apiSecret?: string;
+  accountPhone?: string;
+  enabled: boolean;
+  autoForwardOrders: boolean;
+  defaultProfitMargin: number;
+  defaultMarginPercent?: number;
+  defaultProfitMarginType?: 'fixed' | 'percentage';
+  connectionStatus: 'connected' | 'disconnected' | 'error';
+  lastConnectedAt?: string;
+  lastStatusMessage?: string;
+}
+
+export interface ResellerProgramSettings {
+  enabled: boolean;
+  noticeText?: string;
+  whatsappNumber?: string;
+  whatsappGroupLink?: string;
+  minProfitNotice?: string;
+  registrationNotice?: string;
 }
 
 export interface DropshippingApiSettings {
@@ -172,8 +238,11 @@ export interface StoreSettings {
   footerBgImage?: string;
   categories?: CustomCategoryItem[];
   categoryImages?: Record<string, string>;
+  supplierApiConfigs?: SupplierApiConfig[];
+  activeSupplierId?: string;
   dropshippingApi?: DropshippingApiSettings;
   mohasagorApi?: MohasagorApiSettings;
+  resellerProgram?: ResellerProgramSettings;
   backgroundMusic?: {
     enabled?: boolean;
     audioUrl?: string;

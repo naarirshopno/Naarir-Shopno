@@ -1,7 +1,7 @@
 import React from 'react';
 import { useShop } from '../context/ShopContext';
 import { useLanguage } from '../context/LanguageContext';
-import { ArrowUpDown, X, Tag, Sparkles } from 'lucide-react';
+import { ArrowUpDown, X, Sparkles } from 'lucide-react';
 import { CategoryType } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/initialData';
 
@@ -17,8 +17,7 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({ totalCount }) =>
     setSortBy, 
     searchQuery, 
     setSearchQuery,
-    settings,
-    products
+    settings
   } = useShop();
 
   const { t, formatNumber, isEnglish } = useLanguage();

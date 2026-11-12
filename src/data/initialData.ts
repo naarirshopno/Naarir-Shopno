@@ -1,4 +1,5 @@
 import { Product, StoreSettings, Order, CustomerMessage, CustomCategoryItem } from '../types';
+import { DEFAULT_SUPPLIER_CONFIGS } from '../services/supplierApiService';
 
 export const DEFAULT_CATEGORIES: CustomCategoryItem[] = [
   {
@@ -148,30 +149,9 @@ export const INITIAL_SETTINGS: StoreSettings = {
     jewellery_bags: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=400&q=80",
     cat_1793739806022: "https://shopbasebd.com/public/uploads/shop/products/1791614122_L_1.jpeg",
   },
-  dropshippingApi: {
-    enabled: false,
-    apiKey: "",
-    apiSecret: "",
-    baseUrl: "https://www.dropshipping.com.bd/api/v1",
-    resellerId: "",
-    resellerPhone: "01911-541717",
-    autoForwardOrders: false,
-    testMode: true,
-    defaultCourier: "Steadfast Courier",
-    webhookUrl: "https://naarirshopno.vercel.app/api/dropshipping/webhook",
-    connectionStatus: "disconnected",
-    lastStatusMessage: "এখনো কোনো API কানেকশন কনফিগার করা হয়নি",
-  },
-  mohasagorApi: {
-    enabled: true,
-    apiKey: "A8niclztH9JtzS4t",
-    secretKey: "2ff380917a11d3a7c97bcf6dddfb8adf38194c7d6b726ab12c4d0d5fb136fef8",
-    baseUrl: "https://mohasagor.com.bd/api/reseller/product",
-    defaultProfitMargin: 150,
-    autoCategorize: true,
-    connectionStatus: "connected",
-    lastStatusMessage: "মহসাগর ড্রপশিপিং API ক্রেডেনশিয়ালস সংরক্ষিত ও সক্রিয়",
-  },
+
+  supplierApiConfigs: DEFAULT_SUPPLIER_CONFIGS,
+  activeSupplierId: 'supplier-dropshipping-bd',
   backgroundMusic: {
     enabled: true,
     audioUrl: "/audio/track-piano-serenade.mp3",
@@ -476,10 +456,25 @@ const RAW_DEMO_SAMPLE_PRODUCTS: Product[] = [
   },
 ];
 
-export const DEMO_SAMPLE_PRODUCTS: Product[] = RAW_DEMO_SAMPLE_PRODUCTS.map((p) => ({
-  ...p,
-  fulfillmentType: 'own' as const,
-}));
+export const DEMO_SAMPLE_PRODUCTS: Product[] = RAW_DEMO_SAMPLE_PRODUCTS.map((p, idx) => {
+  if (idx >= 4 && idx <= 7) {
+    const supplierCost = Math.round(((p.price || 1500) * 0.72) / 50) * 50;
+    const profit = (p.price || 1500) - supplierCost;
+    return {
+      ...p,
+      fulfillmentType: 'supplier' as const,
+      supplierId: 'supplier-dropshipping-bd',
+      supplierName: 'Dropshipping.com.bd',
+      supplierSku: `SP-${(p.sku || '').replace('NS-', '')}`,
+      supplierPrice: supplierCost,
+      supplierProfit: profit,
+    };
+  }
+  return {
+    ...p,
+    fulfillmentType: 'own' as const,
+  };
+});
 
 export const INITIAL_PRODUCTS: Product[] = [];
 export const INITIAL_ORDERS: Order[] = [];

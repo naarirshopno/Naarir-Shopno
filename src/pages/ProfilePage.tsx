@@ -62,29 +62,49 @@ export const ProfilePage: React.FC = () => {
   // Selected order for cancellation modal
   const [selectedCancelOrder, setSelectedCancelOrder] = useState<Order | null>(null);
 
-  // 1. Profile State (Stored in localStorage)
+  // 1. Profile State (Stored in localStorage strictly for this device)
   const [profile, setProfile] = useState<CustomerProfile>(() => {
     try {
       const saved = localStorage.getItem('ns_customer_profile');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            name: parsed.name || '',
+            phone: parsed.phone || '',
+            altPhone: parsed.altPhone || '',
+            email: parsed.email || '',
+            district: parsed.district || 'ঢাকা',
+            thana: parsed.thana || '',
+            address: parsed.address || '',
+          };
+        }
+      }
     } catch {
       // fallback
     }
-    // Prefill from the most recent order if available
-    if (orders && orders.length > 0) {
-      const last = orders[0];
-      return {
-        name: last.customerName || '',
-        phone: last.phone || '',
-        altPhone: last.altPhone || '',
-        email: '',
-        district: last.district || 'ঢাকা',
-        thana: last.thana || '',
-        address: last.address || '',
-      };
-    }
+
+    // Check if an order was placed from this device
+    try {
+      const myIds: string[] = JSON.parse(localStorage.getItem('ns_my_order_ids') || '[]');
+      if (myIds.length > 0) {
+        const myLast = orders.find(o => myIds.includes(o.id));
+        if (myLast) {
+          return {
+            name: myLast.customerName || '',
+            phone: myLast.phone || '',
+            altPhone: myLast.altPhone || '',
+            email: myLast.customerEmail || '',
+            district: myLast.district || 'ঢাকা',
+            thana: myLast.thana || '',
+            address: myLast.address || '',
+          };
+        }
+      }
+    } catch {}
+
     return {
-      name: 'সম্মানিত গ্রাহক',
+      name: '',
       phone: '',
       altPhone: '',
       email: '',
@@ -104,6 +124,10 @@ export const ProfilePage: React.FC = () => {
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [expandedTrackerOrderId, setExpandedTrackerOrderId] = useState<string | null>(null);
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(null);
+
+  // Quick phone lookup input for customers who ordered from another device
+  const [lookupPhoneInput, setLookupPhoneInput] = useState('');
+  const [lookupFeedback, setLookupFeedback] = useState<string | null>(null);
 
   // Re-order notification toast
   const [reorderToast, setReorderToast] = useState<{
@@ -140,25 +164,73 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  // Filter orders matching the user's phone or all orders if no phone is set
-  const userOrders = useMemo(() => {
-    const cleanUserPhone = profile.phone.replace(/[^0-9]/g, '');
+  // Lookup previous orders by phone number
+  const handleLookupByPhone = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = lookupPhoneInput.replace(/[^0-9]/g, '');
+    if (clean.length < 6) {
+      setLookupFeedback(isEnglish ? 'Please enter a valid phone number.' : 'অনুগ্রহ করে সঠিক ফোন নম্বর দিন (যেমন: 01711...)');
+      return;
+    }
+    const found = orders.filter(o => {
+      const p1 = (o.phone || '').replace(/[^0-9]/g, '');
+      const p2 = (o.altPhone || '').replace(/[^0-9]/g, '');
+      return p1 === clean || p2 === clean || (clean.length >= 10 && (p1.endsWith(clean.slice(-10)) || p2.endsWith(clean.slice(-10))));
+    });
+    if (found.length > 0) {
+      const updated = {
+        ...profile,
+        phone: clean,
+        name: profile.name || found[0].customerName || '',
+        district: profile.district || found[0].district || 'ঢাকা',
+        thana: profile.thana || found[0].thana || '',
+        address: profile.address || found[0].address || '',
+      };
+      setProfile(updated);
+      try {
+        localStorage.setItem('ns_customer_profile', JSON.stringify(updated));
+        const currentIds: string[] = JSON.parse(localStorage.getItem('ns_my_order_ids') || '[]');
+        const merged = Array.from(new Set([...found.map(o => o.id), ...currentIds]));
+        localStorage.setItem('ns_my_order_ids', JSON.stringify(merged));
+      } catch {}
+      setLookupFeedback(isEnglish ? `Found ${found.length} orders linked to your phone!` : `আপনার ${found.length}টি পূর্ববর্তী অর্ডার পাওয়া গেছে!`);
+      setTimeout(() => setLookupFeedback(null), 4000);
+    } else {
+      setLookupFeedback(isEnglish ? 'No orders found matching this phone number.' : 'এই ফোন নম্বরে কোনো পূর্ববর্তী অর্ডার খুঁজে পাওয়া যায়নি।');
+    }
+  };
 
-    // If customer has a phone number saved, prefer matching their phone
-    let list = orders;
-    if (cleanUserPhone.length >= 6) {
-      const matched = orders.filter(o => {
-        const orderPhone = (o.phone || '').replace(/[^0-9]/g, '');
-        const orderAltPhone = (o.altPhone || '').replace(/[^0-9]/g, '');
-        return orderPhone.includes(cleanUserPhone) || orderAltPhone.includes(cleanUserPhone);
-      });
-      // If we found matching orders for this phone, use them. Otherwise show all recent device orders
-      if (matched.length > 0) {
-        list = matched;
-      }
+  // Filter orders matching ONLY this customer's device orders or their phone number
+  const userOrders = useMemo(() => {
+    let deviceOrderIds: string[] = [];
+    try {
+      deviceOrderIds = JSON.parse(localStorage.getItem('ns_my_order_ids') || '[]');
+    } catch {}
+
+    const cleanUserPhone = (profile.phone || '').replace(/[^0-9]/g, '');
+
+    // If customer has neither placed an order on this device nor saved a valid phone number,
+    // they have no order history yet (NEVER show other customers' orders!)
+    if (deviceOrderIds.length === 0 && cleanUserPhone.length < 6) {
+      return [];
     }
 
-    return list;
+    const matched = orders.filter((o) => {
+      // 1. Was this order placed from this browser/device?
+      if (deviceOrderIds.includes(o.id)) return true;
+
+      // 2. Does this order match the customer's phone number?
+      if (cleanUserPhone.length >= 6) {
+        const orderPhone = (o.phone || '').replace(/[^0-9]/g, '');
+        const orderAltPhone = (o.altPhone || '').replace(/[^0-9]/g, '');
+        if (orderPhone === cleanUserPhone || orderAltPhone === cleanUserPhone) return true;
+        if (cleanUserPhone.length >= 10 && (orderPhone.endsWith(cleanUserPhone.slice(-10)) || orderAltPhone.endsWith(cleanUserPhone.slice(-10)))) return true;
+      }
+
+      return false;
+    });
+
+    return matched;
   }, [orders, profile.phone]);
 
   // Apply search query and status filter
@@ -732,7 +804,7 @@ export const ProfilePage: React.FC = () => {
                     : (isEnglish ? 'You have no previous purchase records in this account yet. Order your favorite dress today!' : 'আপনার এই অ্যাকাউন্টে এখনও কোনো পূর্ববর্তী ক্রয়ের রেকর্ড নেই। আপনার পছন্দের পোশাকটি এখনই অর্ডার করুন!')}
                 </p>
               </div>
-              <div className="pt-2">
+              <div className="pt-2 flex flex-col items-center gap-3">
                 <button
                   onClick={() => navigate('/')}
                   className="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-md transition cursor-pointer"
@@ -740,6 +812,33 @@ export const ProfilePage: React.FC = () => {
                   <Sparkles className="w-4 h-4" />
                   <span>{isEnglish ? 'Explore Latest Collection' : 'লেটেস্ট কালেকশন দেখুন'}</span>
                 </button>
+
+                {/* Quick Phone Lookup Box */}
+                <div className="mt-4 pt-4 border-t border-rose-100 max-w-md w-full text-center">
+                  <p className="text-xs font-bold text-slate-700 mb-2">
+                    {isEnglish ? 'Ordered before from another device or phone?' : 'আগে অন্য মোবাইল বা কম্পিউটার থেকে অর্ডার করেছিলেন?'}
+                  </p>
+                  <form onSubmit={handleLookupByPhone} className="flex gap-2">
+                    <input
+                      type="tel"
+                      value={lookupPhoneInput}
+                      onChange={(e) => setLookupPhoneInput(e.target.value)}
+                      placeholder={isEnglish ? 'Enter your 11-digit phone number' : 'আপনার মোবাইল নম্বর দিন (যেমন: 01711...)'}
+                      className="flex-1 px-3 py-2 text-xs bg-rose-50/50 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono text-center sm:text-left"
+                    />
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shrink-0 cursor-pointer"
+                    >
+                      {isEnglish ? 'Find My Orders' : 'আমার অর্ডার খুঁজুন'}
+                    </button>
+                  </form>
+                  {lookupFeedback && (
+                    <p className={`text-[11px] font-semibold mt-2.5 ${lookupFeedback.includes('✅') || lookupFeedback.includes('পাওয়া গেছে') ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {lookupFeedback}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           ) : (

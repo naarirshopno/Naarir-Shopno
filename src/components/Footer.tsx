@@ -191,6 +191,7 @@ export const Footer: React.FC = () => {
                   {isEnglish ? 'Parcel Tracking' : 'পার্সেল ট্র্যাকিং'}
                 </Link>
               </li>
+
               <li>
                 <Link to="/delivery-info" className="hover:text-rose-400 transition text-left block">
                   {isEnglish ? 'Delivery & Charges' : 'ডেলিভারি চার্জ ও সময়'}

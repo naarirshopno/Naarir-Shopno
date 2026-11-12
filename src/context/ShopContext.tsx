@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { Product, CartItem, Order, StoreSettings, CustomerMessage, CategoryType, OrderStatus, ProductReview, CustomCategoryItem } from '../types';
+import { Product, CartItem, Order, StoreSettings, CustomerMessage, CategoryType, OrderStatus, ProductReview, CustomCategoryItem, ProductFulfillmentType, SupplierOrderForwarding } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_SETTINGS, INITIAL_MESSAGES, DEFAULT_CATEGORIES } from '../data/initialData';
 import { INITIAL_PRODUCT_REVIEWS, getDefaultReviewsForProduct } from '../data/initialReviews';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { runFirestoreHealthCheck, HealthCheckResult } from '../services/dbHealthCheck';
 import { triggerOrderEmailNotification, triggerOrderCancellationEmailNotification } from '../services/emailNotificationService';
+import { DEFAULT_SUPPLIER_CONFIGS, isRemovedSupplier } from '../services/supplierApiService';
 import { 
   collection, 
   doc, 
@@ -36,6 +37,8 @@ interface ShopContextType {
   setSortBy: (sort: string) => void;
   priceRange: [number, number];
   setPriceRange: (range: [number, number]) => void;
+  productSourceFilter: 'all' | 'own' | 'supplier';
+  setProductSourceFilter: (filter: 'all' | 'own' | 'supplier') => void;
   resetFilters: () => void;
   
   // Modals & Drawers
@@ -88,6 +91,8 @@ interface ShopContextType {
   createOrder: (order: Omit<Order, 'id' | 'createdAt'>) => Order;
   updateOrderStatus: (orderId: string, status: OrderStatus, courier?: Order['courier'], cancelReason?: string) => void;
   updateOrderDropshipping: (orderId: string, dropshippingData: NonNullable<Order['dropshipping']>) => void;
+  updateOrderSupplierForwarding: (orderId: string, forwardingData: NonNullable<Order['supplierForwarding']>) => void;
+  updateOrderResellerPayout?: (orderId: string, payoutStatus: 'pending' | 'paid') => void;
   deleteOrder: (orderId: string) => void;
   cancelOrder: (orderId: string, reason?: string) => Promise<{ success: boolean; message: string }>;
   
@@ -232,9 +237,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           smtpUser: parsed.emailSettings.smtpUser?.toLowerCase().includes('aliislam01911') ? 'NaarirShopno@Gmail.com' : (parsed.emailSettings.smtpUser || 'NaarirShopno@Gmail.com'),
         } : INITIAL_SETTINGS.emailSettings;
 
+        const cleanedSupplierConfigs = Array.isArray(parsed.supplierApiConfigs)
+          ? parsed.supplierApiConfigs.filter((c: any) => !isRemovedSupplier(c))
+          : DEFAULT_SUPPLIER_CONFIGS;
+
         return {
           ...INITIAL_SETTINGS,
           ...parsed,
+          supplierApiConfigs: cleanedSupplierConfigs.length > 0 ? cleanedSupplierConfigs : DEFAULT_SUPPLIER_CONFIGS,
+          activeSupplierId: parsed.activeSupplierId === 'supplier-mohasagor' ? 'supplier-dropshipping-bd' : parsed.activeSupplierId,
+          mohasagorApi: undefined,
           officeAddress,
           officeEmail,
           emailSettings,
@@ -277,6 +289,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('default');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
+  const [productSourceFilter, setProductSourceFilter] = useState<'all' | 'own' | 'supplier'>('all');
 
   // Modal / Drawer visibility
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -413,15 +426,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           remoteList.push(docSnap.data() as Product);
         });
         
-        const has13022 = remoteList.some((p: Product) => p.id === 'ds-13022' || p.sku === 'DS-13022');
-        if (!has13022 && INITIAL_PRODUCTS.length > 0) {
-          INITIAL_PRODUCTS.forEach((initProd) => {
-            setDoc(doc(db, 'products', initProd.id), sanitizeForFirestore(initProd)).catch(() => {});
-          });
-          setProducts([...INITIAL_PRODUCTS, ...remoteList]);
-        } else {
-          setProducts(remoteList.length > 0 ? remoteList : INITIAL_PRODUCTS);
-        }
+        // Normalize products: preserve own and supplier products
+        const normalizedList = remoteList.map((p: any) => ({
+          ...p,
+          fulfillmentType: (p.fulfillmentType === 'supplier' || p.sku?.startsWith('SUP-') || p.sku?.startsWith('SP-') ? 'supplier' : 'own') as ProductFulfillmentType,
+          supplierName: p.supplierName || (p.fulfillmentType === 'supplier' ? 'পার্টনার সাপ্লায়ার' : undefined),
+          supplierPrice: p.supplierPrice || p.wholesalePrice || Math.round(((p.price || 1500) * 0.72) / 50) * 50,
+          supplierProfit: p.supplierProfit || Math.max(0, (p.price || 1500) - (p.supplierPrice || p.wholesalePrice || Math.round(((p.price || 1500) * 0.72) / 50) * 50)),
+        }));
+        
+        setProducts(normalizedList.length > 0 ? normalizedList : INITIAL_PRODUCTS);
         setCloudSyncStatus('synced');
       },
       (error) => {
@@ -475,10 +489,19 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
               ? 'NaarirShopno@Gmail.com'
               : remoteSettings.officeEmail;
 
+            const rawConfigs = Array.isArray(remoteSettings.supplierApiConfigs)
+              ? remoteSettings.supplierApiConfigs
+              : (Array.isArray(prev.supplierApiConfigs) ? prev.supplierApiConfigs : DEFAULT_SUPPLIER_CONFIGS);
+            const cleanedConfigs = rawConfigs.filter((c) => !isRemovedSupplier(c));
+            const hadRemovedSupplier = rawConfigs.some((c) => isRemovedSupplier(c)) || Boolean(remoteSettings.mohasagorApi) || remoteSettings.activeSupplierId === 'supplier-mohasagor';
+
             const merged: StoreSettings = {
               ...INITIAL_SETTINGS,
               ...prev,
               ...remoteSettings,
+              supplierApiConfigs: cleanedConfigs.length > 0 ? cleanedConfigs : DEFAULT_SUPPLIER_CONFIGS,
+              activeSupplierId: remoteSettings.activeSupplierId === 'supplier-mohasagor' ? 'supplier-dropshipping-bd' : (remoteSettings.activeSupplierId || 'supplier-dropshipping-bd'),
+              mohasagorApi: undefined,
               officeEmail,
               emailSettings,
               categories,
@@ -486,6 +509,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
             };
 
             if (
+              hadRemovedSupplier ||
               remoteSettings.officeEmail !== officeEmail ||
               !remoteSettings.emailSettings ||
               remoteSettings.emailSettings.senderEmail !== emailSettings?.senderEmail
@@ -812,7 +836,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Orders
   const createOrder = (orderData: Omit<Order, 'id' | 'createdAt'>): Order => {
     const nextIdNum = orders.length + 1048;
-    const isAutoForward = Boolean(settings.dropshippingApi?.enabled && settings.dropshippingApi?.autoForwardOrders);
     const targetEmail = orderData.customerEmail || settings.officeEmail || 'AliIslam01911@gmail.com';
     const newOrder: Order = {
       ...orderData,
@@ -824,18 +847,32 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sentAt: new Date().toISOString(),
         to: targetEmail,
       },
-      ...(isAutoForward ? {
-        dropshipping: {
-          synced: true,
-          syncedAt: new Date().toISOString(),
-          dropshippingOrderId: `DS-${Math.floor(100000 + Math.random() * 900000)}`,
-          status: settings.dropshippingApi?.testMode ? 'টেস্ট মোডে প্রেরিত' : 'অর্ডার পাঠানো হয়েছে'
-        }
-      } : {})
     };
 
     setOrders(prev => [newOrder, ...prev]);
     setOrderSuccessModalData(newOrder);
+
+    // Save strictly to customer's personal device storage for private Order History
+    try {
+      const myOrderIds: string[] = JSON.parse(localStorage.getItem('ns_my_order_ids') || '[]');
+      if (!myOrderIds.includes(newOrder.id)) {
+        localStorage.setItem('ns_my_order_ids', JSON.stringify([newOrder.id, ...myOrderIds]));
+      }
+      const existingProfile = JSON.parse(localStorage.getItem('ns_customer_profile') || '{}');
+      const updatedProfile = {
+        name: newOrder.customerName || existingProfile.name || '',
+        phone: newOrder.phone || existingProfile.phone || '',
+        altPhone: newOrder.altPhone || existingProfile.altPhone || '',
+        email: newOrder.customerEmail || existingProfile.email || '',
+        district: newOrder.district || existingProfile.district || 'ঢাকা',
+        thana: newOrder.thana || existingProfile.thana || '',
+        address: newOrder.address || existingProfile.address || '',
+      };
+      localStorage.setItem('ns_customer_profile', JSON.stringify(updatedProfile));
+    } catch {
+      // ignore
+    }
+
     setDoc(doc(db, 'orders', newOrder.id), sanitizeForFirestore(newOrder))
       .catch(err => handleFirestoreError(err, OperationType.CREATE, `orders/${newOrder.id}`));
 
@@ -871,6 +908,43 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const updatedOrd = {
             ...ord,
             dropshipping: dropshippingData,
+          };
+          setDoc(doc(db, 'orders', orderId), sanitizeForFirestore(updatedOrd), { merge: true })
+            .catch(err => handleFirestoreError(err, OperationType.UPDATE, `orders/${orderId}`));
+          return updatedOrd;
+        }
+        return ord;
+      })
+    );
+  };
+
+  const updateOrderSupplierForwarding = (orderId: string, forwardingData: NonNullable<Order['supplierForwarding']>) => {
+    setOrders(prev =>
+      prev.map(ord => {
+        if (ord.id === orderId) {
+          const updatedOrd = {
+            ...ord,
+            supplierForwarding: forwardingData,
+          };
+          setDoc(doc(db, 'orders', orderId), sanitizeForFirestore(updatedOrd), { merge: true })
+            .catch(err => handleFirestoreError(err, OperationType.UPDATE, `orders/${orderId}`));
+          return updatedOrd;
+        }
+        return ord;
+      })
+    );
+  };
+
+  const updateOrderResellerPayout = (orderId: string, payoutStatus: 'pending' | 'paid') => {
+    setOrders(prev =>
+      prev.map(ord => {
+        if (ord.id === orderId) {
+          const updatedOrd: Order = {
+            ...ord,
+            resellerDetails: ord.resellerDetails ? {
+              ...ord.resellerDetails,
+              payoutStatus,
+            } : undefined,
           };
           setDoc(doc(db, 'orders', orderId), sanitizeForFirestore(updatedOrd), { merge: true })
             .catch(err => handleFirestoreError(err, OperationType.UPDATE, `orders/${orderId}`));
@@ -1269,6 +1343,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSearchQuery('');
     setSortBy('default');
     setPriceRange([0, 10000]);
+    setProductSourceFilter('all');
   };
 
   return (
@@ -1289,6 +1364,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSortBy,
         priceRange,
         setPriceRange,
+        productSourceFilter,
+        setProductSourceFilter,
         resetFilters,
         isCartOpen,
         setIsCartOpen,
@@ -1333,6 +1410,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createOrder,
         updateOrderStatus,
         updateOrderDropshipping,
+        updateOrderSupplierForwarding,
+        updateOrderResellerPayout,
         deleteOrder,
         cancelOrder,
         addProduct,

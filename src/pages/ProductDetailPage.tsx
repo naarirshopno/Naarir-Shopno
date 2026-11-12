@@ -30,7 +30,8 @@ import {
   SearchX,
   Video,
   Play,
-  Pause
+  Pause,
+  Globe
 } from 'lucide-react';
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80';
@@ -632,15 +633,28 @@ export const ProductDetailPage: React.FC = () => {
         <div className="lg:col-span-6 flex flex-col justify-between space-y-6 p-4 sm:p-6 lg:p-8">
           <div className="space-y-4">
             
-            {/* Category, SKU & Rating */}
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <Link 
-                to={`/category/${product.category}`}
-                className="font-bold text-rose-600 uppercase bg-rose-50 hover:bg-rose-100 hover:text-rose-800 transition px-2.5 py-1 rounded-lg border border-rose-200 cursor-pointer"
-                title={`${translateCategory(displayCategory)}`}
-              >
-                {translateCategory(displayCategory)}
-              </Link>
+            {/* Category, SKU & Origin Badge */}
+            <div className="flex items-center justify-between text-xs text-slate-500 flex-wrap gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Link 
+                  to={`/category/${product.category}`}
+                  className="font-bold text-rose-600 uppercase bg-rose-50 hover:bg-rose-100 hover:text-rose-800 transition px-2.5 py-1 rounded-lg border border-rose-200 cursor-pointer"
+                  title={`${translateCategory(displayCategory)}`}
+                >
+                  {translateCategory(displayCategory)}
+                </Link>
+                {product.fulfillmentType === 'supplier' ? (
+                  <span className="bg-indigo-100 text-indigo-950 border border-indigo-200 font-bold px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-2xs">
+                    <Globe className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>{product.supplierName || (isEnglish ? 'Partner Supplier (API)' : 'পার্টনার সাপ্লায়ার কালেকশন (API)')}</span>
+                  </span>
+                ) : (
+                  <span className="bg-emerald-100 text-emerald-950 border border-emerald-200 font-bold px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-2xs">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{isEnglish ? 'Naarir Shopno In-House Stock' : '👑 নারীর স্বপ্ন নিজস্ব স্টক'}</span>
+                  </span>
+                )}
+              </div>
               <span className="font-mono bg-slate-50 px-2 py-1 rounded border border-slate-200">
                 {isEnglish ? `Code: ${product.sku}` : `কোড: ${product.sku}`}
               </span>
