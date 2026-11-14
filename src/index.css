@@ -113,6 +113,42 @@ input:-webkit-autofill:active {
   --visit-bg2: #fef3c7;
   --visit-bg3: #d1fae5;
   --visit-bg4: #ede9fe;
+  --page-c1: #fff1f2;
+  --page-c2: #fef9c3;
+  --page-c3: #ecfdf5;
+  --page-c4: #f3e8ff;
+}
+
+@keyframes fullPageSlowColorShift {
+  0% {
+    background-position: 0% 0%;
+  }
+  25% {
+    background-position: 100% 25%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  75% {
+    background-position: 0% 75%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+.full-page-slow-color {
+  background-color: var(--page-c1, #fff1f2);
+  background-image: linear-gradient(
+    135deg,
+    var(--page-c1, #fff1f2) 0%,
+    var(--page-c2, #fef9c3) 33%,
+    var(--page-c3, #ecfdf5) 66%,
+    var(--page-c4, #f3e8ff) 100%
+  );
+  background-size: 320% 320%;
+  animation: fullPageSlowColorShift 24s ease-in-out infinite;
+  transition: background-color 1.5s ease;
 }
 
 @keyframes visitMultiColorBorder {
@@ -150,8 +186,8 @@ input:-webkit-autofill:active {
   background-origin: border-box !important;
   background-clip: padding-box, border-box !important;
   background-size: 300% 300%, 300% 300% !important;
-  animation: visitMultiColorBorder 7s ease infinite;
-  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+  animation: visitMultiColorBorder 18s ease-in-out infinite;
+  transition: border-color 0.6s ease, box-shadow 0.6s ease;
 }
 
 

@@ -34,30 +34,37 @@ const ScrollToTop: React.FC = () => {
 const VISIT_COLOR_PALETTES: {
   border: [string, string, string, string];
   bg: [string, string, string, string];
+  page: [string, string, string, string];
 }[] = [
   {
     border: ['#e11d48', '#f59e0b', '#10b981', '#8b5cf6'],
     bg: ['#ffe4e6', '#fef3c7', '#d1fae5', '#ede9fe'],
+    page: ['#fff1f2', '#fef9c3', '#ecfdf5', '#f3e8ff'],
   },
   {
     border: ['#059669', '#06b6d4', '#6366f1', '#ec4899'],
     bg: ['#d1fae5', '#cffafe', '#e0e7ff', '#fce7f3'],
+    page: ['#ecfdf5', '#ecfeff', '#eef2ff', '#fdf2f8'],
   },
   {
     border: ['#7c3aed', '#d946ef', '#f43f5e', '#f59e0b'],
     bg: ['#ede9fe', '#fae8ff', '#ffe4e6', '#fef3c7'],
+    page: ['#f5f3ff', '#fdf4ff', '#fff1f2', '#fffbeb'],
   },
   {
     border: ['#2563eb', '#14b8a6', '#84cc16', '#e11d48'],
     bg: ['#dbeafe', '#ccfbf1', '#ecfccb', '#ffe4e6'],
+    page: ['#eff6ff', '#f0fdfa', '#f7fee7', '#fff1f2'],
   },
   {
     border: ['#f97316', '#eab308', '#a855f7', '#0ea5e9'],
     bg: ['#ffedd5', '#fef9c3', '#f3e8ff', '#e0f2fe'],
+    page: ['#fff7ed', '#fefce8', '#faf5ff', '#f0f9ff'],
   },
   {
     border: ['#be123c', '#c026d3', '#0891b2', '#d97706'],
     bg: ['#ffe4e6', '#fae8ff', '#cffafe', '#fef3c7'],
+    page: ['#fdf2f8', '#faf5ff', '#ecfeff', '#fffbeb'],
   },
 ];
 
@@ -71,7 +78,10 @@ const NavigationHandler: React.FC = () => {
       const prevCount = Number(localStorage.getItem('naarir_shopno_visit_count') || '0');
       const nextCount = Number.isFinite(prevCount) ? prevCount + 1 : 1;
       localStorage.setItem('naarir_shopno_visit_count', String(nextCount));
-      const palette = VISIT_COLOR_PALETTES[nextCount % VISIT_COLOR_PALETTES.length];
+      const routeOffset = location.pathname
+        .split('')
+        .reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+      const palette = VISIT_COLOR_PALETTES[(nextCount + routeOffset) % VISIT_COLOR_PALETTES.length];
       const rootStyle = document.documentElement.style;
       rootStyle.setProperty('--visit-c1', palette.border[0]);
       rootStyle.setProperty('--visit-c2', palette.border[1]);
@@ -81,6 +91,10 @@ const NavigationHandler: React.FC = () => {
       rootStyle.setProperty('--visit-bg2', palette.bg[1]);
       rootStyle.setProperty('--visit-bg3', palette.bg[2]);
       rootStyle.setProperty('--visit-bg4', palette.bg[3]);
+      rootStyle.setProperty('--page-c1', palette.page[0]);
+      rootStyle.setProperty('--page-c2', palette.page[1]);
+      rootStyle.setProperty('--page-c3', palette.page[2]);
+      rootStyle.setProperty('--page-c4', palette.page[3]);
     } catch {
       // ignore storage errors
     }
@@ -130,7 +144,7 @@ const AppLayout: React.FC = () => {
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
-    <div className={`min-h-screen flex flex-col font-['Hind_Siliguri',sans-serif] selection:bg-rose-600 selection:text-white relative ${isAdminRoute ? 'bg-slate-900 text-slate-100' : 'bg-[#FCFBF7] text-slate-800'}`}>
+    <div className={`min-h-screen flex flex-col font-['Hind_Siliguri',sans-serif] selection:bg-rose-600 selection:text-white relative ${isAdminRoute ? 'bg-slate-900 text-slate-100' : 'full-page-slow-color text-slate-800'}`}>
       <ScrollToTop />
       <NavigationHandler />
 
