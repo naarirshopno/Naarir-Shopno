@@ -141,24 +141,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
         ease: [0.22, 1, 0.36, 1],
         delay: index !== undefined ? Math.min((index % 4) * 0.05, 0.2) : 0,
       }}
-      className="group bg-white rounded-2xl border border-rose-100/80 hover:border-pink-300 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden relative cursor-pointer"
+      className="group visit-white-border-box rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden relative cursor-pointer"
       onClick={() => navigate(`/product/${product.id}`)}
     >
       {/* Badges (Top Left) */}
       <div className="absolute top-2.5 sm:top-3 left-2.5 sm:left-3 z-10 flex flex-col gap-1 pointer-events-none max-w-[65%]">
-        {/* Origin / Supplier Badge */}
-        {product.fulfillmentType === 'supplier' ? (
-          <span className="bg-amber-600/95 text-white font-bold text-[8px] sm:text-[9px] px-2 py-0.5 rounded-full shadow-xs w-fit flex items-center gap-1 backdrop-blur-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
-            <span>পার্টনার কালেকশন ({product.supplierName?.split(' ')[0] || 'API'})</span>
-          </span>
-        ) : (
-          <span className="bg-emerald-700/95 text-white font-bold text-[8px] sm:text-[9px] px-2 py-0.5 rounded-full shadow-xs w-fit flex items-center gap-1 backdrop-blur-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
-            <span>নারীর স্বপ্ন নিজস্ব</span>
-          </span>
-        )}
-
         {discountPercent > 0 && !isOutOfStock && (
           <span className="bg-rose-600 text-white font-bold text-[9px] sm:text-[11px] px-2 py-0.5 rounded-full shadow-sm w-fit">
             {formatNumber(discountPercent)}% {t('card.off')}

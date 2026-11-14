@@ -192,7 +192,7 @@ export const HomePage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="bg-white rounded-3xl p-10 sm:p-14 text-center border border-rose-100 shadow-sm max-w-lg mx-auto space-y-4">
+          <div className="visit-white-border-box rounded-3xl p-10 sm:p-14 text-center shadow-sm max-w-lg mx-auto space-y-4">
             <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto">
               <SearchX className="w-8 h-8" />
             </div>
@@ -235,7 +235,7 @@ export const HomePage: React.FC = () => {
       </main>
 
       {/* 4. Quick Delivery & Trust Notification Strip */}
-      <section className="bg-rose-50/70 border-y border-rose-100 py-3.5 px-4 sm:px-6">
+      <section className="max-w-7xl mx-auto visit-white-border-box rounded-2xl py-3.5 px-4 sm:px-6 my-4 shadow-xs">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs text-slate-700">
           <div className="flex items-center gap-2 font-medium">
             <Truck className="w-4 h-4 text-rose-600 shrink-0" />

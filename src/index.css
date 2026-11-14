@@ -103,3 +103,55 @@ input:-webkit-autofill:active {
   opacity: 0.95 !important;
 }
 
+/* Visit-driven Multi-Color Auto-Changing White Border Box */
+:root {
+  --visit-c1: #e11d48;
+  --visit-c2: #f59e0b;
+  --visit-c3: #10b981;
+  --visit-c4: #8b5cf6;
+  --visit-bg1: #ffe4e6;
+  --visit-bg2: #fef3c7;
+  --visit-bg3: #d1fae5;
+  --visit-bg4: #ede9fe;
+}
+
+@keyframes visitMultiColorBorder {
+  0% {
+    background-position: 0% 50%, 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%, 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%, 0% 50%;
+  }
+}
+
+.visit-white-border-box {
+  border: 2px solid transparent !important;
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(
+      135deg,
+      var(--visit-bg1, #ffe4e6),
+      var(--visit-bg2, #fef3c7),
+      var(--visit-bg3, #d1fae5),
+      var(--visit-bg4, #ede9fe),
+      var(--visit-bg1, #ffe4e6)
+    ),
+    linear-gradient(
+      125deg,
+      var(--visit-c1, #e11d48),
+      var(--visit-c2, #f59e0b),
+      var(--visit-c3, #10b981),
+      var(--visit-c4, #8b5cf6),
+      var(--visit-c1, #e11d48)
+    ) !important;
+  background-origin: border-box !important;
+  background-clip: padding-box, border-box !important;
+  background-size: 300% 300%, 300% 300% !important;
+  animation: visitMultiColorBorder 7s ease infinite;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+

@@ -19,8 +19,7 @@ import {
   RotateCcw, 
   PackageOpen, 
   ShoppingBag,
-  Heart,
-  Globe
+  Heart
 } from 'lucide-react';
 
 export const CategoryPage: React.FC = () => {
@@ -35,8 +34,6 @@ export const CategoryPage: React.FC = () => {
     setSortBy,
     priceRange,
     setPriceRange,
-    productSourceFilter,
-    setProductSourceFilter,
     resetFilters
   } = useShop();
 
@@ -164,14 +161,7 @@ export const CategoryPage: React.FC = () => {
       result = result.filter((p) => selectedMaterials.includes(p.fabric));
     }
 
-    // 5. Origin / Source filter (Own in-house stock vs Partner Supplier API)
-    if (productSourceFilter === 'own') {
-      result = result.filter((p) => !p.fulfillmentType || p.fulfillmentType === 'own');
-    } else if (productSourceFilter === 'supplier') {
-      result = result.filter((p) => p.fulfillmentType === 'supplier');
-    }
-
-    // 6. Sorting logic
+    // 5. Sorting logic
     if (sortBy === 'price_asc' || sortBy === 'price-asc') {
       result.sort((a, b) => a.price - b.price);
     } else if (sortBy === 'price_desc' || sortBy === 'price-desc') {
@@ -190,7 +180,7 @@ export const CategoryPage: React.FC = () => {
     }
 
     return result;
-  }, [products, currentCategory, localSearch, priceRange, selectedMaterials, productSourceFilter, sortBy]);
+  }, [products, currentCategory, localSearch, priceRange, selectedMaterials, sortBy]);
 
   // Category image
   const categoryBannerImg = settings.categoryImages?.[currentCategory.id] || currentCategory.image;
@@ -391,48 +381,6 @@ export const CategoryPage: React.FC = () => {
               </button>
             )}
           </div>
-        </div>
-
-        {/* Collection Source Filter Bar (Own Stock vs Partner Supplier API) */}
-        <div className="flex items-center gap-1.5 pt-3 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
-          <span className="text-slate-500 font-semibold whitespace-nowrap mr-1 text-[11px]">
-            {isEnglish ? 'Source:' : 'পণ্য কালেকশন:'}
-          </span>
-          <button
-            type="button"
-            onClick={() => setProductSourceFilter('all')}
-            className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
-              productSourceFilter === 'all'
-                ? 'bg-rose-600 text-white shadow-xs'
-                : 'bg-white text-slate-700 border border-slate-200 hover:bg-rose-50'
-            }`}
-          >
-            <span>{isEnglish ? 'All Collection' : 'সকল পোশাক'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setProductSourceFilter('own')}
-            className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
-              productSourceFilter === 'own'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-white text-slate-700 border border-slate-200 hover:bg-emerald-50'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>{isEnglish ? '👑 In-House Stock' : '👑 নারীর স্বপ্ন নিজস্ব স্টক'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setProductSourceFilter('supplier')}
-            className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
-              productSourceFilter === 'supplier'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'bg-white text-slate-700 border border-slate-200 hover:bg-indigo-50'
-            }`}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>{isEnglish ? '🌐 Partner Suppliers (API)' : '🌐 পার্টনার সাপ্লায়ার (API)'}</span>
-          </button>
         </div>
 
         {/* Mobile Collapsible Filter Drawer */}

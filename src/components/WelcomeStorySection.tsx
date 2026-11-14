@@ -7,7 +7,7 @@ export const WelcomeStorySection: React.FC = () => {
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 my-5 sm:my-8">
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-50 via-white to-pink-50/80 border border-rose-200/80 shadow-md p-6 sm:p-8 md:p-10">
+      <div className="relative overflow-hidden rounded-3xl visit-white-border-box shadow-md p-6 sm:p-8 md:p-10">
         {/* Subtle Decorative Elements */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-rose-200/30 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-pink-200/30 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
@@ -35,7 +35,7 @@ export const WelcomeStorySection: React.FC = () => {
           {/* Feature Highlights Grid - 2 Divs Left and Right (50% each) */}
           <div className="grid grid-cols-2 gap-2.5 sm:gap-4 pt-2 text-left">
             {/* 1st Div (Left, 50%): Contains 1st & 2nd texts */}
-            <div className="bg-white p-3 sm:p-5 rounded-2xl border border-rose-100 shadow-2xs hover:shadow-xs transition space-y-2.5 sm:space-y-3.5">
+            <div className="visit-white-border-box p-3 sm:p-5 rounded-2xl shadow-2xs hover:shadow-xs transition space-y-2.5 sm:space-y-3.5">
               <div>
                 <div className="flex items-center gap-1.5 sm:gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-0.5 sm:mb-1 font-['Hind_Siliguri']">
                   <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-600" />
@@ -58,7 +58,7 @@ export const WelcomeStorySection: React.FC = () => {
             </div>
 
             {/* 2nd Div (Right, 50%): Contains 3rd & 4th texts */}
-            <div className="bg-white p-3 sm:p-5 rounded-2xl border border-rose-100 shadow-2xs hover:shadow-xs transition space-y-2.5 sm:space-y-3.5">
+            <div className="visit-white-border-box p-3 sm:p-5 rounded-2xl shadow-2xs hover:shadow-xs transition space-y-2.5 sm:space-y-3.5">
               <div>
                 <div className="flex items-center gap-1.5 sm:gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-0.5 sm:mb-1 font-['Hind_Siliguri']">
                   <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-600" />

@@ -55,7 +55,7 @@ export const HeroBanner: React.FC = () => {
   };
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-b from-rose-100/60 via-pink-50/40 to-white pt-2 pb-6 sm:pt-4 sm:pb-8">
+    <div className="relative overflow-hidden pt-2 pb-6 sm:pt-4 sm:pb-8">
       {/* Decorative subtle circular background glow without heavy blur filters */}
       <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-pink-200/50 to-transparent pointer-events-none" />
       <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-rose-200/40 to-transparent pointer-events-none" />
@@ -64,7 +64,7 @@ export const HeroBanner: React.FC = () => {
         {/* 4 Pillars Trust Badges - 4 Distinct Beautiful Colors */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           {/* Card 1: Rose / Pink Pastel */}
-          <div className="bg-gradient-to-br from-rose-50 via-pink-50/50 to-rose-100/40 p-3.5 sm:p-4 rounded-2xl border border-rose-200/90 shadow-2xs hover:shadow-xs transition flex items-center gap-3">
+          <div className="visit-white-border-box p-3.5 sm:p-4 rounded-2xl shadow-2xs hover:shadow-xs transition flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 shadow-2xs">
               <Truck className="w-5 h-5" />
             </div>
@@ -79,7 +79,7 @@ export const HeroBanner: React.FC = () => {
           </div>
 
           {/* Card 2: Warm Amber / Gold Pastel */}
-          <div className="bg-gradient-to-br from-amber-50 via-yellow-50/50 to-amber-100/40 p-3.5 sm:p-4 rounded-2xl border border-amber-200/90 shadow-2xs hover:shadow-xs transition flex items-center gap-3">
+          <div className="visit-white-border-box p-3.5 sm:p-4 rounded-2xl shadow-2xs hover:shadow-xs transition flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 shadow-2xs">
               <ShieldCheck className="w-5 h-5" />
             </div>
@@ -94,7 +94,7 @@ export const HeroBanner: React.FC = () => {
           </div>
 
           {/* Card 3: Soft Lavender / Purple Pastel */}
-          <div className="bg-gradient-to-br from-purple-50 via-violet-50/50 to-purple-100/40 p-3.5 sm:p-4 rounded-2xl border border-purple-200/90 shadow-2xs hover:shadow-xs transition flex items-center gap-3">
+          <div className="visit-white-border-box p-3.5 sm:p-4 rounded-2xl shadow-2xs hover:shadow-xs transition flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 shadow-2xs">
               <RefreshCw className="w-5 h-5" />
             </div>
@@ -109,7 +109,7 @@ export const HeroBanner: React.FC = () => {
           </div>
 
           {/* Card 4: Fresh Mint / Emerald Pastel */}
-          <div className="bg-gradient-to-br from-emerald-50 via-teal-50/50 to-emerald-100/40 p-3.5 sm:p-4 rounded-2xl border border-emerald-200/90 shadow-2xs hover:shadow-xs transition flex items-center gap-3">
+          <div className="visit-white-border-box p-3.5 sm:p-4 rounded-2xl shadow-2xs hover:shadow-xs transition flex items-center gap-3">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-2xs transition-colors ${
               isOpenNow ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'
             }`}>
@@ -148,7 +148,7 @@ export const HeroBanner: React.FC = () => {
         </div>
 
         {/* Panoramic Boutique Showcase with Branded Watermark (টপে জলছাপ) */}
-        <div className="mt-6 relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl border border-rose-200/90 group">
+        <div className="mt-6 relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl visit-white-border-box group">
           <div className="relative h-48 sm:h-64 md:h-80 w-full overflow-hidden">
             <img
               src="/watermarked_hero_banner.jpg"

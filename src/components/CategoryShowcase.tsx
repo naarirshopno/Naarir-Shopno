@@ -19,7 +19,7 @@ export const CategoryShowcase: React.FC = () => {
   };
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 visit-white-border-box rounded-3xl my-4 sm:my-6 shadow-sm">
       {/* Header Bar */}
       <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
         <div>
@@ -50,10 +50,10 @@ export const CategoryShowcase: React.FC = () => {
             <div
               key={item.id}
               onClick={() => handleSelect(item.id)}
-              className={`group relative cursor-pointer rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-xl aspect-[3/4] flex flex-col justify-end p-1.5 sm:p-2.5 border select-none ${
+              className={`group relative cursor-pointer rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-xl aspect-[3/4] flex flex-col justify-end p-1.5 sm:p-2.5 select-none visit-white-border-box ${
                 isSelected
-                  ? 'border-rose-500 ring-2 ring-rose-400 scale-[1.02]'
-                  : 'border-rose-100 hover:border-rose-300 hover:scale-[1.02]'
+                  ? 'ring-2 ring-rose-400 scale-[1.02]'
+                  : 'hover:scale-[1.02]'
               }`}
             >
               {/* Image */}

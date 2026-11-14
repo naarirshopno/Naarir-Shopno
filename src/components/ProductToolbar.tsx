@@ -39,7 +39,7 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({ totalCount }) =>
     : customCategories.find(c => c.id === activeCategory)?.title || categories.find(c => c.id === activeCategory)?.label || (isEnglish ? 'Products' : 'পণ্য তালিকা');
 
   return (
-    <div className="bg-white rounded-3xl p-4 sm:p-6 border border-rose-100 shadow-sm mb-6 space-y-4">
+    <div className="visit-white-border-box rounded-3xl p-4 sm:p-6 shadow-sm mb-6 space-y-4">
       {/* Top Header Row: Title, Badge, Count & Sort */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-rose-50 pb-3.5">
         <div>

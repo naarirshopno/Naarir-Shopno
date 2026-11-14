@@ -469,8 +469,8 @@ export const Header: React.FC = () => {
   return (
     <header className="w-full bg-white/98 border-b border-rose-100 shadow-xs transition-colors">
       {/* Main Bar */}
-      <div className="relative border-b border-rose-100/70">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-3.5 w-full max-w-full">
+      <div className="relative border-b border-rose-100/70 px-2 sm:px-4 py-1.5">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-3.5 w-full max-w-full visit-white-border-box rounded-2xl shadow-xs">
           <div className="flex items-center justify-between gap-2 sm:gap-6 w-full">
           {/* Brand Logo & Name */}
           <Link 

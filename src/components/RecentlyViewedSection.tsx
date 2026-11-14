@@ -56,7 +56,7 @@ export const RecentlyViewedSection: React.FC = () => {
             <div
               key={`recent-${product.id}`}
               onClick={() => setSelectedProductModal(product)}
-              className="group bg-white rounded-2xl border border-rose-100 hover:border-rose-300 shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden cursor-pointer"
+              className="group visit-white-border-box rounded-2xl shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden cursor-pointer"
             >
               {/* Product Thumbnail */}
               <div className="relative aspect-[3/4] bg-slate-50 overflow-hidden">

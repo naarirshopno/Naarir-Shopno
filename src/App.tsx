@@ -31,10 +31,60 @@ const ScrollToTop: React.FC = () => {
   return null;
 };
 
+const VISIT_COLOR_PALETTES: {
+  border: [string, string, string, string];
+  bg: [string, string, string, string];
+}[] = [
+  {
+    border: ['#e11d48', '#f59e0b', '#10b981', '#8b5cf6'],
+    bg: ['#ffe4e6', '#fef3c7', '#d1fae5', '#ede9fe'],
+  },
+  {
+    border: ['#059669', '#06b6d4', '#6366f1', '#ec4899'],
+    bg: ['#d1fae5', '#cffafe', '#e0e7ff', '#fce7f3'],
+  },
+  {
+    border: ['#7c3aed', '#d946ef', '#f43f5e', '#f59e0b'],
+    bg: ['#ede9fe', '#fae8ff', '#ffe4e6', '#fef3c7'],
+  },
+  {
+    border: ['#2563eb', '#14b8a6', '#84cc16', '#e11d48'],
+    bg: ['#dbeafe', '#ccfbf1', '#ecfccb', '#ffe4e6'],
+  },
+  {
+    border: ['#f97316', '#eab308', '#a855f7', '#0ea5e9'],
+    bg: ['#ffedd5', '#fef9c3', '#f3e8ff', '#e0f2fe'],
+  },
+  {
+    border: ['#be123c', '#c026d3', '#0891b2', '#d97706'],
+    bg: ['#ffe4e6', '#fae8ff', '#cffafe', '#fef3c7'],
+  },
+];
+
 // URL query & hash redirect handler for deep links and admin shortcut
 const NavigationHandler: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    try {
+      const prevCount = Number(localStorage.getItem('naarir_shopno_visit_count') || '0');
+      const nextCount = Number.isFinite(prevCount) ? prevCount + 1 : 1;
+      localStorage.setItem('naarir_shopno_visit_count', String(nextCount));
+      const palette = VISIT_COLOR_PALETTES[nextCount % VISIT_COLOR_PALETTES.length];
+      const rootStyle = document.documentElement.style;
+      rootStyle.setProperty('--visit-c1', palette.border[0]);
+      rootStyle.setProperty('--visit-c2', palette.border[1]);
+      rootStyle.setProperty('--visit-c3', palette.border[2]);
+      rootStyle.setProperty('--visit-c4', palette.border[3]);
+      rootStyle.setProperty('--visit-bg1', palette.bg[0]);
+      rootStyle.setProperty('--visit-bg2', palette.bg[1]);
+      rootStyle.setProperty('--visit-bg3', palette.bg[2]);
+      rootStyle.setProperty('--visit-bg4', palette.bg[3]);
+    } catch {
+      // ignore storage errors
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     // 1. If someone visits with ?product=ID on home, smoothly redirect to /product/ID full page
