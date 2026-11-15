@@ -448,7 +448,7 @@ export async function sendLiveEmailViaBackend(payload: {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 18000);
 
-    const res = await fetch(apiUrl, {
+    let res = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -457,6 +457,18 @@ export async function sendLiveEmailViaBackend(payload: {
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
+
+    if ((res.status === 405 || res.status === 404) && apiUrl === '/api/email/send') {
+      res = await fetch('https://ais-dev-oweeiycfzl44oipck75o7h-256765997112.asia-southeast1.run.app/api/email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    }
     clearTimeout(timeoutId);
 
     // Safely parse body as text first to never throw 'Unexpected end of JSON input'

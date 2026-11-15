@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useParams, Link, useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Order, OrderStatus } from '../types';
 import { CancelOrderModal } from '../components/CancelOrderModal';
-import { 
-  Search, 
-  Truck, 
-  CheckCircle2, 
-  Clock, 
-  Package, 
-  MapPin, 
-  Phone, 
+import { OrderProgressTracker } from '../components/OrderProgressTracker';
+import { fetchSteadfastTracking, CourierTrackingResult } from '../services/courierTrackingService';
+import {
+  Search,
+  Truck,
+  Package,
+  MapPin,
+  Phone,
   AlertCircle,
   Calendar,
   Copy,
@@ -20,7 +20,7 @@ import {
   ChevronRight,
   ShoppingBag,
   XCircle,
-  RotateCcw
+  RotateCcw,
 } from 'lucide-react';
 import { PostPurchaseReviewSection } from '../components/PostPurchaseReviewSection';
 
@@ -29,16 +29,16 @@ export const OrderTrackingPage: React.FC = () => {
   const { orderId: paramOrderId } = useParams<{ orderId?: string }>();
   const navigate = useNavigate();
 
-  const { orders, trackingOrderId, setTrackingOrderId, settings, addToCart, setIsCartOpen, products } = useShop();
-  const { 
-    isEnglish, 
-    formatPrice, 
-    formatNumber, 
-    translateProductName, 
-    translateColor, 
-    translateSize, 
-    translateStatus, 
-    translateDistrict 
+  const { orders, trackingOrderId, setTrackingOrderId, updateOrderStatus, settings, addToCart, setIsCartOpen, products } = useShop();
+  const {
+    isEnglish,
+    formatPrice,
+    formatNumber,
+    translateProductName,
+    translateColor,
+    translateSize,
+    translateStatus,
+    translateDistrict,
   } = useLanguage();
 
   const initialQuery = paramOrderId || searchParams.get('id') || trackingOrderId || '';
@@ -47,6 +47,40 @@ export const OrderTrackingPage: React.FC = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [backendTracking, setBackendTracking] = useState<CourierTrackingResult | null>(null);
+  const [isSyncingBackend, setIsSyncingBackend] = useState(false);
+
+  const syncOrderWithBackend = useCallback(
+    async (order: Order | null) => {
+      if (!order || !order.courier || (!order.courier.trackingUrl && !order.courier.trackingId)) {
+        setBackendTracking(null);
+        return;
+      }
+
+      const target = order.courier.trackingUrl || order.courier.trackingId;
+      setIsSyncingBackend(true);
+      try {
+        const res = await fetchSteadfastTracking(target);
+        setBackendTracking(res);
+        if (res.success && res.normalizedStatus === 'delivered' && order.status !== 'delivered') {
+          updateOrderStatus(order.id, 'delivered', {
+            name: order.courier.name || 'Steadfast Courier',
+            trackingId: res.trackingCode || order.courier.trackingId,
+            trackingUrl: res.trackingUrl || order.courier.trackingUrl,
+            deliveredDate: res.deliveredDate || new Date().toISOString().substring(0, 10),
+            latestTimeline: res.latestTimeline || order.courier.latestTimeline,
+            estimatedDelivery: isEnglish ? 'Delivered' : 'ডেলিভারি সম্পন্ন (Delivered)',
+            lastSyncedAt: new Date().toISOString(),
+          });
+        }
+      } catch {
+        // Keep local order status as fallback
+      } finally {
+        setIsSyncingBackend(false);
+      }
+    },
+    [isEnglish, updateOrderStatus]
+  );
 
   useEffect(() => {
     const query = (paramOrderId || searchParams.get('id') || trackingOrderId || '').trim().toLowerCase();
@@ -62,10 +96,20 @@ export const OrderTrackingPage: React.FC = () => {
     }
   }, [paramOrderId, searchParams, trackingOrderId, orders]);
 
-  // Sync matched order if updated in orders state (e.g. after cancellation)
+  // Auto-sync normalized backend status whenever matchedOrder ID changes
   useEffect(() => {
     if (matchedOrder) {
-      const fresh = orders.find(o => o.id === matchedOrder.id);
+      syncOrderWithBackend(matchedOrder);
+    } else {
+      setBackendTracking(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchedOrder?.id]);
+
+  // Sync matched order if updated in orders state (e.g. after cancellation or backend sync)
+  useEffect(() => {
+    if (matchedOrder) {
+      const fresh = orders.find((o) => o.id === matchedOrder.id);
       if (fresh && (fresh.status !== matchedOrder.status || fresh.cancelledAt !== matchedOrder.cancelledAt)) {
         setMatchedOrder(fresh);
       }
@@ -90,51 +134,23 @@ export const OrderTrackingPage: React.FC = () => {
     }
   };
 
-  const getStatusStepIndex = (status: OrderStatus): number => {
-    switch (status) {
-      case 'pending':
-        return 0;
-      case 'confirmed':
-        return 1;
-      case 'processing':
-        return 2;
-      case 'shipped':
-        return 3;
-      case 'delivered':
-        return 4;
-      case 'cancelled':
-        return -1;
-      default:
-        return 0;
-    }
-  };
-
-  const currentStep = matchedOrder ? getStatusStepIndex(matchedOrder.status) : 0;
-
-  const steps = isEnglish ? [
-    { title: 'Order Placed', desc: 'Order received in system' },
-    { title: 'Confirmation', desc: 'Confirmed by representative' },
-    { title: 'Packaging Done', desc: 'Parcel is packed & ready' },
-    { title: 'Courier Transit', desc: 'Handed over to courier partner' },
-    { title: 'Delivered', desc: 'Received by customer' },
-  ] : [
-    { title: 'অর্ডার গৃহীত', desc: 'অর্ডার প্লেস করা হয়েছে' },
-    { title: 'কনফার্মেশন', desc: 'ফোনে নিশ্চিত করা হয়েছে' },
-    { title: 'প্যাকেজিং সম্পন্ন', desc: 'পার্সেল প্রস্তুত' },
-    { title: 'কুরিয়ার ট্রানজিট', desc: 'কুরিয়ারে হস্তান্তর হয়েছে' },
-    { title: 'ডেলিভারি সম্পন্ন', desc: 'কাস্টমার রিসিভ করেছেন' },
-  ];
-
   const handleReorderOrder = () => {
     if (!matchedOrder || !matchedOrder.items) return;
-    matchedOrder.items.forEach(it => {
-      const p = products.find(prod => prod.id === it.product.id) || it.product;
+    matchedOrder.items.forEach((it) => {
+      const p = products.find((prod) => prod.id === it.product.id) || it.product;
       addToCart(p, it.selectedSize, it.selectedColor, it.quantity, false, it.selectedImage);
     });
     setIsCartOpen(true);
   };
 
-  const isCancellable = matchedOrder && (matchedOrder.status === 'pending' || matchedOrder.status === 'confirmed');
+  const resolvedNormalizedStatus: OrderStatus | undefined =
+    matchedOrder
+      ? (backendTracking?.success && backendTracking.normalizedStatus
+          ? backendTracking.normalizedStatus
+          : matchedOrder.status)
+      : undefined;
+  const activeStatus: OrderStatus | undefined = resolvedNormalizedStatus || matchedOrder?.status;
+  const isCancellable = matchedOrder && (activeStatus === 'pending' || activeStatus === 'confirmed');
 
   return (
     <div className="w-full min-w-0 max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-6 overflow-x-hidden animate-fadeIn">
@@ -238,10 +254,10 @@ export const OrderTrackingPage: React.FC = () => {
         matchedOrder ? (
           <div className="space-y-6">
             {/* Order Status Hero Card */}
-            <div className="bg-white rounded-3xl border border-rose-100 shadow-md p-6 sm:p-7 space-y-6">
+            <div className="bg-white rounded-3xl border border-rose-100 shadow-md p-4 sm:p-7 space-y-6 min-w-0">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-rose-100">
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-base sm:text-lg font-black text-rose-700">
                       #{matchedOrder.id}
                     </span>
@@ -251,7 +267,7 @@ export const OrderTrackingPage: React.FC = () => {
                       <span>{matchedOrder.createdAt}</span>
                     </span>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mt-1 font-['Hind_Siliguri']">
+                  <h3 className="text-lg font-bold text-slate-900 mt-1 font-['Hind_Siliguri'] break-words">
                     {isEnglish ? 'Customer:' : 'গ্রাহক:'} {matchedOrder.customerName}
                   </h3>
                 </div>
@@ -259,16 +275,16 @@ export const OrderTrackingPage: React.FC = () => {
                 {/* Status Badge & Cancel Button */}
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <span className={`text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider flex items-center gap-1.5 ${
-                    matchedOrder.status === 'delivered'
+                    activeStatus === 'delivered'
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                      : matchedOrder.status === 'shipped'
+                      : activeStatus === 'shipped'
                       ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                      : matchedOrder.status === 'cancelled'
+                      : activeStatus === 'cancelled'
                       ? 'bg-red-100 text-red-800 border border-red-200'
                       : 'bg-amber-100 text-amber-800 border border-amber-200'
                   }`}>
                     <span className="w-2 h-2 rounded-full bg-current" />
-                    <span>{translateStatus(matchedOrder.status)}</span>
+                    <span>{translateStatus(activeStatus || matchedOrder.status)}</span>
                   </span>
 
                   {/* Cancel Order Action Button */}
@@ -286,7 +302,7 @@ export const OrderTrackingPage: React.FC = () => {
               </div>
 
               {/* Cancelled Order Notice Banner */}
-              {matchedOrder.status === 'cancelled' && (
+              {activeStatus === 'cancelled' && (
                 <div className="bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-red-900">
                   <div className="flex items-start gap-3">
                     <XCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
@@ -356,40 +372,15 @@ export const OrderTrackingPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Visual Delivery Stepper (Only if not cancelled) */}
-              {matchedOrder.status !== 'cancelled' && (
-                <div className="p-5 sm:p-7 bg-rose-50/20 rounded-3xl border border-rose-100">
-                  <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-6">
-                    {isEnglish ? 'Delivery Progress Timeline' : 'ডেলিভারি অগ্রগতি টাইমলাইন'}
-                  </h4>
-
-                  <div className="relative flex flex-col md:flex-row justify-between gap-5">
-                    {steps.map((st, idx) => {
-                      const isCompleted = idx <= currentStep;
-                      const isCurrent = idx === currentStep;
-
-                      return (
-                        <div key={idx} className="flex md:flex-col items-center md:text-center gap-3 md:gap-2 flex-1 relative">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0 transition-all z-10 ${
-                            isCompleted
-                              ? 'bg-rose-600 text-white shadow-md shadow-rose-200 ring-4 ring-rose-100'
-                              : 'bg-slate-100 text-slate-400 border border-slate-200'
-                          }`}>
-                            {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : formatNumber(idx + 1)}
-                          </div>
-
-                          <div>
-                            <p className={`text-xs font-bold ${isCurrent ? 'text-rose-600' : isCompleted ? 'text-slate-900' : 'text-slate-400'}`}>
-                              {st.title}
-                            </p>
-                            <p className="text-[11px] text-slate-400">{st.desc}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              {/* Visual Delivery Progress Tracker (Ordered, Packing, Shipped, Delivered) */}
+              <OrderProgressTracker
+                order={matchedOrder}
+                backendNormalizedStatus={resolvedNormalizedStatus || null}
+                backendStatusText={backendTracking?.statusText || null}
+                backendTimeline={backendTracking?.latestTimeline || null}
+                isSyncingBackend={isSyncingBackend}
+                onRefreshBackend={() => syncOrderWithBackend(matchedOrder)}
+              />
 
               {/* Order Info & Destination Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
@@ -436,7 +427,7 @@ export const OrderTrackingPage: React.FC = () => {
                             >
                               {translateProductName(it.product)}
                             </Link>
-                            <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[11px] text-slate-500">
                               <span>{isEnglish ? 'Size: ' : 'সাইজ: '}{translateSize(it.selectedSize)}</span>
                               <span>•</span>
                               <span>{isEnglish ? 'Color: ' : 'রঙ: '}{translateColor(it.selectedColor || 'ডিফল্ট')}</span>

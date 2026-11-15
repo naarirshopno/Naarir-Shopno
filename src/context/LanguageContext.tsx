@@ -75,9 +75,12 @@ const COLOR_MAP: Record<string, string> = {
 
 const STATUS_MAP: Record<string, { bn: string; en: string }> = {
   pending: { bn: 'অপেক্ষমান (Pending)', en: 'Pending' },
+  ordered: { bn: 'অর্ডার সম্পন্ন (Ordered)', en: 'Ordered' },
   confirmed: { bn: 'কনফার্মড (Confirmed)', en: 'Confirmed' },
   processing: { bn: 'প্রসেসিং (Processing)', en: 'Processing' },
+  packing: { bn: 'প্যাকিং চলছে (Packing)', en: 'Packing' },
   shipped: { bn: 'কুরিয়ারে হস্তান্তর (Shipped)', en: 'Shipped' },
+  in_transit: { bn: 'কুরিয়ারে পথে (Shipped)', en: 'Shipped' },
   delivered: { bn: 'ডেলিভারি সম্পন্ন (Delivered)', en: 'Delivered' },
   cancelled: { bn: 'বাতিল (Cancelled)', en: 'Cancelled' },
 };

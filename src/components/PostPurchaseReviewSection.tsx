@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Product } from '../types';
 import { Star, CheckCircle2, MessageSquarePlus, Sparkles, Send } from 'lucide-react';
 
@@ -17,7 +18,7 @@ interface PostPurchaseReviewSectionProps {
   items: PurchaseItemReview[];
 }
 
-const QUICK_TAGS = [
+const QUICK_TAGS_BN = [
   'অসাধারণ ফেব্রিক ও কাপড়',
   'রং ছবির মতোই নিখুঁত',
   'সেলাই ও কাজের ফিনিশিং চমৎকার',
@@ -26,7 +27,16 @@ const QUICK_TAGS = [
   'পরতে আরামদায়ক ও মার্জিত',
 ];
 
-const RATING_LABELS: Record<number, string> = {
+const QUICK_TAGS_EN = [
+  'Amazing fabric quality',
+  'Color matches photos perfectly',
+  'Neat stitching & embroidery',
+  'Perfect size & fitting',
+  'Fast & safe delivery',
+  'Very comfortable to wear',
+];
+
+const RATING_LABELS_BN: Record<number, string> = {
   5: 'অসাধারণ! (৫/৫)',
   4: 'খুব ভালো (৪/৫)',
   3: 'ভালো (৩/৫)',
@@ -34,13 +44,24 @@ const RATING_LABELS: Record<number, string> = {
   1: 'পছন্দ হয়নি (১/৫)',
 };
 
+const RATING_LABELS_EN: Record<number, string> = {
+  5: 'Excellent! (5/5)',
+  4: 'Very Good (4/5)',
+  3: 'Good (3/5)',
+  2: 'Fair (2/5)',
+  1: 'Not Satisfied (1/5)',
+};
+
 export const PostPurchaseReviewSection: React.FC<PostPurchaseReviewSectionProps> = ({
   orderId,
   customerName,
-  customerLocation = 'বাংলাদেশ',
+  customerLocation,
   items,
 }) => {
   const { addProductReview } = useShop();
+  const { isEnglish, translateProductName, translateSize, translateColor, formatNumber } = useLanguage();
+  const QUICK_TAGS = isEnglish ? QUICK_TAGS_EN : QUICK_TAGS_BN;
+  const RATING_LABELS = isEnglish ? RATING_LABELS_EN : RATING_LABELS_BN;
 
   // State per item: rating, comment, submitted
   const [reviewsState, setReviewsState] = useState<
@@ -123,7 +144,9 @@ export const PostPurchaseReviewSection: React.FC<PostPurchaseReviewSectionProps>
         ...prev,
         [productId]: {
           ...prev[productId],
-          error: 'অনুগ্রহ করে অন্তত কয়েকটি শব্দে আপনার মতামত বা অভিজ্ঞতা লিখুন।',
+          error: isEnglish
+            ? 'Please write a few words about your experience.'
+            : 'অনুগ্রহ করে অন্তত কয়েকটি শব্দে আপনার মতামত বা অভিজ্ঞতা লিখুন।',
         },
       }));
       return;
@@ -132,10 +155,10 @@ export const PostPurchaseReviewSection: React.FC<PostPurchaseReviewSectionProps>
     // Submit review to shop context (and Firestore / localStorage)
     addProductReview({
       productId,
-      customerName: customerName || 'সম্মানিত ক্রেতা',
+      customerName: customerName || (isEnglish ? 'Valued Customer' : 'সম্মানিত ক্রেতা'),
       rating: itemState.rating || 5,
       comment: itemState.comment.trim(),
-      location: customerLocation || 'বাংলাদেশ',
+      location: customerLocation || (isEnglish ? 'Bangladesh' : 'বাংলাদেশ'),
       verifiedPurchase: true,
       helpfulCount: 0,
     });
@@ -154,25 +177,27 @@ export const PostPurchaseReviewSection: React.FC<PostPurchaseReviewSectionProps>
   if (!items || items.length === 0) return null;
 
   return (
-    <div className="w-full bg-gradient-to-br from-rose-50/70 via-white to-pink-50/60 rounded-3xl p-4 sm:p-6 border border-rose-100 shadow-sm space-y-5 text-left">
+    <div className="w-full min-w-0 bg-gradient-to-br from-rose-50/70 via-white to-pink-50/60 rounded-3xl p-4 sm:p-6 border border-rose-100 shadow-sm space-y-5 text-left">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-100 pb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <div className="w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm">
             <MessageSquarePlus className="w-4 h-4" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h3 className="text-sm sm:text-base font-bold text-slate-900 font-['Hind_Siliguri']">
-              পোশাক কেমন লেগেছে? রেটিং ও রিভিউ দিন
+              {isEnglish ? 'How was your dress? Leave a Review' : 'পোশাক কেমন লেগেছে? রেটিং ও রিভিউ দিন'}
             </h3>
             <p className="text-[11px] text-slate-500 font-medium">
-              আপনার বাস্তব অভিজ্ঞতা ও মতামত অন্য ক্রেতাদের সঠিক পোশাকটি বেছে নিতে সাহায্য করবে
+              {isEnglish
+                ? 'Your honest feedback helps other shoppers choose with confidence.'
+                : 'আপনার বাস্তব অভিজ্ঞতা ও মতামত অন্য ক্রেতাদের সঠিক পোশাকটি বেছে নিতে সাহায্য করবে'}
             </p>
           </div>
         </div>
 
-        <span className="self-start sm:self-center bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+        <span className="self-start sm:self-center bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1 shrink-0">
           <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-          <span>ভেরিফাইড ক্রেতা রিভিউ</span>
+          <span>{isEnglish ? 'Verified Buyer Review' : 'ভেরিফাইড ক্রেতা রিভিউ'}</span>
         </span>
       </div>
 
@@ -203,10 +228,14 @@ export const PostPurchaseReviewSection: React.FC<PostPurchaseReviewSectionProps>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-slate-900 text-xs sm:text-sm truncate">
-                    {item.product.bengaliName}
+                    {translateProductName(item.product)}
                   </p>
-                  <p className="text-emerald-700 text-xs font-semibold mt-0.5 flex items-center gap-1.5">
-                    <span>আপনার {state.rating}-স্টার রিভিউ সফলভাবে প্রকাশিত হয়েছে! ধন্যবাদ।</span>
+                  <p className="text-emerald-700 text-xs font-semibold mt-0.5 flex flex-wrap items-center gap-1.5">
+                    <span>
+                      {isEnglish
+                        ? `Your ${state.rating}-star review has been published! Thank you.`
+                        : `আপনার ${formatNumber(state.rating)}-স্টার রিভিউ সফলভাবে প্রকাশিত হয়েছে! ধন্যবাদ।`}
+                    </span>
                     <span className="flex text-amber-400">
                       {[...Array(state.rating)].map((_, sIdx) => (
                         <Star key={sIdx} className="w-3 h-3 fill-amber-400" />
@@ -227,19 +256,19 @@ export const PostPurchaseReviewSection: React.FC<PostPurchaseReviewSectionProps>
               <div className="flex items-center gap-3">
                 <img
                   src={itemImg}
-                  alt={item.product.bengaliName}
+                  alt={translateProductName(item.product)}
                   className="w-12 h-14 rounded-xl object-cover border border-rose-100 shrink-0 shadow-2xs"
                 />
                 <div className="flex-1 min-w-0">
                   <h4 className="font-bold text-slate-900 text-xs sm:text-sm truncate">
-                    {item.product.bengaliName}
+                    {translateProductName(item.product)}
                   </h4>
-                  <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
-                    {item.selectedSize && <span>সাইজ: {item.selectedSize}</span>}
+                  <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-500">
+                    {item.selectedSize && <span>{isEnglish ? 'Size: ' : 'সাইজ: '}{translateSize(item.selectedSize)}</span>}
                     {item.selectedColor && (
                       <>
                         <span>•</span>
-                        <span>রং: {item.selectedColor}</span>
+                        <span>{isEnglish ? 'Color: ' : 'রং: '}{translateColor(item.selectedColor)}</span>
                       </>
                     )}
                   </div>
@@ -249,7 +278,9 @@ export const PostPurchaseReviewSection: React.FC<PostPurchaseReviewSectionProps>
               {/* Star Rating Selector */}
               <div className="p-3 bg-rose-50/40 rounded-xl border border-rose-100/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-800">স্টার রেটিং দিন:</span>
+                  <span className="text-xs font-bold text-slate-800">
+                    {isEnglish ? 'Rate Product:' : 'স্টার রেটিং দিন:'}
+                  </span>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onMouseLeave={() => handleHoverRating(item.product.id, 0)}
@@ -261,7 +292,7 @@ export const PostPurchaseReviewSection: React.FC<PostPurchaseReviewSectionProps>
                         onClick={() => handleRatingChange(item.product.id, star)}
                         onMouseEnter={() => handleHoverRating(item.product.id, star)}
                         className="p-1 hover:scale-120 transition-transform focus:outline-none"
-                        title={`${star} স্টার`}
+                        title={isEnglish ? `${star} Stars` : `${star} স্টার`}
                       >
                         <Star
                           className={`w-5 h-5 transition-colors ${
@@ -276,7 +307,7 @@ export const PostPurchaseReviewSection: React.FC<PostPurchaseReviewSectionProps>
                 </div>
 
                 <span className="text-xs font-bold text-rose-700 bg-white px-2.5 py-1 rounded-lg border border-rose-100 w-fit">
-                  {RATING_LABELS[activeStars] || `${activeStars} স্টার`}
+                  {RATING_LABELS[activeStars] || `${formatNumber(activeStars)} ${isEnglish ? 'Stars' : 'স্টার'}`}
                 </span>
               </div>
 
@@ -284,7 +315,7 @@ export const PostPurchaseReviewSection: React.FC<PostPurchaseReviewSectionProps>
               <div className="space-y-1.5">
                 <p className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-amber-500" />
-                  <span>দ্রুত মন্তব্য বাছাই করুন:</span>
+                  <span>{isEnglish ? 'Select quick feedback tags:' : 'দ্রুত মন্তব্য বাছাই করুন:'}</span>
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {QUICK_TAGS.map((tag) => (
@@ -307,13 +338,17 @@ export const PostPurchaseReviewSection: React.FC<PostPurchaseReviewSectionProps>
               {/* Text Review Box */}
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-1">
-                  আপনার রিভিউ ও অভিজ্ঞতা (Text Review):
+                  {isEnglish ? 'Your Review & Experience:' : 'আপনার রিভিউ ও অভিজ্ঞতা (Text Review):'}
                 </label>
                 <textarea
                   rows={2}
                   value={state.comment}
                   onChange={(e) => handleCommentChange(item.product.id, e.target.value)}
-                  placeholder="পোশাকের কাপড়, সেলাই, রং, সাইজের মাপ ও কুরিয়ার ডেলিভারি সম্পর্কে আপনার মতামত লিখুন..."
+                  placeholder={
+                    isEnglish
+                      ? 'Write about fabric quality, stitching, color, fit, and courier delivery...'
+                      : 'পোশাকের কাপড়, সেলাই, রং, সাইজের মাপ ও কুরিয়ার ডেলিভারি সম্পর্কে আপনার মতামত লিখুন...'
+                  }
                   className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
                 {state.error && <p className="text-[11px] text-red-500 mt-1 font-semibold">{state.error}</p>}
@@ -327,7 +362,7 @@ export const PostPurchaseReviewSection: React.FC<PostPurchaseReviewSectionProps>
                   className="bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>রিভিউ জমা দিন</span>
+                  <span>{isEnglish ? 'Submit Review' : 'রিভিউ জমা দিন'}</span>
                 </button>
               </div>
             </div>
