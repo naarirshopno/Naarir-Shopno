@@ -144,7 +144,7 @@ const AppLayout: React.FC = () => {
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
-    <div className={`min-h-screen flex flex-col font-['Hind_Siliguri',sans-serif] selection:bg-rose-600 selection:text-white relative ${isAdminRoute ? 'bg-slate-900 text-slate-100' : 'full-page-slow-color text-slate-800'}`}>
+    <div className={`min-h-screen overflow-x-clip flex flex-col font-['Hind_Siliguri',sans-serif] selection:bg-rose-600 selection:text-white relative ${isAdminRoute ? 'bg-slate-900 text-slate-100' : 'full-page-slow-color text-slate-800'}`}>
       <ScrollToTop />
       <NavigationHandler />
 

@@ -83,21 +83,21 @@ const LiveClockBadge: React.FC<{ isMobile?: boolean }> = React.memo(({ isMobile 
       <div 
         onClick={() => setUseBengaliDigits(!useBengaliDigits)}
         title="বর্তমান লাইভ তারিখ ও সময় (ক্লিক করে বাংলা/ইংরেজি পরিবর্তন করুন)"
-        className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-slate-800 bg-rose-50 border border-rose-200/80 shadow-xs cursor-pointer select-none text-center active:scale-95 transition-transform"
+        className="inline-flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 px-2.5 py-1 rounded-full text-slate-800 bg-rose-50 border border-rose-200/80 shadow-xs cursor-pointer select-none text-center active:scale-95 transition-transform max-w-full"
       >
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs inline-block"></span>
           <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wider">
             লাইভ
           </span>
         </div>
         <span className="text-rose-300">|</span>
-        <div className="flex items-center gap-1 text-[11px] font-semibold text-rose-800 font-['Hind_Siliguri'] shrink-0">
+        <div className="flex items-center gap-1 text-[10px] font-semibold text-rose-800 font-['Hind_Siliguri'] shrink-0">
           <Calendar className="w-3 h-3 text-rose-600 shrink-0" />
           <span>{dayName}, {dateStr}</span>
         </div>
         <span className="text-rose-300">|</span>
-        <div className="flex items-center gap-1 text-[11px] font-bold text-slate-900 font-mono tracking-tight shrink-0">
+        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-900 font-mono tracking-tight shrink-0">
           <Clock className="w-3 h-3 text-rose-600 shrink-0" />
           <span className="tabular-nums">{timeStr}</span>
         </div>
@@ -109,22 +109,22 @@ const LiveClockBadge: React.FC<{ isMobile?: boolean }> = React.memo(({ isMobile 
     <div 
       onClick={() => setUseBengaliDigits(!useBengaliDigits)}
       title="বর্তমান লাইভ তারিখ ও সময় (ক্লিক করে বাংলা/ইংরেজি পরিবর্তন করুন)"
-      className="hidden sm:inline-flex group items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-slate-700 hover:text-slate-900 transition-colors cursor-pointer select-none"
+      className="hidden sm:inline-flex group items-center gap-1.5 lg:gap-2 px-2.5 py-0.5 sm:py-1 rounded-full text-slate-700 hover:text-slate-900 transition-colors cursor-pointer select-none whitespace-nowrap max-w-full overflow-hidden"
     >
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 shrink-0">
         <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs inline-block"></span>
-        <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider hidden sm:inline">
+        <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider hidden lg:inline">
           লাইভ
         </span>
       </div>
-      <span className="text-rose-300 hidden sm:inline">|</span>
-      <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-semibold text-rose-800 font-['Hind_Siliguri']">
+      <span className="text-rose-300 hidden lg:inline shrink-0">|</span>
+      <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-semibold text-rose-800 font-['Hind_Siliguri'] shrink-0">
         <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-600 shrink-0" />
-        <span className="hidden md:inline">{dayName}, </span>
+        <span className="hidden xl:inline">{dayName}, </span>
         <span>{dateStr}</span>
       </div>
-      <span className="text-rose-300">|</span>
-      <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-bold text-slate-800 font-mono tracking-tight">
+      <span className="text-rose-300 shrink-0">|</span>
+      <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-bold text-slate-800 font-mono tracking-tight shrink-0">
         <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-600 shrink-0" />
         <span className="tabular-nums">{timeStr}</span>
       </div>
@@ -467,21 +467,21 @@ export const Header: React.FC = () => {
   );
 
   return (
-    <header className="w-full bg-white/98 border-b border-rose-100 shadow-xs transition-colors">
+    <header className="w-full overflow-x-clip bg-white/95 border-b border-rose-100 shadow-xs transition-colors">
       {/* Main Bar */}
-      <div className="relative border-b border-rose-100/70 px-2 sm:px-4 py-1.5">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-3.5 w-full max-w-full visit-white-border-box rounded-2xl shadow-xs">
-          <div className="flex items-center justify-between gap-2 sm:gap-6 w-full">
+      <div className="relative border-b border-rose-100/70 px-2 sm:px-4 py-1.5 w-full">
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 py-2 sm:py-3.5 w-full visit-white-border-box rounded-2xl shadow-xs">
+          <div className="flex items-center justify-between gap-1.5 sm:gap-4 w-full min-w-0">
           {/* Brand Logo & Name */}
           <Link 
             to="/"
-            className="flex items-center gap-2 sm:gap-3 cursor-pointer group shrink-0"
+            className="flex items-center gap-1.5 sm:gap-3 cursor-pointer group shrink-0 min-w-0"
             onClick={() => {
               setActiveCategory('all');
               setSearchQuery('');
             }}
           >
-            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-rose-500 shadow-md group-hover:scale-105 transition-transform shrink-0 bg-white">
+            <div className="relative w-9 h-9 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-rose-500 shadow-md group-hover:scale-105 transition-transform shrink-0 bg-white">
               <img 
                 src="/logo.jpg" 
                 alt="নারীর স্বপ্ন লোগো" 
@@ -492,23 +492,23 @@ export const Header: React.FC = () => {
                 }}
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-rose-700 font-['Hind_Siliguri'] leading-none sm:leading-tight">
+                <h1 className="text-base sm:text-2xl font-bold tracking-tight text-rose-700 font-['Hind_Siliguri'] leading-none sm:leading-tight whitespace-nowrap">
                   নারীর স্বপ্ন
                 </h1>
-                <span className="hidden md:inline-block text-rose-600/90 text-[11px] font-semibold tracking-wide uppercase">
+                <span className="hidden xl:inline-block text-rose-600/90 text-[11px] font-semibold tracking-wide uppercase whitespace-nowrap">
                   Women's Fashion
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-rose-500 italic font-medium leading-tight">
+              <p className="text-[9px] sm:text-xs text-rose-500 italic font-medium leading-tight whitespace-nowrap">
                 Dress Your Dreams
               </p>
             </div>
           </Link>
 
           {/* Center Area: Live Date & Time + Search Bar */}
-          <div className="flex-1 max-w-xl mx-2 sm:mx-4 flex flex-col items-center justify-center gap-1.5 py-0.5 min-w-0">
+          <div className="hidden sm:flex flex-1 max-w-xl mx-2 sm:mx-4 flex-col items-center justify-center gap-1.5 py-0.5 min-w-0 overflow-hidden">
             {/* Live Date & Time Display Badge (Desktop & Tablet) */}
             <LiveClockBadge />
 
@@ -557,20 +557,20 @@ export const Header: React.FC = () => {
           </div>
 
           {/* Header Action Buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* Bilingual Language Switcher (Bangla / English) */}
             <button
               id="btn-language-header"
               type="button"
               onClick={toggleLanguage}
-              className="flex items-center gap-1 px-2 sm:px-2.5 py-1 text-xs font-bold rounded-full border transition-all cursor-pointer shadow-xs active:scale-95 bg-white hover:bg-rose-50 border-rose-200 text-slate-700 hover:border-rose-300"
+              className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-full border transition-all cursor-pointer shadow-xs active:scale-95 bg-white hover:bg-rose-50 border-rose-200 text-slate-700 hover:border-rose-300 shrink-0"
               title={isEnglish ? 'বাংলা ভাষায় পরিবর্তন করুন' : 'Switch to English'}
               aria-label="Change Language"
             >
-              <Globe className="w-3.5 h-3.5 text-rose-600" />
-              <span className={`text-[11px] ${!isEnglish ? 'text-rose-700 font-black' : 'text-slate-400'}`}>বাং</span>
-              <span className="text-slate-300 text-[10px]">/</span>
-              <span className={`text-[11px] ${isEnglish ? 'text-rose-700 font-black' : 'text-slate-400'}`}>EN</span>
+              <Globe className="hidden sm:block w-3.5 h-3.5 text-rose-600" />
+              <span className={`text-[10px] sm:text-[11px] ${!isEnglish ? 'text-rose-700 font-black' : 'text-slate-400'}`}>বাং</span>
+              <span className="text-slate-300 text-[9px] sm:text-[10px]">/</span>
+              <span className={`text-[10px] sm:text-[11px] ${isEnglish ? 'text-rose-700 font-black' : 'text-slate-400'}`}>EN</span>
             </button>
 
 
@@ -579,7 +579,7 @@ export const Header: React.FC = () => {
             <button
               id="btn-track-header"
               onClick={() => navigate('/track')}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all border border-slate-200 hover:border-rose-300 cursor-pointer"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all border border-slate-200 hover:border-rose-300 cursor-pointer shrink-0"
               title={t('nav.track_order')}
             >
               <Truck className="w-3.5 h-3.5 text-rose-600" />
@@ -590,7 +590,7 @@ export const Header: React.FC = () => {
             <button
               id="btn-profile-header"
               onClick={() => navigate('/profile')}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all border border-slate-200 hover:border-rose-300 cursor-pointer"
+              className="flex items-center gap-1.5 p-1 sm:px-3 sm:py-1.5 text-xs font-bold text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all border border-slate-200 hover:border-rose-300 cursor-pointer shrink-0"
               title={t('nav.profile')}
               aria-label={t('nav.profile')}
             >
@@ -602,17 +602,17 @@ export const Header: React.FC = () => {
             <button
               id="btn-wishlist-header"
               onClick={() => navigate('/wishlist')}
-              className="relative p-2 text-slate-700 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all group flex items-center justify-center cursor-pointer"
+              className="relative p-1 sm:p-2 text-slate-700 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all group flex items-center justify-center cursor-pointer shrink-0"
               title={t('nav.wishlist')}
               aria-label={t('nav.wishlist')}
             >
               <Heart 
-                className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${
+                className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:scale-110 ${
                   getWishlistCount() > 0 ? 'text-rose-600 fill-rose-500' : 'text-slate-700 group-hover:text-rose-600'
                 }`} 
               />
               {getWishlistCount() > 0 && (
-                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-600 to-pink-600 text-white font-bold text-[10px] min-w-4 h-4 px-1 rounded-full flex items-center justify-center border-2 border-white shadow">
+                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-600 to-pink-600 text-white font-bold text-[9px] sm:text-[10px] min-w-3.5 h-3.5 sm:min-w-4 sm:h-4 px-1 rounded-full flex items-center justify-center border-2 border-white shadow">
                   {getWishlistCount()}
                 </span>
               )}
@@ -622,23 +622,23 @@ export const Header: React.FC = () => {
             <button
               id="btn-admin-header"
               onClick={() => navigate('/admin')}
-              className="p-2 text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all group flex items-center justify-center cursor-pointer"
+              className="p-1 sm:p-2 text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all group flex items-center justify-center cursor-pointer shrink-0"
               title={t('nav.admin')}
               aria-label={t('nav.admin')}
             >
-              <ShieldCheck className="w-5 h-5 text-slate-600 group-hover:text-rose-600 transition-colors" />
+              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 group-hover:text-rose-600 transition-colors" />
             </button>
 
             {/* Cart Drawer Trigger */}
             <button
               id="btn-cart-header"
               onClick={() => setIsCartOpen(true)}
-              className="relative flex items-center gap-2.5 bg-gradient-to-r from-rose-600 to-pink-600 text-white px-3 sm:px-4 py-2 rounded-full font-medium shadow-md hover:shadow-lg transition-all active:scale-95"
+              className="relative flex items-center gap-1.5 sm:gap-2.5 bg-gradient-to-r from-rose-600 to-pink-600 text-white p-1.5 sm:px-4 sm:py-2 rounded-full font-medium shadow-md hover:shadow-lg transition-all active:scale-95 shrink-0"
             >
               <div className="relative">
-                <ShoppingBag className="w-5 h-5" />
+                <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
                 {getCartCount() > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-amber-400 text-slate-900 font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow">
+                  <span className="absolute -top-2 -right-2 bg-amber-400 text-slate-900 font-bold text-[9px] sm:text-[10px] w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border-2 border-white shadow">
                     {getCartCount()}
                   </span>
                 )}
@@ -652,12 +652,12 @@ export const Header: React.FC = () => {
             <button
               id="btn-mobile-menu"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="flex items-center gap-1 p-1.5 sm:p-2 text-slate-700 hover:text-rose-600 hover:bg-rose-100/50 rounded-lg transition-colors"
+              className="flex items-center gap-1 p-1 sm:p-2 text-slate-700 hover:text-rose-600 hover:bg-rose-100/50 rounded-lg transition-colors shrink-0"
               title={t('nav.categories')}
               aria-label={t('nav.categories')}
             >
               {mobileMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
-              <span className="text-xs font-bold text-rose-700 hidden sm:inline">{t('nav.categories')}</span>
+              <span className="text-xs font-bold text-rose-700 hidden lg:inline">{t('nav.categories')}</span>
             </button>
           </div>
         </div>
