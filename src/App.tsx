@@ -152,7 +152,7 @@ const AppLayout: React.FC = () => {
       {!isAdminRoute && <Header />}
 
       {/* 2. Main Page Content (Multiple Page System) */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0 w-full">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/product/:productId" element={<ProductDetailPage />} />

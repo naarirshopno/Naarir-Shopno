@@ -418,22 +418,22 @@ export const CheckoutPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 animate-fadeIn">
+    <div className="w-full min-w-0 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-6 overflow-x-hidden animate-fadeIn">
       {/* Breadcrumbs */}
-      <div className="flex items-center gap-1.5 text-xs text-slate-500 border-b border-rose-100 pb-3">
+      <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 border-b border-rose-100 pb-3">
         <Link to="/" className="text-slate-600 hover:text-rose-600 font-medium">
           {isEnglish ? 'Home' : 'হোম'}
         </Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+        <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
         <span className="text-rose-700 font-bold">
           {isEnglish ? 'Checkout & Order Placement' : 'চেকআউট ও ডেলিভারি অর্ডার'}
         </span>
       </div>
 
-      <div className="bg-white rounded-3xl border border-rose-100 shadow-md overflow-hidden">
+      <div className="w-full min-w-0 bg-white rounded-3xl border border-rose-100 shadow-md overflow-hidden">
         <div className="p-4 sm:p-6 bg-gradient-to-r from-rose-50/80 via-pink-50/50 to-white border-b border-rose-100">
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 font-['Hind_Siliguri'] flex items-center gap-2">
-            <ShoppingBag className="w-6 h-6 text-rose-600" />
+            <ShoppingBag className="w-6 h-6 text-rose-600 shrink-0" />
             <span>
               {isEnglish ? 'Fill in Details to Complete Order' : 'অর্ডার সম্পন্ন করতে তথ্য পূরণ করুন'}
             </span>
@@ -445,11 +445,11 @@ export const CheckoutPage: React.FC = () => {
           </p>
         </div>
 
-        <form onSubmit={handlePlaceOrder} className="p-4 sm:p-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <form onSubmit={handlePlaceOrder} className="p-4 sm:p-8 w-full min-w-0">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full min-w-0">
             
             {/* Left Column: Customer Form & Payment */}
-            <div className="lg:col-span-7 space-y-6">
+            <div className="lg:col-span-7 min-w-0 w-full space-y-6">
               
               {/* Step 1: Customer Details */}
               <div className="space-y-4">

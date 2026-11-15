@@ -381,8 +381,8 @@ export const ProfilePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-transparent py-6 sm:py-10">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8 animate-fadeIn">
+    <div className="w-full min-w-0 min-h-screen bg-transparent py-6 sm:py-10 overflow-x-hidden">
+      <div className="w-full min-w-0 max-w-6xl mx-auto px-3 sm:px-6 space-y-8 animate-fadeIn">
         
         {/* Breadcrumb Navigation */}
         <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">

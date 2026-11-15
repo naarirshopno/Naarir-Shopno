@@ -167,11 +167,11 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
       )}
 
       {/* Main Review Scorecard Header */}
-      <div className="bg-white rounded-2xl p-4 sm:p-6 border border-rose-100 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <div className="bg-white rounded-2xl p-3.5 sm:p-6 border border-rose-100 shadow-xs w-full min-w-0">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6 min-w-0">
           {/* Left: Big Score & Stars */}
-          <div className="flex items-center gap-4 sm:gap-6 shrink-0">
-            <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border border-rose-100 min-w-[110px] sm:min-w-[130px]">
+          <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+            <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border border-rose-100 min-w-[96px] sm:min-w-[130px] shrink-0">
               <span className="text-3xl sm:text-4xl font-extrabold text-rose-700 font-['Outfit'] block leading-none mb-1">
                 {avgRating}
               </span>
@@ -192,9 +192,9 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
               </span>
             </div>
 
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-lg sm:text-xl font-bold text-slate-800 font-['Hind_Siliguri']">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <h3 className="text-base sm:text-xl font-bold text-slate-800 font-['Hind_Siliguri']">
                   ক্রেতাদের রিভিউ ও রেটিং
                 </h3>
                 <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
@@ -209,7 +209,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
           </div>
 
           {/* Center: Rating Breakdown Progress Bars */}
-          <div className="flex-1 max-w-md space-y-1.5 py-1">
+          <div className="flex-1 min-w-0 w-full max-w-md space-y-1.5 py-1">
             {[5, 4, 3, 2, 1].map((stars) => {
               const count = starCounts[stars as 1 | 2 | 3 | 4 | 5] || 0;
               const percentage = totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0;
@@ -271,14 +271,14 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
           onSubmit={handleSubmitReview}
           className="bg-white rounded-2xl p-4 sm:p-6 border-2 border-rose-200 shadow-md animate-fadeIn space-y-4"
         >
-          <div className="flex items-center justify-between border-b border-rose-100 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse"></span>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rose-100 pb-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse shrink-0"></span>
               <h4 className="text-sm sm:text-base font-bold text-slate-800 font-['Hind_Siliguri']">
                 আপনার মতামত বা রিভিউ দিন
               </h4>
             </div>
-            <span className="text-xs text-rose-600 font-medium">
+            <span className="text-xs text-rose-600 font-medium truncate max-w-full">
               প্রোডাক্ট: {product.bengaliName}
             </span>
           </div>
@@ -410,9 +410,9 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
       )}
 
       {/* Filter & Sorting Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 text-xs w-full min-w-0">
         {/* Star Rating Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 sm:pb-0 scrollbar-none min-w-0">
           <span className="font-bold text-slate-600 flex items-center gap-1 shrink-0 mr-1">
             <Filter className="w-3 h-3 text-rose-600" />
             ফিল্টার:
@@ -484,14 +484,14 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
                 className="bg-white rounded-2xl p-4 sm:p-5 border border-rose-100/80 shadow-xs hover:shadow-md transition-shadow duration-200 space-y-2.5"
               >
                 {/* Review Header: User Info & Rating */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-2.5">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     {/* User Avatar */}
                     <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr ${gradient} text-white flex items-center justify-center font-bold text-sm sm:text-base shadow-xs shrink-0 select-none`}>
                       {initial}
                     </div>
 
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <h5 className="font-bold text-xs sm:text-sm text-slate-900 leading-tight">
                           {rev.customerName}

@@ -234,7 +234,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
         
         {/* Expanded Music Control Panel Popup */}
         {isOpen && (
-          <div className="mb-3 w-80 sm:w-88 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-rose-200 p-4 animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <div className="mb-3 w-[calc(100vw-2rem)] max-w-88 sm:w-88 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-rose-200 p-4 animate-in fade-in slide-in-from-bottom-3 duration-200">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-rose-100 pb-3 mb-3">
               <div className="flex items-center gap-2">

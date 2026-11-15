@@ -470,8 +470,8 @@ export const Header: React.FC = () => {
     <header className="w-full overflow-x-clip bg-white/95 border-b border-rose-100 shadow-xs transition-colors">
       {/* Main Bar */}
       <div className="relative border-b border-rose-100/70 px-2 sm:px-4 py-1.5 w-full">
-        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 py-2 sm:py-3.5 w-full visit-white-border-box rounded-2xl shadow-xs">
-          <div className="flex items-center justify-between gap-1.5 sm:gap-4 w-full min-w-0">
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 py-2 sm:py-3.5 w-full visit-white-border-box rounded-2xl shadow-xs overflow-hidden">
+          <div className="flex items-center justify-between gap-1 sm:gap-4 w-full min-w-0">
           {/* Brand Logo & Name */}
           <Link 
             to="/"
@@ -481,7 +481,7 @@ export const Header: React.FC = () => {
               setSearchQuery('');
             }}
           >
-            <div className="relative w-9 h-9 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-rose-500 shadow-md group-hover:scale-105 transition-transform shrink-0 bg-white">
+            <div className="relative w-8 h-8 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-rose-500 shadow-md group-hover:scale-105 transition-transform shrink-0 bg-white">
               <img 
                 src="/logo.jpg" 
                 alt="নারীর স্বপ্ন লোগো" 
@@ -494,14 +494,14 @@ export const Header: React.FC = () => {
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <h1 className="text-base sm:text-2xl font-bold tracking-tight text-rose-700 font-['Hind_Siliguri'] leading-none sm:leading-tight whitespace-nowrap">
+                <h1 className="text-sm sm:text-2xl font-bold tracking-tight text-rose-700 font-['Hind_Siliguri'] leading-none sm:leading-tight whitespace-nowrap">
                   নারীর স্বপ্ন
                 </h1>
                 <span className="hidden xl:inline-block text-rose-600/90 text-[11px] font-semibold tracking-wide uppercase whitespace-nowrap">
                   Women's Fashion
                 </span>
               </div>
-              <p className="text-[9px] sm:text-xs text-rose-500 italic font-medium leading-tight whitespace-nowrap">
+              <p className="text-[8px] sm:text-xs text-rose-500 italic font-medium leading-tight whitespace-nowrap">
                 Dress Your Dreams
               </p>
             </div>
@@ -622,7 +622,7 @@ export const Header: React.FC = () => {
             <button
               id="btn-admin-header"
               onClick={() => navigate('/admin')}
-              className="p-1 sm:p-2 text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all group flex items-center justify-center cursor-pointer shrink-0"
+              className="hidden sm:flex p-1 sm:p-2 text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-all group items-center justify-center cursor-pointer shrink-0"
               title={t('nav.admin')}
               aria-label={t('nav.admin')}
             >

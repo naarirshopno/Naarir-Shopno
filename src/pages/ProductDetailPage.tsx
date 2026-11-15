@@ -380,26 +380,26 @@ export const ProductDetailPage: React.FC = () => {
   const isSaved = isInWishlist(product.id);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8 animate-fadeIn">
+    <div className="w-full min-w-0 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8 overflow-x-hidden animate-fadeIn">
       {/* 1. Breadcrumbs & Back Navigation */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 border-b border-rose-100 pb-3">
-        <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 text-xs text-slate-500 border-b border-rose-100 pb-3 w-full min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
           <Link to="/" className="text-slate-600 hover:text-rose-600 font-medium">
             {isEnglish ? 'Home' : 'হোম'}
           </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <Link to={`/category/${product.category}`} className="text-slate-600 hover:text-rose-600 font-medium hover:underline">
             {translateCategory(displayCategory)}
           </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-rose-700 font-bold truncate max-w-[200px] sm:max-w-xs">
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="text-rose-700 font-bold truncate max-w-[180px] sm:max-w-xs">
             {translateProductName(product)}
           </span>
         </div>
 
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 hover:text-rose-600 bg-white hover:bg-rose-50 px-3 py-1.5 rounded-full border border-slate-200 transition shadow-2xs cursor-pointer"
+          className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 hover:text-rose-600 bg-white hover:bg-rose-50 px-3 py-1.5 rounded-full border border-slate-200 transition shadow-2xs cursor-pointer shrink-0"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>{isEnglish ? 'Back' : 'পেছনে ফিরুন'}</span>
@@ -407,10 +407,10 @@ export const ProductDetailPage: React.FC = () => {
       </div>
 
       {/* 2. Main Product Showcase (2-Column Desktop, 1-Column Mobile) */}
-      <div className="bg-white rounded-3xl border border-rose-100 shadow-md overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+      <div className="w-full min-w-0 bg-white rounded-3xl border border-rose-100 shadow-md overflow-hidden grid grid-cols-1 lg:grid-cols-12">
         
         {/* Left Column: Image Gallery with 2-Finger Pinch Zoom */}
-        <div className="lg:col-span-6 flex flex-col items-center p-0 sm:p-6 lg:p-8 bg-rose-50/15 sm:border-r border-b lg:border-b-0 border-rose-100">
+        <div className="lg:col-span-6 min-w-0 w-full flex flex-col items-center p-0 sm:p-6 lg:p-8 bg-rose-50/15 sm:border-r border-b lg:border-b-0 border-rose-100">
           {/* Mode Switcher Buttons: AI Model Video vs Fabric Photo & Zoom */}
           <div 
             ref={imageContainerRef}
@@ -550,8 +550,8 @@ export const ProductDetailPage: React.FC = () => {
 
             {/* Hover Zoom Active Banner */}
             {isHoverZooming && (
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-rose-600/95 backdrop-blur-xs text-white text-[11px] font-bold px-3.5 py-1 rounded-full shadow-lg pointer-events-none flex items-center gap-1.5 border border-white/30 z-20 animate-fadeIn whitespace-nowrap">
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-rose-600/95 backdrop-blur-xs text-white text-[11px] font-bold px-3.5 py-1 rounded-full shadow-lg pointer-events-none flex items-center gap-1.5 border border-white/30 z-20 animate-fadeIn max-w-[92%] text-center">
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                 <span>2.5x ফেব্রিক জুম (মাউস নাড়িয়ে দেখুন)</span>
               </div>
             )}
@@ -574,7 +574,7 @@ export const ProductDetailPage: React.FC = () => {
 
             {/* Visual Instruction & Zoom Feedback Guide */}
             {!isHoverZooming && scale <= 1.05 ? (
-              <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[11px] font-medium px-3 py-1.5 rounded-full shadow-lg pointer-events-none flex items-center gap-1.5 whitespace-nowrap border border-white/20">
+              <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[11px] font-medium px-3 py-1.5 rounded-full shadow-lg pointer-events-none flex items-center gap-1.5 max-w-[90%] border border-white/20">
                 <ZoomIn className="w-3.5 h-3.5 text-rose-300 shrink-0" />
                 <span className="hidden sm:inline">ফেব্রিক জুম করুন</span>
                 <span className="sm:hidden">২ আঙুলে জুম</span>
@@ -629,8 +629,8 @@ export const ProductDetailPage: React.FC = () => {
         </div>
 
         {/* Right Column: Details, Selectors & Actions */}
-        <div className="lg:col-span-6 flex flex-col justify-between space-y-6 p-4 sm:p-6 lg:p-8">
-          <div className="space-y-4">
+        <div className="lg:col-span-6 min-w-0 w-full flex flex-col justify-between space-y-6 p-3.5 sm:p-6 lg:p-8">
+          <div className="space-y-4 min-w-0 w-full">
             
             {/* Category, SKU & Origin Badge */}
             <div className="flex items-center justify-between text-xs text-slate-500 flex-wrap gap-2">
@@ -643,20 +643,20 @@ export const ProductDetailPage: React.FC = () => {
                   {translateCategory(displayCategory)}
                 </Link>
               </div>
-              <span className="font-mono bg-slate-50 px-2 py-1 rounded border border-slate-200">
+              <span className="font-mono bg-slate-50 px-2 py-1 rounded border border-slate-200 max-w-full break-all">
                 {isEnglish ? `Code: ${product.sku}` : `কোড: ${product.sku}`}
               </span>
             </div>
 
             {/* Title */}
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-['Hind_Siliguri'] leading-tight">
+            <h1 className="text-xl sm:text-3xl font-extrabold text-slate-900 font-['Hind_Siliguri'] leading-tight break-words">
               {translateProductName(product)}
             </h1>
 
             {/* Rating Trigger to Reviews */}
             <div 
               onClick={scrollToReviews}
-              className="flex items-center gap-2 cursor-pointer group w-fit"
+              className="flex flex-wrap items-center gap-2 cursor-pointer group w-fit max-w-full"
               title={isEnglish ? 'Click to view customer reviews & ratings' : 'কাস্টমারদের রিভিউ ও রেটিং পড়তে ক্লিক করুন'}
             >
               <div className="flex items-center gap-1 text-amber-500">
@@ -670,13 +670,13 @@ export const ProductDetailPage: React.FC = () => {
             </div>
 
             {/* Price & Stock Row */}
-            <div className="p-4 bg-gradient-to-r from-rose-50/60 to-pink-50/40 rounded-2xl border border-rose-100 flex flex-wrap items-baseline justify-between gap-3">
-              <div className="flex items-baseline gap-2.5">
-                <span className="text-3xl sm:text-4xl font-black text-rose-700 font-['Outfit']">
+            <div className="w-full min-w-0 p-3 sm:p-4 bg-gradient-to-r from-rose-50/60 to-pink-50/40 rounded-2xl border border-rose-100 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+              <div className="flex flex-wrap items-baseline gap-2 sm:gap-2.5 min-w-0">
+                <span className="text-2xl sm:text-4xl font-black text-rose-700 font-['Outfit']">
                   {formatPrice(product.price)}
                 </span>
                 {product.regularPrice > product.price && (
-                  <span className="text-base text-slate-400 line-through font-['Outfit']">
+                  <span className="text-sm sm:text-base text-slate-400 line-through font-['Outfit']">
                     {formatPrice(product.regularPrice)}
                   </span>
                 )}
@@ -688,20 +688,20 @@ export const ProductDetailPage: React.FC = () => {
               </div>
 
               {/* Stock Status Badge */}
-              <div>
+              <div className="max-w-full">
                 {isOutOfStock ? (
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-800 bg-rose-100 px-3 py-1 rounded-full border border-rose-200">
-                    <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-rose-800 bg-rose-100 px-2.5 sm:px-3 py-1 rounded-full border border-rose-200 max-w-full">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
                     <span>{isEnglish ? 'Out of Stock' : 'স্টক আউট'}</span>
                   </span>
                 ) : product.stockCount !== undefined && product.stockCount < 5 ? (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-3 py-1 rounded-full shadow-2xs">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 sm:px-3 py-1 rounded-full shadow-2xs max-w-full">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
                     <span>{isEnglish ? `Only ${product.stockCount} left in stock` : `মাত্র ${product.stockCount}টি স্টকে বাকি`}</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 sm:px-3 py-1 rounded-full border border-emerald-200 max-w-full">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                     <span>{isEnglish ? `In Stock (${product.stockCount || 10} available)` : `ইন স্টক (${product.stockCount || 10}টি উপলব্ধ)`}</span>
                   </span>
                 )}
@@ -709,9 +709,9 @@ export const ProductDetailPage: React.FC = () => {
             </div>
 
             {/* Fabric Highlight */}
-            <div className="flex items-start gap-2 text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+            <div className="w-full min-w-0 flex flex-wrap items-start gap-2 text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
               <span className="font-bold text-slate-900 shrink-0">{isEnglish ? 'Fabric / Material:' : 'কাপড়ের বিবরণ:'}</span>
-              <span className="font-['Hind_Siliguri']">{product.fabric}</span>
+              <span className="font-['Hind_Siliguri'] min-w-0 break-words">{product.fabric}</span>
             </div>
 
             {/* Color Selector */}
@@ -806,27 +806,27 @@ export const ProductDetailPage: React.FC = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="space-y-3 pt-4 border-t border-rose-100">
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className="space-y-3 pt-4 border-t border-rose-100 w-full min-w-0">
+            <div className="flex flex-col sm:flex-row gap-3 w-full min-w-0">
               <button
                 id="btn-page-instant-order"
                 onClick={handleInstantBuy}
                 disabled={isOutOfStock}
-                className={`flex-1 font-bold text-sm sm:text-base py-3.5 px-6 rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 ${
+                className={`w-full sm:flex-1 min-w-0 font-bold text-sm sm:text-base py-3.5 px-4 sm:px-6 rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-center ${
                   isOutOfStock
                     ? 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-80'
                     : 'bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white hover:shadow-xl active:scale-95 cursor-pointer'
                 }`}
               >
-                <Zap className="w-5 h-5 fill-current text-amber-300" />
-                <span>{isOutOfStock ? (isEnglish ? 'Out of Stock' : 'স্টক আউট') : (isEnglish ? 'Order Now (Cash on Delivery)' : 'সরাসরি অর্ডার করুন')}</span>
+                <Zap className="w-5 h-5 fill-current text-amber-300 shrink-0" />
+                <span className="min-w-0">{isOutOfStock ? (isEnglish ? 'Out of Stock' : 'স্টক আউট') : (isEnglish ? 'Order Now (Cash on Delivery)' : 'সরাসরি অর্ডার করুন')}</span>
               </button>
 
               <button
                 id="btn-page-add-cart"
                 onClick={handleAddToCart}
                 disabled={isOutOfStock}
-                className={`flex-1 font-bold text-sm sm:text-base py-3.5 px-6 rounded-2xl border transition-all flex items-center justify-center gap-2 ${
+                className={`w-full sm:flex-1 min-w-0 font-bold text-sm sm:text-base py-3.5 px-4 sm:px-6 rounded-2xl border transition-all flex items-center justify-center gap-2 text-center ${
                   isOutOfStock
                     ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-80'
                     : addedToast
@@ -838,13 +838,13 @@ export const ProductDetailPage: React.FC = () => {
                   <span>{isEnglish ? 'Out of Stock' : 'স্টক আউট'}</span>
                 ) : addedToast ? (
                   <>
-                    <Check className="w-5 h-5 text-emerald-600" />
-                    <span>{isEnglish ? 'Added to Bag! 🛍️' : 'কার্টে যোগ হয়েছে! 🛍️'}</span>
+                    <Check className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <span className="min-w-0">{isEnglish ? 'Added to Bag! 🛍️' : 'কার্টে যোগ হয়েছে! 🛍️'}</span>
                   </>
                 ) : (
                   <>
-                    <ShoppingBag className="w-5 h-5 text-rose-600" />
-                    <span>{isEnglish ? 'Add to Bag' : 'কার্টে যোগ করুন'}</span>
+                    <ShoppingBag className="w-5 h-5 text-rose-600 shrink-0" />
+                    <span className="min-w-0">{isEnglish ? 'Add to Bag' : 'কার্টে যোগ করুন'}</span>
                   </>
                 )}
               </button>
@@ -856,34 +856,36 @@ export const ProductDetailPage: React.FC = () => {
               type="button"
               onClick={handleDirectWhatsAppOrder}
               disabled={isOutOfStock}
-              className={`w-full font-bold text-sm sm:text-base py-3 px-6 rounded-2xl shadow-md transition-all flex items-center justify-center gap-2.5 ${
+              className={`w-full min-w-0 font-bold text-xs sm:text-base py-3 px-3.5 sm:px-6 rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-center leading-snug ${
                 isOutOfStock
                   ? 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-80'
                   : 'bg-[#25D366] hover:bg-[#20bd5a] active:scale-98 text-white hover:shadow-lg cursor-pointer ring-2 ring-emerald-400/30'
               }`}
               title={isEnglish ? 'Order directly on WhatsApp' : 'হোয়াটসঅ্যাপে চ্যাটের মাধ্যমে সরাসরি এই প্রোডাক্টটি অর্ডার করুন'}
             >
-              <MessageCircle className="w-5 h-5 fill-white text-[#25D366]" />
-              <span>{isEnglish ? 'Order Directly via WhatsApp' : 'হোয়াটসঅ্যাপে সরাসরি অর্ডার করুন (Direct to WhatsApp)'}</span>
+              <MessageCircle className="w-5 h-5 fill-white text-[#25D366] shrink-0" />
+              <span className="min-w-0 break-words whitespace-normal">
+                {isEnglish ? 'Order Directly via WhatsApp' : 'হোয়াটসঅ্যাপে সরাসরি অর্ডার করুন (Direct to WhatsApp)'}
+              </span>
             </button>
 
             {/* Trust Assurance Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 text-[11px] text-slate-600">
-              <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-xl">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 text-[11px] text-slate-600 w-full min-w-0">
+              <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-xl min-w-0">
                 <Truck className="w-4 h-4 text-rose-600 shrink-0" />
-                <span>{isEnglish ? 'Free Home Delivery' : 'ফ্রি হোম ডেলিভারি'}</span>
+                <span className="min-w-0 leading-tight">{isEnglish ? 'Free Home Delivery' : 'ফ্রি হোম ডেলিভারি'}</span>
               </div>
-              <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-xl">
+              <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-xl min-w-0">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{isEnglish ? 'Cash on Delivery' : 'ক্যাশ অন ডেলিভারি'}</span>
+                <span className="min-w-0 leading-tight">{isEnglish ? 'Cash on Delivery' : 'ক্যাশ অন ডেলিভারি'}</span>
               </div>
-              <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-xl">
+              <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-xl min-w-0">
                 <RefreshCw className="w-4 h-4 text-pink-600 shrink-0" />
-                <span>{isEnglish ? '3-Day Easy Exchange' : '৩ দিন সহজ এক্সচেঞ্জ'}</span>
+                <span className="min-w-0 leading-tight">{isEnglish ? '3-Day Easy Exchange' : '৩ দিন সহজ এক্সচেঞ্জ'}</span>
               </div>
-              <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-xl">
+              <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-xl min-w-0">
                 <Phone className="w-4 h-4 text-blue-600 shrink-0" />
-                <span>{isEnglish ? '24/7 Helpline' : '২৪/৭ হেল্পলাইন'}</span>
+                <span className="min-w-0 leading-tight">{isEnglish ? '24/7 Helpline' : '২৪/৭ হেল্পলাইন'}</span>
               </div>
             </div>
           </div>
@@ -891,31 +893,31 @@ export const ProductDetailPage: React.FC = () => {
       </div>
 
       {/* 3. Product Description & Specifications */}
-      <div className="bg-white rounded-3xl border border-rose-100 p-6 sm:p-8 space-y-6 shadow-none">
-        <div className="flex items-center gap-2 border-b border-rose-100 pb-3">
-          <FileText className="w-5 h-5 text-rose-600" />
-          <h2 className="text-lg sm:text-xl font-bold text-slate-900 font-['Hind_Siliguri']">
+      <div className="w-full min-w-0 bg-white rounded-3xl border border-rose-100 p-4 sm:p-8 space-y-6 shadow-none overflow-hidden">
+        <div className="flex items-center gap-2 border-b border-rose-100 pb-3 min-w-0">
+          <FileText className="w-5 h-5 text-rose-600 shrink-0" />
+          <h2 className="text-base sm:text-xl font-bold text-slate-900 font-['Hind_Siliguri'] min-w-0">
             {isEnglish ? 'Product Description & Specifications' : 'পোশাকের সম্পূর্ণ বিবরণ ও স্পেসিফিকেশন'}
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 p-5 rounded-2xl bg-rose-50/40 border border-rose-100 space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 w-full min-w-0">
+          <div className="md:col-span-2 min-w-0 p-4 sm:p-5 rounded-2xl bg-rose-50/40 border border-rose-100 space-y-3">
             <h3 className="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-1.5 font-['Hind_Siliguri']">
-              <Sparkles className="w-4 h-4 text-amber-500" />
+              <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
               <span>{isEnglish ? 'Design & Work Details:' : 'ডিজাইন ও কাজের বিবরণ:'}</span>
             </h3>
-            <p className="text-sm text-slate-700 leading-relaxed font-['Hind_Siliguri'] whitespace-pre-line">
+            <p className="text-sm text-slate-700 leading-relaxed font-['Hind_Siliguri'] whitespace-pre-line break-words">
               {product.description || (isEnglish ? `${translateProductName(product)} - Premium exclusive dress from Naarir Shopno.` : `${product.bengaliName} - এক্সক্লুসিভ কালেকশনের সেরা পোশাক।`)}
             </p>
           </div>
 
-          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3 text-xs text-slate-700 font-['Hind_Siliguri']">
+          <div className="min-w-0 p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3 text-xs text-slate-700 font-['Hind_Siliguri']">
             <h3 className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
-              <Info className="w-4 h-4 text-rose-600" />
+              <Info className="w-4 h-4 text-rose-600 shrink-0" />
               <span>{isEnglish ? 'Specifications:' : 'বৈশিষ্ট্যসমূহ:'}</span>
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-2 break-words">
               <p><strong className="text-slate-900">{isEnglish ? 'Category:' : 'ক্যাটাগরি:'}</strong> {translateCategory(displayCategory)}</p>
               <p><strong className="text-slate-900">{isEnglish ? 'Product Code (SKU):' : 'প্রোডাক্ট কোড (SKU):'}</strong> {product.sku}</p>
               <p><strong className="text-slate-900">{isEnglish ? 'Fabric Type:' : 'কাপড়ের ধরন:'}</strong> {product.fabric}</p>
@@ -931,22 +933,22 @@ export const ProductDetailPage: React.FC = () => {
       </div>
 
       {/* 4. Customer Reviews Section */}
-      <div ref={reviewsSectionRef} className="bg-white rounded-3xl border border-rose-100 p-6 sm:p-8 shadow-sm">
+      <div ref={reviewsSectionRef} className="w-full min-w-0 bg-white rounded-3xl border border-rose-100 p-4 sm:p-8 shadow-sm overflow-hidden">
         <CustomerReviews productId={product.id} product={product} />
       </div>
 
       {/* 5. Related Products Section */}
       {relatedProducts.length > 0 && (
-        <div className="space-y-4 pt-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 font-['Hind_Siliguri']">
+        <div className="space-y-4 pt-4 w-full min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg sm:text-2xl font-bold text-slate-900 font-['Hind_Siliguri']">
               {isEnglish ? 'Related Popular Dresses from this Category' : 'একই ক্যাটাগরির অন্যান্য জনপ্রিয় পোশাক'}
             </h2>
-            <Link to="/" className="text-xs font-bold text-rose-600 hover:underline">
+            <Link to="/" className="text-xs font-bold text-rose-600 hover:underline shrink-0">
               {isEnglish ? 'View All Collections ›' : 'সব কালেকশন দেখুন ›'}
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 w-full min-w-0">
             {relatedProducts.map((relProduct, idx) => (
               <ProductCard key={relProduct.id} product={relProduct} index={idx} />
             ))}

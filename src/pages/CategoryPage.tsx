@@ -476,8 +476,8 @@ export const CategoryPage: React.FC = () => {
       </div>
 
       {/* 5. Main Layout with Desktop Sidebar & Product Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+      <div className="w-full min-w-0 max-w-7xl mx-auto px-3 sm:px-6 pt-6 overflow-x-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start w-full min-w-0">
           
           {/* Desktop Sidebar Filter Menu */}
           <div className="hidden lg:block lg:col-span-1 bg-white p-5 rounded-3xl border border-rose-100 shadow-sm space-y-6 sticky top-28">
@@ -584,9 +584,9 @@ export const CategoryPage: React.FC = () => {
           </div>
 
           {/* Product Grid Area (Span 3 on Desktop) */}
-          <div className="lg:col-span-3 space-y-4">
+          <div className="lg:col-span-3 min-w-0 w-full space-y-4">
             {filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-5 w-full min-w-0">
                 {filteredProducts.map((product: Product, index: number) => (
                   <ProductCard key={product.id} product={product} index={index} />
                 ))}
