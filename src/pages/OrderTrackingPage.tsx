@@ -39,6 +39,7 @@ export const OrderTrackingPage: React.FC = () => {
     translateSize,
     translateStatus,
     translateDistrict,
+    translateSupportHours,
   } = useLanguage();
 
   const initialQuery = paramOrderId || searchParams.get('id') || trackingOrderId || '';
@@ -468,7 +469,7 @@ export const OrderTrackingPage: React.FC = () => {
                       {isEnglish ? 'Call for any inquiry or delivery assistance:' : 'যেকোনো প্রশ্ন বা ডেলিভারি সহায়তার জন্য কল করুন:'}
                     </span>
                     {settings.supportHours && (
-                      <p className="text-[10px] text-emerald-600 font-semibold">{settings.supportHours}</p>
+                      <p className="text-[10px] text-emerald-600 font-semibold">{translateSupportHours(settings.supportHours)}</p>
                     )}
                   </div>
                 </div>

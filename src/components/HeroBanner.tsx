@@ -152,7 +152,7 @@ export const HeroBanner: React.FC = () => {
           <div className="relative h-48 sm:h-64 md:h-80 w-full overflow-hidden">
             <img
               src="/watermarked_hero_banner.jpg"
-              alt="নারীর স্বপ্ন এক্সক্লুসিভ ফ্যাশন কালেকশন"
+              alt={isEnglish ? 'Naarir Shopno Exclusive Fashion Collection' : 'নারীর স্বপ্ন এক্সক্লুসিভ ফ্যাশন কালেকশন'}
               className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-700"
               onError={(e) => {
                 e.currentTarget.src = "/hero-banner.jpg";
@@ -171,14 +171,14 @@ export const HeroBanner: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <p className="text-xs sm:text-sm font-black font-['Hind_Siliguri'] text-white leading-tight">
-                      নারীর স্বপ্ন
+                      {isEnglish ? 'Naarir Shopno' : 'নারীর স্বপ্ন'}
                     </p>
                     <span className="bg-rose-500/80 text-[9px] font-bold px-1.5 py-0.2 rounded text-white uppercase tracking-wider">
                       Official
                     </span>
                   </div>
                   <p className="text-[9px] sm:text-[10px] text-pink-200 font-medium leading-none tracking-widest uppercase mt-0.5">
-                    Dress Your Dreams • উইমেন্স বুটিক
+                    {isEnglish ? "Dress Your Dreams • Women's Boutique" : 'Dress Your Dreams • উইমেন্স বুটিক'}
                   </p>
                 </div>
               </div>
@@ -188,7 +188,9 @@ export const HeroBanner: React.FC = () => {
             <div className="absolute top-3 right-3 sm:top-5 sm:right-5 z-20 pointer-events-none select-none hidden sm:block">
               <div className="bg-black/75 border border-white/20 px-3.5 py-1 rounded-full text-white text-[11px] font-bold flex items-center gap-1.5 shadow">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-xs"></span>
-                <span>সরাসরি ফোন সাপোর্ট: {settings.hotline1 || '09617-541717'}</span>
+                <span>
+                  {isEnglish ? `Direct Support: ${settings.hotline1 || '09617-541717'}` : `সরাসরি ফোন সাপোর্ট: ${settings.hotline1 || '09617-541717'}`}
+                </span>
               </div>
             </div>
 

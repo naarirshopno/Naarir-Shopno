@@ -54,7 +54,7 @@ export const CancelOrderModal: React.FC<CancelOrderModalProps> = ({
   onSuccess
 }) => {
   const { cancelOrder, settings } = useShop();
-  const { isEnglish, formatPrice, formatNumber, translateProductName } = useLanguage();
+  const { isEnglish, formatPrice, formatNumber, translateSupportHours } = useLanguage();
 
   const [selectedReasonId, setSelectedReasonId] = useState(CANCEL_REASONS[0].id);
   const [customReasonNote, setCustomReasonNote] = useState('');
@@ -184,7 +184,7 @@ export const CancelOrderModal: React.FC<CancelOrderModalProps> = ({
                     {isEnglish ? 'Direct Helpline Support' : 'সরাসরি হেল্পলাইন সহায়তা'}
                   </p>
                   <p className="text-[11px] text-slate-500">
-                    {settings.supportHours || (isEnglish ? 'Daily 9:00 AM - 11:00 PM' : 'প্রতিদিন সকাল ৯টা - রাত ১১টা')}
+                    {translateSupportHours(settings.supportHours)}
                   </p>
                 </div>
                 <a

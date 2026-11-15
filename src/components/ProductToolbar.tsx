@@ -20,7 +20,7 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({ totalCount }) =>
     settings
   } = useShop();
 
-  const { t, formatNumber, isEnglish } = useLanguage();
+  const { formatNumber, translateCategory, isEnglish } = useLanguage();
 
   const customCategories = Array.isArray(settings.categories)
     ? settings.categories
@@ -30,13 +30,14 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({ totalCount }) =>
     { id: 'all', label: isEnglish ? 'All' : 'সবগুলো' },
     ...customCategories.map((c) => ({
       id: c.id,
-      label: c.title,
+      label: translateCategory(c.title),
     })),
   ];
 
+  const foundCat = customCategories.find(c => c.id === activeCategory)?.title;
   const currentCategoryLabel = activeCategory === 'all'
     ? (isEnglish ? 'All Dresses Collection' : 'আমাদের সকল পোশাকের সংগ্রহ')
-    : customCategories.find(c => c.id === activeCategory)?.title || categories.find(c => c.id === activeCategory)?.label || (isEnglish ? 'Products' : 'পণ্য তালিকা');
+    : (foundCat ? translateCategory(foundCat) : null) || categories.find(c => c.id === activeCategory)?.label || (isEnglish ? 'Products' : 'পণ্য তালিকা');
 
   return (
     <div className="visit-white-border-box rounded-3xl p-4 sm:p-6 shadow-sm mb-6 space-y-4">

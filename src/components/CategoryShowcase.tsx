@@ -1,12 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { CategoryType } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/initialData';
 import { ChevronRight } from 'lucide-react';
 
 export const CategoryShowcase: React.FC = () => {
   const { activeCategory, setActiveCategory, settings } = useShop();
+  const { isEnglish, translateCategory, translateCategorySubtitle } = useLanguage();
   const navigate = useNavigate();
 
   const categoryList = Array.isArray(settings.categories) && settings.categories.length > 0
@@ -24,10 +26,10 @@ export const CategoryShowcase: React.FC = () => {
       <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
         <div>
           <h3 className="text-xl sm:text-2xl font-bold text-slate-800 font-['Hind_Siliguri']">
-            ক্যাটাগরি অনুযায়ী ব্রাউজ করুন
+            {isEnglish ? 'Browse by Category' : 'ক্যাটাগরি অনুযায়ী ব্রাউজ করুন'}
           </h3>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            আপনার পছন্দের ক্যাটাগরি বেছে নিন
+            {isEnglish ? 'Choose your favorite category' : 'আপনার পছন্দের ক্যাটাগরি বেছে নিন'}
           </p>
         </div>
 
@@ -35,7 +37,7 @@ export const CategoryShowcase: React.FC = () => {
           onClick={() => handleSelect('all')}
           className="text-xs sm:text-sm font-bold text-rose-600 hover:text-rose-700 hover:underline px-2.5 py-1.5 inline-flex items-center gap-0.5 cursor-pointer"
         >
-          <span>সবগুলো দেখুন</span>
+          <span>{isEnglish ? 'View All' : 'সবগুলো দেখুন'}</span>
           <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -45,6 +47,8 @@ export const CategoryShowcase: React.FC = () => {
         {categoryList.map((item) => {
           const isSelected = activeCategory === item.id;
           const currentImage = settings.categoryImages?.[item.id] || item.image;
+          const translatedTitle = translateCategory(item.title);
+          const translatedSub = translateCategorySubtitle(item.subtitle);
 
           return (
             <div
@@ -59,7 +63,7 @@ export const CategoryShowcase: React.FC = () => {
               {/* Image */}
               <img
                 src={currentImage}
-                alt={item.title}
+                alt={translatedTitle}
                 className="absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"
                 onError={(e) => {
@@ -73,16 +77,16 @@ export const CategoryShowcase: React.FC = () => {
               {/* Category Info Overlay */}
               <div className="relative z-10 w-full text-center flex flex-col items-center justify-end px-1 pb-0.5 space-y-0.5">
                 <h4 className="w-full text-center text-xs sm:text-sm font-extrabold font-['Hind_Siliguri'] text-white drop-shadow-md group-hover:text-pink-200 transition-colors line-clamp-1 leading-tight">
-                  {item.title}
+                  {translatedTitle}
                 </h4>
-                {item.subtitle && (
+                {translatedSub && (
                   <p className="w-full text-center text-[9px] sm:text-[11px] text-pink-100/90 font-medium line-clamp-1 drop-shadow-xs leading-tight">
-                    {item.subtitle}
+                    {translatedSub}
                   </p>
                 )}
                 {isSelected && (
                   <span className="mx-auto inline-flex items-center gap-0.5 bg-rose-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-0.5 shadow-xs">
-                    বাছাইকৃত ✓
+                    {isEnglish ? 'Selected ✓' : 'বাছাইকৃত ✓'}
                   </span>
                 )}
               </div>

@@ -25,7 +25,7 @@ import {
 export const CategoryPage: React.FC = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const navigate = useNavigate();
-  const { isEnglish, translateCategory, formatNumber } = useLanguage();
+  const { isEnglish, translateCategory, translateCategorySubtitle, translateFabric, formatNumber, formatPrice } = useLanguage();
   const { 
     products, 
     settings, 
@@ -294,7 +294,7 @@ export const CategoryPage: React.FC = () => {
             </h1>
             {currentCategory.subtitle && (
               <p className="text-xs sm:text-sm text-pink-50 font-medium leading-relaxed drop-shadow-xs">
-                {isEnglish ? 'Exclusive collection from Naarir Shopno' : currentCategory.subtitle}
+                {translateCategorySubtitle(currentCategory.subtitle)}
               </p>
             )}
             <div className="flex items-center gap-2.5 sm:gap-3 pt-1 text-xs text-white flex-wrap">
@@ -389,7 +389,7 @@ export const CategoryPage: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 font-['Hind_Siliguri']">
                 <SlidersHorizontal className="w-3.5 h-3.5 text-rose-600" />
-                <span>প্রোডাক্ট ফিল্টার মেনু</span>
+                <span>{isEnglish ? 'Product Filter Menu' : 'প্রোডাক্ট ফিল্টার মেনু'}</span>
               </h3>
               <button onClick={() => setShowFilterDrawer(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
                 <X className="w-4 h-4" />
@@ -399,8 +399,8 @@ export const CategoryPage: React.FC = () => {
             {/* Price Range Filter */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-bold text-slate-700">
-                <span>মূল্য পরিসীমা (Budget)</span>
-                <span className="text-rose-600 font-mono">৳{priceRange[0]} - ৳{priceRange[1]}</span>
+                <span>{isEnglish ? 'Price Range (Budget)' : 'মূল্য পরিসীমা (Budget)'}</span>
+                <span className="text-rose-600 font-mono">{formatPrice(priceRange[0])} - {formatPrice(priceRange[1])}</span>
               </div>
               <input
                 type="range"
@@ -413,10 +413,10 @@ export const CategoryPage: React.FC = () => {
               />
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {[
-                  { label: 'সব মূল্য', range: [0, 10000] as [number, number] },
-                  { label: '৳১৫০০ এর নিচে', range: [0, 1500] as [number, number] },
-                  { label: '৳৩০০০ এর নিচে', range: [0, 3000] as [number, number] },
-                  { label: '৳৫০০০+', range: [5000, 10000] as [number, number] },
+                  { label: isEnglish ? 'All Prices' : 'সব মূল্য', range: [0, 10000] as [number, number] },
+                  { label: isEnglish ? 'Under ৳1,500' : '৳১৫০০ এর নিচে', range: [0, 1500] as [number, number] },
+                  { label: isEnglish ? 'Under ৳3,000' : '৳৩০০০ এর নিচে', range: [0, 3000] as [number, number] },
+                  { label: isEnglish ? '৳5,000+' : '৳৫০০০+', range: [5000, 10000] as [number, number] },
                 ].map((preset, idx) => (
                   <button
                     key={idx}
@@ -432,7 +432,9 @@ export const CategoryPage: React.FC = () => {
             {/* Material / Brand Fabric Filter */}
             {availableMaterials.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-slate-100">
-                <h4 className="text-xs font-bold text-slate-700">ব্র্যান্ড ও ম্যাটেরিয়াল (Fabric):</h4>
+                <h4 className="text-xs font-bold text-slate-700">
+                  {isEnglish ? 'Brand & Material (Fabric):' : 'ব্র্যান্ড ও ম্যাটেরিয়াল (Fabric):'}
+                </h4>
                 <div className="flex flex-wrap gap-1.5">
                   {availableMaterials.map((mat) => {
                     const isSelected = selectedMaterials.includes(mat);
@@ -446,7 +448,7 @@ export const CategoryPage: React.FC = () => {
                             : 'bg-slate-100 hover:bg-rose-50 text-slate-700'
                         }`}
                       >
-                        {mat} {isSelected && ' ✓'}
+                        {translateFabric(mat)} {isSelected && ' ✓'}
                       </button>
                     );
                   })}
@@ -462,13 +464,13 @@ export const CategoryPage: React.FC = () => {
                 }}
                 className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
               >
-                রিসেট
+                {isEnglish ? 'Reset' : 'রিসেট'}
               </button>
               <button
                 onClick={() => setShowFilterDrawer(false)}
                 className="px-4 py-1.5 bg-rose-600 text-white rounded-xl text-xs font-bold hover:bg-rose-700 transition cursor-pointer"
               >
-                প্রয়োগ করুন ({filteredProducts.length})
+                {isEnglish ? `Apply (${formatNumber(filteredProducts.length)})` : `প্রয়োগ করুন (${formatNumber(filteredProducts.length)})`}
               </button>
             </div>
           </div>
@@ -503,8 +505,8 @@ export const CategoryPage: React.FC = () => {
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-slate-700">{isEnglish ? 'Price Range:' : 'মূল্য পরিসীমা (Price Range):'}</h4>
               <div className="flex items-center justify-between text-xs font-semibold text-rose-700 font-mono">
-                <span>৳{priceRange[0]}</span>
-                <span>৳{priceRange[1]}</span>
+                <span>{formatPrice(priceRange[0])}</span>
+                <span>{formatPrice(priceRange[1])}</span>
               </div>
               <input
                 type="range"
@@ -550,7 +552,7 @@ export const CategoryPage: React.FC = () => {
                             : 'bg-rose-50/60 hover:bg-rose-100/70 text-slate-700'
                         }`}
                       >
-                        <span>{mat}</span>
+                        <span>{translateFabric(mat)}</span>
                         <span className={`w-4 h-4 rounded-md flex items-center justify-center text-[10px] ${isSelected ? 'bg-white text-rose-600 font-bold' : 'border border-rose-300'}`}>
                           {isSelected && '✓'}
                         </span>
@@ -568,13 +570,13 @@ export const CategoryPage: React.FC = () => {
                 <div className="flex flex-wrap gap-1">
                   {priceRange[1] < 10000 && (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-[11px] font-semibold">
-                      {isEnglish ? `Max ৳${priceRange[1]}` : `সর্বোচ্চ ৳${priceRange[1]}`}
+                      {isEnglish ? `Max ${formatPrice(priceRange[1])}` : `সর্বোচ্চ ${formatPrice(priceRange[1])}`}
                       <button onClick={() => setPriceRange([0, 10000])} className="hover:text-rose-900 cursor-pointer">×</button>
                     </span>
                   )}
                   {selectedMaterials.map((m) => (
                     <span key={m} className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-[11px] font-semibold">
-                      {m}
+                      {translateFabric(m)}
                       <button onClick={() => toggleMaterialFilter(m)} className="hover:text-rose-900 cursor-pointer">×</button>
                     </span>
                   ))}

@@ -1,9 +1,11 @@
 import React from 'react';
 import { useShop } from '../context/ShopContext';
-import { X, Truck, Clock, ShieldCheck, RefreshCw, AlertTriangle, Phone } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { X, Truck, Clock, ShieldCheck, RefreshCw, Phone } from 'lucide-react';
 
 export const DeliveryInfoModal: React.FC = () => {
   const { isDeliveryInfoOpen, setIsDeliveryInfoOpen, settings } = useShop();
+  const { isEnglish, formatPrice, formatNumber, translateSupportHours } = useLanguage();
 
   if (!isDeliveryInfoOpen) return null;
 
@@ -21,12 +23,12 @@ export const DeliveryInfoModal: React.FC = () => {
           <div className="flex items-center gap-2">
             <Truck className="w-5 h-5 text-rose-600" />
             <h3 className="text-lg sm:text-xl font-bold text-slate-900 font-['Hind_Siliguri']">
-              ডেলিভারি তথ্য ও নীতিমালা
+              {isEnglish ? 'Delivery Information & Policy' : 'ডেলিভারি তথ্য ও নীতিমালা'}
             </h3>
           </div>
           <button
             onClick={() => setIsDeliveryInfoOpen(false)}
-            className="w-8 h-8 rounded-full bg-white hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition shadow-sm"
+            className="w-8 h-8 rounded-full bg-white hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition shadow-sm cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -37,33 +39,47 @@ export const DeliveryInfoModal: React.FC = () => {
           {/* Rate Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="p-4 rounded-2xl bg-rose-50/50 border border-rose-200 text-center">
-              <span className="text-xs font-semibold text-rose-600">ঢাকা সিটির ভেতরে</span>
+              <span className="text-xs font-semibold text-rose-600">
+                {isEnglish ? 'Inside Dhaka City' : 'ঢাকা সিটির ভেতরে'}
+              </span>
               <p className="text-2xl font-black text-rose-700 my-1 font-['Outfit']">
-                ৳{settings.deliveryCharges.insideDhaka}
+                {formatPrice(settings.deliveryCharges.insideDhaka)}
               </p>
-              <p className="text-[11px] text-slate-500">সময়: ২৪ থেকে ৪৮ ঘণ্টা</p>
+              <p className="text-[11px] text-slate-500">
+                {isEnglish ? 'Time: 24 to 48 hours' : 'সময়: ২৪ থেকে ৪৮ ঘণ্টা'}
+              </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-pink-50/50 border border-pink-200 text-center">
-              <span className="text-xs font-semibold text-pink-600">ঢাকা উপশহর (সাভার/গাজীপুর)</span>
+              <span className="text-xs font-semibold text-pink-600">
+                {isEnglish ? 'Sub-Dhaka (Savar/Gazipur)' : 'ঢাকা উপশহর (সাভার/গাজীপুর)'}
+              </span>
               <p className="text-2xl font-black text-pink-700 my-1 font-['Outfit']">
-                ৳{settings.deliveryCharges.subDhaka}
+                {formatPrice(settings.deliveryCharges.subDhaka)}
               </p>
-              <p className="text-[11px] text-slate-500">সময়: ২ থেকে ৩ দিন</p>
+              <p className="text-[11px] text-slate-500">
+                {isEnglish ? 'Time: 2 to 3 days' : 'সময়: ২ থেকে ৩ দিন'}
+              </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200 text-center">
-              <span className="text-xs font-semibold text-amber-700">ঢাকার বাইরে সারাদেশে</span>
+              <span className="text-xs font-semibold text-amber-700">
+                {isEnglish ? 'Outside Dhaka Nationwide' : 'ঢাকার বাইরে সারাদেশে'}
+              </span>
               <p className="text-2xl font-black text-amber-800 my-1 font-['Outfit']">
-                ৳{settings.deliveryCharges.outsideDhaka}
+                {formatPrice(settings.deliveryCharges.outsideDhaka)}
               </p>
-              <p className="text-[11px] text-slate-500">সময়: ২ থেকে ৩ কর্মদিবস</p>
+              <p className="text-[11px] text-slate-500">
+                {isEnglish ? 'Time: 2 to 3 business days' : 'সময়: ২ থেকে ৩ কর্মদিবস'}
+              </p>
             </div>
           </div>
 
           {/* Free delivery banner */}
           <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 font-bold text-center text-xs sm:text-sm shadow-2xs">
-            🎉 যেকোনো ৩টি পোশাকের অর্ডারে অথবা ৳{(settings.deliveryCharges.freeDeliveryAbove || 3000).toLocaleString()}+ টাকার অর্ডারে সারাদেশে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি!
+            {isEnglish
+              ? `🎉 Free nationwide delivery on any ${settings.deliveryCharges.freeDeliveryMinItems || 3} dresses or orders over ${formatPrice(settings.deliveryCharges.freeDeliveryAbove || 3000)}!`
+              : `🎉 যেকোনো ${formatNumber(settings.deliveryCharges.freeDeliveryMinItems || 3)}টি পোশাকের অর্ডারে অথবা ${formatPrice(settings.deliveryCharges.freeDeliveryAbove || 3000)}+ টাকার অর্ডারে সারাদেশে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি!`}
           </div>
 
           {/* Detailed Instructions */}
@@ -73,9 +89,13 @@ export const DeliveryInfoModal: React.FC = () => {
                 <Clock className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="font-bold text-slate-800 mb-0.5">ডেলিভারি প্রসেসিং সময়</h4>
+                <h4 className="font-bold text-slate-800 mb-0.5">
+                  {isEnglish ? 'Order Processing Time' : 'ডেলিভারি প্রসেসিং সময়'}
+                </h4>
                 <p className="text-slate-600 text-xs leading-relaxed">
-                  অর্ডার প্লেস করার পর আমাদের কাস্টমার প্রতিনিধি আপনার সাথে ফোনে কথা বলে অর্ডার নিশ্চিত করবেন। দুপুর ২টার আগের অর্ডার একই দিনে কুরিয়ারে হস্তান্তর করা হয়।
+                  {isEnglish
+                    ? 'After placing your order, our representative calls to confirm. Orders placed before 2:00 PM are handed over to the courier on the same day.'
+                    : 'অর্ডার প্লেস করার পর আমাদের কাস্টমার প্রতিনিধি আপনার সাথে ফোনে কথা বলে অর্ডার নিশ্চিত করবেন। দুপুর ২টার আগের অর্ডার একই দিনে কুরিয়ারে হস্তান্তর করা হয়।'}
                 </p>
               </div>
             </div>
@@ -85,9 +105,13 @@ export const DeliveryInfoModal: React.FC = () => {
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="font-bold text-slate-800 mb-0.5">ক্যাশ অন ডেলিভারি ও পার্সেল চেক</h4>
+                <h4 className="font-bold text-slate-800 mb-0.5">
+                  {isEnglish ? 'Cash on Delivery & Parcel Inspection' : 'ক্যাশ অন ডেলিভারি ও পার্সেল চেক'}
+                </h4>
                 <p className="text-slate-600 text-xs leading-relaxed">
-                  ডেলিভারি ম্যান উপস্থিত থাকাকালীন সময়ে পার্সেল খুলে পোশাকের সাইজ ও ফেব্রিক কোয়ালিটি দেখে বুঝে নিন। কোনো অসঙ্গতি থাকলে সাথে সাথে ডেলিভারি ম্যানের সামনে আমাদের হটলাইনে কল দিন।
+                  {isEnglish
+                    ? 'Open the parcel in front of the delivery agent to verify dress size and fabric quality. If any issue arises, call our hotline immediately while the rider is present.'
+                    : 'ডেলিভারি ম্যান উপস্থিত থাকাকালীন সময়ে পার্সেল খুলে পোশাকের সাইজ ও ফেব্রিক কোয়ালিটি দেখে বুঝে নিন। কোনো অসঙ্গতি থাকলে সাথে সাথে ডেলিভারি ম্যানের সামনে আমাদের হটলাইনে কল দিন।'}
                 </p>
               </div>
             </div>
@@ -97,9 +121,13 @@ export const DeliveryInfoModal: React.FC = () => {
                 <RefreshCw className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="font-bold text-slate-800 mb-0.5">সহজ রিটার্ন ও এক্সচেঞ্জ পলিসি</h4>
+                <h4 className="font-bold text-slate-800 mb-0.5">
+                  {isEnglish ? 'Easy Return & Exchange Policy' : 'সহজ রিটার্ন ও এক্সচেঞ্জ পলিসি'}
+                </h4>
                 <p className="text-slate-600 text-xs leading-relaxed">
-                  সাইজ পরিবর্তন বা পোশাক পছন্দ না হলে ৩ দিনের মধ্যে এক্সচেঞ্জ সুবিধা পাওয়া যাবে। পোশাকের ট্যাগ অক্ষত ও অব্যবহৃত থাকতে হবে।
+                  {isEnglish
+                    ? 'Size exchange is available within 3 days of delivery. Product tags must remain intact and items must be unused.'
+                    : 'সাইজ পরিবর্তন বা পোশাক পছন্দ না হলে ৩ দিনের মধ্যে এক্সচেঞ্জ সুবিধা পাওয়া যাবে। পোশাকের ট্যাগ অক্ষত ও অব্যবহৃত থাকতে হবে।'}
                 </p>
               </div>
             </div>
@@ -110,9 +138,11 @@ export const DeliveryInfoModal: React.FC = () => {
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-rose-600 shrink-0" />
               <div>
-                <span className="font-semibold text-slate-800">কাস্টমার সাপোর্ট ও সরাসরি ফোন:</span>
+                <span className="font-semibold text-slate-800">
+                  {isEnglish ? 'Customer Care & Direct Call:' : 'কাস্টমার সাপোর্ট ও সরাসরি ফোন:'}
+                </span>
                 {settings.supportHours && settings.supportHours.trim() ? (
-                  <p className="text-[10px] text-emerald-600 font-semibold">{settings.supportHours}</p>
+                  <p className="text-[10px] text-emerald-600 font-semibold">{translateSupportHours(settings.supportHours)}</p>
                 ) : null}
               </div>
             </div>

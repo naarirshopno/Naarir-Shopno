@@ -6,7 +6,7 @@ import { Truck, Clock, ShieldCheck, RefreshCw, Phone, ArrowLeft, ChevronRight } 
 
 export const DeliveryInfoPage: React.FC = () => {
   const { settings } = useShop();
-  const { isEnglish, formatPrice, formatNumber } = useLanguage();
+  const { isEnglish, formatPrice, translateSupportHours } = useLanguage();
   const navigate = useNavigate();
 
   return (
@@ -95,7 +95,7 @@ export const DeliveryInfoPage: React.FC = () => {
         <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 font-bold text-center text-sm shadow-2xs">
           {isEnglish 
             ? `🎉 Free Delivery Nationwide on any 3 dresses or orders over ${formatPrice(settings.deliveryCharges.freeDeliveryAbove || 3000)}!`
-            : `🎉 যেকোনো ৩টি পোশাকের অর্ডারে অথবা ৳${(settings.deliveryCharges.freeDeliveryAbove || 3000).toLocaleString()}+ টাকার অর্ডারে সারাদেশে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি!`}
+            : `🎉 যেকোনো ৩টি পোশাকের অর্ডারে অথবা ${formatPrice(settings.deliveryCharges.freeDeliveryAbove || 3000)}+ টাকার অর্ডারে সারাদেশে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি!`}
         </div>
 
         {/* Detailed Points */}
@@ -158,9 +158,7 @@ export const DeliveryInfoPage: React.FC = () => {
                 {isEnglish ? 'Direct Helpline Support:' : 'যেকোনো সহায়তায় সরাসরি কল করুন:'}
               </p>
               <p className="text-xs text-slate-500">
-                {isEnglish 
-                  ? (settings.supportHours || 'Our helpline is open daily from 9:00 AM to 11:00 PM')
-                  : 'আমাদের হেল্পলাইন প্রতিদিন সকাল ৯টা থেকে রাত ১১টা পর্যন্ত খোলা থাকে'}
+                {translateSupportHours(settings.supportHours)}
               </p>
             </div>
           </div>

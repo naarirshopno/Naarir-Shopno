@@ -1,5 +1,6 @@
 import React from 'react';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Product } from '../types';
 import { 
   X, 
@@ -7,9 +8,6 @@ import {
   Trash2, 
   ShoppingBag, 
   Zap, 
-  ArrowRight, 
-  Check, 
-  Sparkles,
   ShoppingBasket
 } from 'lucide-react';
 
@@ -28,12 +26,23 @@ export const WishlistModal: React.FC = () => {
     settings
   } = useShop();
 
+  const {
+    isEnglish,
+    formatNumber,
+    formatPrice,
+    translateCategory,
+    translateProductName
+  } = useLanguage();
+
   const getCategoryTitle = (prod: Product) => {
     const cats = Array.isArray(settings.categories) ? settings.categories : [];
     const found = cats.find(c => c.id === prod.category);
-    if (found) return found.title;
-    if (prod.categoryBengali && prod.categoryBengali !== 'থ্রি-পিস') return prod.categoryBengali;
-    return cats[0]?.title || prod.categoryBengali || 'পোশাক';
+    const rawCat = found
+      ? found.title
+      : (prod.categoryBengali && prod.categoryBengali !== 'থ্রি-পিস'
+          ? prod.categoryBengali
+          : cats[0]?.title || prod.categoryBengali || 'পোশাক');
+    return translateCategory(rawCat);
   };
 
   if (!isWishlistOpen) return null;
@@ -97,22 +106,22 @@ export const WishlistModal: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-base sm:text-lg font-['Hind_Siliguri'] leading-tight">
-                  পছন্দের তালিকা (উইশলিস্ট)
+                  {isEnglish ? 'Saved Wishlist' : 'পছন্দের তালিকা (উইশলিস্ট)'}
                 </h3>
                 <span className="bg-white/25 text-white font-bold text-xs px-2 py-0.5 rounded-full">
-                  {wishlistedProducts.length} টি
+                  {isEnglish ? `${wishlistedProducts.length} items` : `${formatNumber(wishlistedProducts.length)} টি`}
                 </span>
               </div>
               <p className="text-[11px] text-pink-100">
-                আপনার পছন্দের সংরক্ষিত পোশাকসমূহ
+                {isEnglish ? 'Your favorite saved dresses' : 'আপনার পছন্দের সংরক্ষিত পোশাকসমূহ'}
               </p>
             </div>
           </div>
 
           <button
             onClick={handleClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center transition-colors text-white"
-            aria-label="বন্ধ করুন"
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center transition-colors text-white cursor-pointer"
+            aria-label={isEnglish ? 'Close' : 'বন্ধ করুন'}
           >
             <X className="w-5 h-5" />
           </button>
@@ -128,18 +137,22 @@ export const WishlistModal: React.FC = () => {
               </div>
               <div className="space-y-1 max-w-sm">
                 <h4 className="text-lg font-bold text-slate-800 font-['Hind_Siliguri']">
-                  আপনার পছন্দের তালিকাটি খালি!
+                  {isEnglish ? 'Your Wishlist is Empty!' : 'আপনার পছন্দের তালিকাটি খালি!'}
                 </h4>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  পণ্য ব্রাউজ করার সময় পোশাকের উপরে থাকা হার্ট (<Heart className="w-3.5 h-3.5 inline text-rose-500 fill-rose-500 -mt-0.5" />) আইকনে ক্লিক করে আপনার পছন্দের পোশাক এখানে সংরক্ষণ করে রাখতে পারবেন।
+                  {isEnglish ? (
+                    <>Click the heart (<Heart className="w-3.5 h-3.5 inline text-rose-500 fill-rose-500 -mt-0.5" />) icon on any dress while browsing to save it here.</>
+                  ) : (
+                    <>পণ্য ব্রাউজ করার সময় পোশাকের উপরে থাকা হার্ট (<Heart className="w-3.5 h-3.5 inline text-rose-500 fill-rose-500 -mt-0.5" />) আইকনে ক্লিক করে আপনার পছন্দের পোশাক এখানে সংরক্ষণ করে রাখতে পারবেন।</>
+                  )}
                 </p>
               </div>
               <button
                 onClick={handleBrowseCatalog}
-                className="bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white text-xs sm:text-sm font-bold px-6 py-2.5 rounded-xl shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                className="bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white text-xs sm:text-sm font-bold px-6 py-2.5 rounded-xl shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
               >
                 <ShoppingBag className="w-4 h-4" />
-                <span>পোশাক কালেকশন দেখুন</span>
+                <span>{isEnglish ? 'Explore Dress Collection' : 'পোশাক কালেকশন দেখুন'}</span>
               </button>
             </div>
           ) : (
@@ -148,23 +161,25 @@ export const WishlistModal: React.FC = () => {
               {/* Batch action bar */}
               <div className="flex items-center justify-between bg-rose-50/60 p-3 rounded-xl border border-rose-100 text-xs">
                 <span className="font-semibold text-rose-900">
-                  মোট {wishlistedProducts.length} টি পছন্দের পোশাক পাওয়া গেছে
+                  {isEnglish
+                    ? `Total ${wishlistedProducts.length} saved items found`
+                    : `মোট ${formatNumber(wishlistedProducts.length)} টি পছন্দের পোশাক পাওয়া গেছে`}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleAddAllToCart}
-                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <ShoppingBasket className="w-3.5 h-3.5" />
-                    <span>সবগুলো কার্টে নিন</span>
+                    <span>{isEnglish ? 'Add All to Bag' : 'সবগুলো কার্টে নিন'}</span>
                   </button>
                   <button
                     onClick={clearWishlist}
-                    className="text-slate-500 hover:text-rose-600 font-medium px-2 py-1 transition-colors flex items-center gap-1"
-                    title="তালিকা খালি করুন"
+                    className="text-slate-500 hover:text-rose-600 font-medium px-2 py-1 transition-colors flex items-center gap-1 cursor-pointer"
+                    title={isEnglish ? 'Clear Wishlist' : 'তালিকা খালি করুন'}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>খালি করুন</span>
+                    <span>{isEnglish ? 'Clear' : 'খালি করুন'}</span>
                   </button>
                 </div>
               </div>
@@ -175,6 +190,7 @@ export const WishlistModal: React.FC = () => {
                   const discountPercent = Math.round(
                     ((product.regularPrice - product.price) / product.regularPrice) * 100
                   );
+                  const prodTitle = translateProductName(product);
 
                   return (
                     <div
@@ -191,7 +207,7 @@ export const WishlistModal: React.FC = () => {
                       >
                         <img
                           src={(product.images && product.images[0]) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80'}
-                          alt={product.bengaliName}
+                          alt={prodTitle}
                           className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform"
                           onError={(e) => {
                             e.currentTarget.src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80';
@@ -199,7 +215,7 @@ export const WishlistModal: React.FC = () => {
                         />
                         {discountPercent > 0 && (
                           <span className="absolute top-1 left-1 bg-rose-600 text-white font-bold text-[9px] px-1.5 py-0.2 rounded shadow-xs">
-                            {discountPercent}% ছাড়
+                            {formatNumber(discountPercent)}% {isEnglish ? 'OFF' : 'ছাড়'}
                           </span>
                         )}
                       </div>
@@ -213,8 +229,8 @@ export const WishlistModal: React.FC = () => {
                             </span>
                             <button
                               onClick={() => removeFromWishlist(product.id)}
-                              className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
-                              title="উইশলিস্ট থেকে মুছুন"
+                              className="text-slate-400 hover:text-rose-600 p-1 transition-colors cursor-pointer"
+                              title={isEnglish ? 'Remove from wishlist' : 'উইশলিস্ট থেকে মুছুন'}
                             >
                               <X className="w-4 h-4" />
                             </button>
@@ -227,16 +243,16 @@ export const WishlistModal: React.FC = () => {
                               setIsWishlistOpen(false);
                             }}
                           >
-                            {product.bengaliName}
+                            {prodTitle}
                           </h4>
 
                           <div className="mt-1 flex items-baseline gap-2">
                             <span className="text-sm font-bold text-rose-600 font-['Outfit']">
-                              ৳{product.price.toLocaleString()}
+                              {formatPrice(product.price)}
                             </span>
                             {product.regularPrice > product.price && (
                               <span className="text-[11px] text-slate-400 line-through font-['Outfit']">
-                                ৳{product.regularPrice.toLocaleString()}
+                                {formatPrice(product.regularPrice)}
                               </span>
                             )}
                           </div>
@@ -246,18 +262,18 @@ export const WishlistModal: React.FC = () => {
                         <div className="pt-2 flex items-center gap-1.5">
                           <button
                             onClick={(e) => handleAddToCart(e, product)}
-                            className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1"
+                            className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
                           >
                             <ShoppingBag className="w-3 h-3 text-rose-600" />
-                            <span>কার্টে নিন</span>
+                            <span>{isEnglish ? 'Add Bag' : 'কার্টে নিন'}</span>
                           </button>
 
                           <button
                             onClick={(e) => handleDirectBuy(e, product)}
-                            className="flex-1 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white text-[11px] font-bold py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 shadow-xs"
+                            className="flex-1 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white text-[11px] font-bold py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 shadow-xs cursor-pointer"
                           >
                             <Zap className="w-3 h-3 text-amber-300" />
-                            <span>অর্ডার করুন</span>
+                            <span>{isEnglish ? 'Order Now' : 'অর্ডার করুন'}</span>
                           </button>
                         </div>
                       </div>
@@ -273,14 +289,14 @@ export const WishlistModal: React.FC = () => {
         <div className="bg-rose-50/50 border-t border-rose-100 px-5 py-3 flex items-center justify-between">
           <span className="text-xs text-slate-500">
             {wishlistedProducts.length > 0 
-              ? `মোট ${wishlistedProducts.length} টি পছন্দের পোশাক সংরক্ষিত`
-              : 'কোনো পোশাক সংরক্ষিত নেই'}
+              ? (isEnglish ? `Total ${wishlistedProducts.length} saved items` : `মোট ${formatNumber(wishlistedProducts.length)} টি পছন্দের পোশাক সংরক্ষিত`)
+              : (isEnglish ? 'No items saved' : 'কোনো পোশাক সংরক্ষিত নেই')}
           </span>
           <button
             onClick={handleClose}
-            className="text-xs font-bold text-slate-700 hover:text-rose-600 px-4 py-2 rounded-xl border border-rose-200 bg-white hover:bg-rose-50 transition-colors"
+            className="text-xs font-bold text-slate-700 hover:text-rose-600 px-4 py-2 rounded-xl border border-rose-200 bg-white hover:bg-rose-50 transition-colors cursor-pointer"
           >
-            বন্ধ করুন
+            {isEnglish ? 'Close' : 'বন্ধ করুন'}
           </button>
         </div>
 

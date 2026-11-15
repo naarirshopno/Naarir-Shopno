@@ -38,7 +38,7 @@ const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1610030469983-98e550d6
 export const ProductDetailPage: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
-  const { isEnglish, translateCategory, translateProductName, translateColor, translateSize, formatNumber, formatPrice } = useLanguage();
+  const { isEnglish, translateCategory, translateProductName, translateColor, translateSize, translateFabric, formatNumber, formatPrice } = useLanguage();
 
   const { 
     products, 
@@ -303,20 +303,30 @@ export const ProductDetailPage: React.FC = () => {
   const handleDirectWhatsAppOrder = () => {
     if (!product || isOutOfStock) return;
     const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
-    const chosenColor = selectedColor || (product.colors && product.colors[0]?.name) || 'ডিফল্ট';
-    const chosenSize = selectedSize || (product.sizes && product.sizes[0]) || 'ডিফল্ট';
+    const rawColor = selectedColor || (product.colors && product.colors[0]?.name) || '';
+    const rawSize = selectedSize || (product.sizes && product.sizes[0]) || '';
+    const chosenColor = rawColor ? translateColor(rawColor) : '';
+    const chosenSize = rawSize ? translateSize(rawSize) : '';
     const rawPhone = (settings.whatsappNumber || '01911-541717').replace(/[^0-9]/g, '');
     const phone = rawPhone.startsWith('88') ? rawPhone : `88${rawPhone}`;
 
-    const text = 
-      `আসসালামু আলাইকুম! আমি নারীর স্বপ্ন থেকে এই পোশাকটি সরাসরি WhatsApp-এ অর্ডার করতে চাই:\n\n` +
-      `👗 পণ্যের নাম: ${product.bengaliName || product.name}\n` +
-      `💰 মূল্য: ৳${product.price.toLocaleString()} টাকা (পরিমাণ: ${quantity}টি, সর্বমোট: ৳${(product.price * quantity).toLocaleString()} টাকা)\n` +
-      (chosenSize !== 'ডিফল্ট' ? `📏 সাইজ: ${chosenSize}\n` : '') +
-      (chosenColor !== 'ডিফল্ট' ? `🎨 রঙ: ${chosenColor}\n` : '') +
-      (product.fabric ? `🧵 ফেব্রিক: ${product.fabric}\n` : '') +
-      `🔗 প্রোডাক্ট লিংক: ${currentUrl}\n\n` +
-      `দয়া করে আমার অর্ডারটি কনফার্ম করুন।`;
+    const text = isEnglish
+      ? `Assalamu Alaikum! I would like to order this dress directly from Naarir Shopno via WhatsApp:\n\n` +
+        `👗 Product: ${translateProductName(product)}\n` +
+        `💰 Price: ${formatPrice(product.price)} (Qty: ${formatNumber(quantity)}, Total: ${formatPrice(product.price * quantity)})\n` +
+        (chosenSize ? `📏 Size: ${chosenSize}\n` : '') +
+        (chosenColor ? `🎨 Color: ${chosenColor}\n` : '') +
+        (product.fabric ? `🧵 Fabric: ${translateFabric(product.fabric)}\n` : '') +
+        `🔗 Product Link: ${currentUrl}\n\n` +
+        `Please confirm my order.`
+      : `আসসালামু আলাইকুম! আমি নারীর স্বপ্ন থেকে এই পোশাকটি সরাসরি WhatsApp-এ অর্ডার করতে চাই:\n\n` +
+        `👗 পণ্যের নাম: ${translateProductName(product)}\n` +
+        `💰 মূল্য: ${formatPrice(product.price)} টাকা (পরিমাণ: ${formatNumber(quantity)}টি, সর্বমোট: ${formatPrice(product.price * quantity)} টাকা)\n` +
+        (chosenSize ? `📏 সাইজ: ${chosenSize}\n` : '') +
+        (chosenColor ? `🎨 রঙ: ${chosenColor}\n` : '') +
+        (product.fabric ? `🧵 ফেব্রিক: ${translateFabric(product.fabric)}\n` : '') +
+        `🔗 প্রোডাক্ট লিংক: ${currentUrl}\n\n` +
+        `দয়া করে আমার অর্ডারটি কনফার্ম করুন।`;
 
     const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
     window.open(waUrl, '_blank', 'noopener,noreferrer');
@@ -325,12 +335,15 @@ export const ProductDetailPage: React.FC = () => {
   const handleShare = async () => {
     if (!product) return;
     const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-    const shareTitle = `${product.bengaliName} | নারীর স্বপ্ন`;
-    const shareText = `নারীর স্বপ্ন - ${product.bengaliName}\nমূল্য: ৳${product.price.toLocaleString()} টাকা। সরাসরি অর্ডার করতে লিংকটি দেখুন: ${shareUrl}`;
+    const productTitle = translateProductName(product);
+    const shareTitle = isEnglish ? `${productTitle} | Naarir Shopno` : `${productTitle} | নারীর স্বপ্ন`;
+    const shareText = isEnglish
+      ? `Naarir Shopno - ${productTitle}\nPrice: ${formatPrice(product.price)}. View link to order directly: ${shareUrl}`
+      : `নারীর স্বপ্ন - ${productTitle}\nমূল্য: ${formatPrice(product.price)} টাকা। সরাসরি অর্ডার করতে লিংকটি দেখুন: ${shareUrl}`;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(shareUrl).then(() => {
-        setShareToast('লিংক কপি করা হয়েছে! 📋');
+        setShareToast(isEnglish ? 'Link copied! 📋' : 'লিংক কপি করা হয়েছে! 📋');
         setTimeout(() => setShareToast(null), 2000);
       });
     }
@@ -431,11 +444,11 @@ export const ProductDetailPage: React.FC = () => {
                 ? 'cursor-grab active:cursor-grabbing'
                 : 'cursor-crosshair'
             }`}
-            title="মাউস নাড়িয়ে কাপড়ের নিখুঁত বুনন ও ফেব্রিক ডিটেইলস জুম করুন"
+            title={isEnglish ? 'Move cursor to inspect fabric weave and craft details' : 'মাউস নাড়িয়ে কাপড়ের নিখুঁত বুনন ও ফেব্রিক ডিটেইলস জুম করুন'}
           >
             <img
               src={activeImage}
-              alt={product.bengaliName}
+              alt={translateProductName(product)}
               style={{
                 transformOrigin: isHoverZooming ? `${hoverPos.x}% ${hoverPos.y}%` : 'center center',
                 transform: isHoverZooming
@@ -475,7 +488,7 @@ export const ProductDetailPage: React.FC = () => {
               {!isOutOfStock && product.stockCount !== undefined && product.stockCount > 0 && product.stockCount < 5 && (
                 <span className="bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold text-[10px] px-2.5 py-0.5 rounded-full shadow-md flex items-center gap-1 border border-white/20 animate-pulse">
                   <Flame className="w-3 h-3 text-amber-300 fill-amber-300" />
-                  <span>{isEnglish ? `Low Stock (${product.stockCount} left)` : `Low Stock (${product.stockCount}টি বাকি)`}</span>
+                  <span>{isEnglish ? `Low Stock (${formatNumber(product.stockCount)} left)` : `স্টক সীমিত (${formatNumber(product.stockCount)}টি বাকি)`}</span>
                 </span>
               )}
               {isOutOfStock && (
@@ -499,7 +512,7 @@ export const ProductDetailPage: React.FC = () => {
                     ? 'bg-rose-600 text-white scale-105 ring-2 ring-white'
                     : 'bg-white/95 text-slate-700 hover:text-rose-600 hover:bg-white'
                 }`}
-                title={isSaved ? "পছন্দের তালিকা থেকে সরান" : "পছন্দের তালিকায় রাখুন"}
+                title={isSaved ? (isEnglish ? 'Remove from Wishlist' : 'পছন্দের তালিকা থেকে সরান') : (isEnglish ? 'Add to Wishlist' : 'পছন্দের তালিকায় রাখুন')}
               >
                 <Heart className={`w-4 h-4 ${isSaved ? 'fill-white stroke-white' : 'stroke-current'}`} />
               </button>
@@ -511,7 +524,7 @@ export const ProductDetailPage: React.FC = () => {
                   handleShare();
                 }}
                 className="w-9 h-9 rounded-full bg-white/95 text-slate-700 hover:text-rose-600 hover:bg-white flex items-center justify-center transition-all shadow-md cursor-pointer"
-                title="প্রোডাক্ট লিংক কপি ও শেয়ার করুন"
+                title={isEnglish ? 'Copy link & share product' : 'প্রোডাক্ট লিংক কপি ও শেয়ার করুন'}
               >
                 <Share2 className="w-4 h-4" />
               </button>
@@ -524,7 +537,7 @@ export const ProductDetailPage: React.FC = () => {
                   setIsFullscreen(true);
                 }}
                 className="w-9 h-9 rounded-full bg-white/95 text-slate-700 hover:text-rose-600 hover:bg-white flex items-center justify-center transition-all shadow-md cursor-pointer"
-                title="সম্পূর্ণ স্ক্রিনে ছবি দেখুন"
+                title={isEnglish ? 'View image in fullscreen' : 'সম্পূর্ণ স্ক্রিনে ছবি দেখুন'}
               >
                 <Maximize2 className="w-4 h-4" />
               </button>
@@ -552,7 +565,7 @@ export const ProductDetailPage: React.FC = () => {
             {isHoverZooming && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-rose-600/95 backdrop-blur-xs text-white text-[11px] font-bold px-3.5 py-1 rounded-full shadow-lg pointer-events-none flex items-center gap-1.5 border border-white/30 z-20 animate-fadeIn max-w-[92%] text-center">
                 <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                <span>2.5x ফেব্রিক জুম (মাউস নাড়িয়ে দেখুন)</span>
+                <span>{isEnglish ? '2.5x Fabric Zoom (Move cursor)' : '2.5x ফেব্রিক জুম (মাউস নাড়িয়ে দেখুন)'}</span>
               </div>
             )}
 
@@ -565,10 +578,10 @@ export const ProductDetailPage: React.FC = () => {
                   resetZoom();
                 }}
                 className="absolute bottom-3 right-3 z-10 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold text-rose-700 bg-white/95 hover:bg-rose-50 shadow-md border border-rose-200 transition cursor-pointer"
-                title="আগের আকারে ফিরুন (১x)"
+                title={isEnglish ? 'Reset to original size (1x)' : 'আগের আকারে ফিরুন (১x)'}
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>১x রিসেট</span>
+                <span>{isEnglish ? '1x Reset' : '১x রিসেট'}</span>
               </button>
             )}
 
@@ -576,12 +589,12 @@ export const ProductDetailPage: React.FC = () => {
             {!isHoverZooming && scale <= 1.05 ? (
               <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[11px] font-medium px-3 py-1.5 rounded-full shadow-lg pointer-events-none flex items-center gap-1.5 max-w-[90%] border border-white/20">
                 <ZoomIn className="w-3.5 h-3.5 text-rose-300 shrink-0" />
-                <span className="hidden sm:inline">ফেব্রিক জুম করুন</span>
-                <span className="sm:hidden">২ আঙুলে জুম</span>
+                <span className="hidden sm:inline">{isEnglish ? 'Zoom Fabric' : 'ফেব্রিক জুম করুন'}</span>
+                <span className="sm:hidden">{isEnglish ? 'Pinch to Zoom' : '২ আঙুলে জুম'}</span>
               </div>
             ) : scale > 1.05 && (
               <div className="absolute bottom-3 left-3 bg-rose-950/85 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 border border-white/20 animate-fadeIn">
-                <span>{scale.toFixed(1)}x জুম</span>
+                <span>{formatNumber(Number(scale.toFixed(1)))}x {isEnglish ? 'Zoom' : 'জুম'}</span>
                 <button
                   type="button"
                   onClick={(e) => {
@@ -590,7 +603,7 @@ export const ProductDetailPage: React.FC = () => {
                   }}
                   className="bg-white text-rose-700 hover:bg-rose-50 text-[10px] font-black px-2 py-0.5 rounded-full transition cursor-pointer"
                 >
-                  রিসেট
+                  {isEnglish ? 'Reset' : 'রিসেট'}
                 </button>
               </div>
             )}
@@ -616,11 +629,11 @@ export const ProductDetailPage: React.FC = () => {
                       ? 'border-rose-600 ring-2 ring-rose-200 scale-105 shadow-md'
                       : 'border-rose-100 opacity-75 hover:opacity-100'
                   }`}
-                  title={`ফটো ${idx + 1} - জুম করে ফেব্রিক দেখুন`}
+                  title={isEnglish ? `Photo ${formatNumber(idx + 1)} - Zoom to inspect fabric` : `ফটো ${formatNumber(idx + 1)} - জুম করে ফেব্রিক দেখুন`}
                 >
                   <img src={img || FALLBACK_IMAGE} alt={`photo-${idx}`} className="w-full h-full object-cover" />
                   <span className="absolute bottom-1 right-1 bg-black/70 text-[8px] font-bold text-white px-1 rounded">
-                    ফটো {idx + 1}
+                    {isEnglish ? `Photo ${formatNumber(idx + 1)}` : `ফটো ${formatNumber(idx + 1)}`}
                   </span>
                 </button>
               ))}
@@ -661,7 +674,7 @@ export const ProductDetailPage: React.FC = () => {
             >
               <div className="flex items-center gap-1 text-amber-500">
                 <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                <span className="text-sm font-bold font-['Outfit']">{product.rating}</span>
+                <span className="text-sm font-bold font-['Outfit']">{formatNumber(product.rating)}</span>
               </div>
               <span className="text-xs text-slate-400">•</span>
               <span className="text-xs text-slate-600 group-hover:text-rose-600 group-hover:underline font-medium">
@@ -697,12 +710,12 @@ export const ProductDetailPage: React.FC = () => {
                 ) : product.stockCount !== undefined && product.stockCount < 5 ? (
                   <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 sm:px-3 py-1 rounded-full shadow-2xs max-w-full">
                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-                    <span>{isEnglish ? `Only ${product.stockCount} left in stock` : `মাত্র ${product.stockCount}টি স্টকে বাকি`}</span>
+                    <span>{isEnglish ? `Only ${formatNumber(product.stockCount)} left in stock` : `মাত্র ${formatNumber(product.stockCount)}টি স্টকে বাকি`}</span>
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 sm:px-3 py-1 rounded-full border border-emerald-200 max-w-full">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                    <span>{isEnglish ? `In Stock (${product.stockCount || 10} available)` : `ইন স্টক (${product.stockCount || 10}টি উপলব্ধ)`}</span>
+                    <span>{isEnglish ? `In Stock (${formatNumber(product.stockCount || 10)} available)` : `ইন স্টক (${formatNumber(product.stockCount || 10)}টি উপলব্ধ)`}</span>
                   </span>
                 )}
               </div>
@@ -711,7 +724,7 @@ export const ProductDetailPage: React.FC = () => {
             {/* Fabric Highlight */}
             <div className="w-full min-w-0 flex flex-wrap items-start gap-2 text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
               <span className="font-bold text-slate-900 shrink-0">{isEnglish ? 'Fabric / Material:' : 'কাপড়ের বিবরণ:'}</span>
-              <span className="font-['Hind_Siliguri'] min-w-0 break-words">{product.fabric}</span>
+              <span className="font-['Hind_Siliguri'] min-w-0 break-words">{translateFabric(product.fabric)}</span>
             </div>
 
             {/* Color Selector */}
@@ -920,7 +933,7 @@ export const ProductDetailPage: React.FC = () => {
             <div className="space-y-2 break-words">
               <p><strong className="text-slate-900">{isEnglish ? 'Category:' : 'ক্যাটাগরি:'}</strong> {translateCategory(displayCategory)}</p>
               <p><strong className="text-slate-900">{isEnglish ? 'Product Code (SKU):' : 'প্রোডাক্ট কোড (SKU):'}</strong> {product.sku}</p>
-              <p><strong className="text-slate-900">{isEnglish ? 'Fabric Type:' : 'কাপড়ের ধরন:'}</strong> {product.fabric}</p>
+              <p><strong className="text-slate-900">{isEnglish ? 'Fabric Type:' : 'কাপড়ের ধরন:'}</strong> {translateFabric(product.fabric)}</p>
               {product.sizes && product.sizes.length > 0 && (
                 <p><strong className="text-slate-900">{isEnglish ? 'Available Sizes:' : 'উপলব্ধ সাইজ:'}</strong> {product.sizes.map(translateSize).join(', ')}</p>
               )}
@@ -971,10 +984,10 @@ export const ProductDetailPage: React.FC = () => {
           >
             <div className="text-white">
               <h3 className="font-bold text-sm sm:text-base font-['Hind_Siliguri'] truncate max-w-xs sm:max-w-md">
-                {product.bengaliName}
+                {translateProductName(product)}
               </h3>
               <p className="text-xs text-rose-300 font-semibold">
-                ৳{product.price.toLocaleString()} টাকা
+                {formatPrice(product.price)}
               </p>
             </div>
 
@@ -985,7 +998,7 @@ export const ProductDetailPage: React.FC = () => {
                   setIsFullscreen(false);
                 }}
                 className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition cursor-pointer"
-                title="বন্ধ করুন (Esc)"
+                title={isEnglish ? 'Close (Esc)' : 'বন্ধ করুন (Esc)'}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1010,7 +1023,7 @@ export const ProductDetailPage: React.FC = () => {
           >
             <img
               src={activeImage}
-              alt={product.bengaliName}
+              alt={translateProductName(product)}
               style={{
                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
                 transformOrigin: 'center center',
@@ -1031,7 +1044,11 @@ export const ProductDetailPage: React.FC = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-white/80 text-xs flex items-center gap-1.5 font-medium">
-              <span>✌️ ২ আঙুল দিয়ে জুম বা ডাবল-ট্যাপ করে কাপড় ও কাজ বড় করে দেখুন</span>
+              <span>
+                {isEnglish
+                  ? '✌️ Pinch with 2 fingers or double-tap to zoom in and inspect fabric & craft details'
+                  : '✌️ ২ আঙুল দিয়ে জুম বা ডাবল-ট্যাপ করে কাপড় ও কাজ বড় করে দেখুন'}
+              </span>
             </div>
 
             {scale > 1.05 && (
@@ -1039,10 +1056,10 @@ export const ProductDetailPage: React.FC = () => {
                 type="button"
                 onClick={resetZoom}
                 className="px-3 h-8 rounded-xl flex items-center gap-1.5 text-xs font-bold text-rose-300 bg-rose-950/70 hover:bg-rose-900/90 border border-rose-500/30 transition cursor-pointer"
-                title="রিসেট (১x)"
+                title={isEnglish ? 'Reset (1x)' : 'রিসেট (১x)'}
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>১x রিসেট</span>
+                <span>{isEnglish ? '1x Reset' : '১x রিসেট'}</span>
               </button>
             )}
           </div>

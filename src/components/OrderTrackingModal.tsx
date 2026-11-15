@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Order } from '../types';
 import { 
   X, 
@@ -22,6 +23,17 @@ export const OrderTrackingModal: React.FC = () => {
     setTrackingOrderId,
     settings 
   } = useShop();
+
+  const {
+    isEnglish,
+    formatPrice,
+    formatNumber,
+    translateProductName,
+    translateColor,
+    translateSize,
+    translateDistrict,
+    translateSupportHours,
+  } = useLanguage();
 
   const [searchInput, setSearchInput] = useState('');
   const [matchedOrder, setMatchedOrder] = useState<Order | null>(null);
@@ -111,7 +123,7 @@ export const OrderTrackingModal: React.FC = () => {
           <div className="flex items-center gap-2">
             <Truck className="w-5 h-5 text-rose-600" />
             <h3 className="text-lg sm:text-xl font-bold text-slate-900 font-['Hind_Siliguri']">
-              ডেলিভারি ও পার্সেল ট্র্যাকিং সিস্টেম
+              {isEnglish ? 'Live Delivery & Parcel Tracking' : 'ডেলিভারি ও পার্সেল ট্র্যাকিং সিস্টেম'}
             </h3>
           </div>
           <button
@@ -129,14 +141,16 @@ export const OrderTrackingModal: React.FC = () => {
           {/* Search Box */}
           <form onSubmit={handleSearch} className="bg-rose-50/30 p-4 rounded-2xl border border-rose-100">
             <label className="block text-xs font-bold text-slate-700 mb-2">
-              আপনার অর্ডার আইডি (উদা: NS-1048), মোবাইল নম্বর অথবা কুরিয়ার ট্র্যাকিং কোড/লিঙ্ক লিখুন:
+              {isEnglish
+                ? 'Enter Order ID (e.g. NS-1048), Phone Number, or Courier Tracking Code/Link:'
+                : 'আপনার অর্ডার আইডি (উদা: NS-1048), মোবাইল নম্বর অথবা কুরিয়ার ট্র্যাকিং কোড/লিঙ্ক লিখুন:'}
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <input
                   id="input-track-search"
                   type="text"
-                  placeholder="NS-1048 অথবা 01332588733 অথবা Steadfast ট্র্যাকিং লিঙ্ক/কোড"
+                  placeholder={isEnglish ? 'NS-1048 or 01332588733 or Steadfast tracking link/code' : 'NS-1048 অথবা 01332588733 অথবা Steadfast ট্র্যাকিং লিঙ্ক/কোড'}
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-white border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium"
@@ -147,13 +161,13 @@ export const OrderTrackingModal: React.FC = () => {
                 type="submit"
                 className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow transition shrink-0 cursor-pointer"
               >
-                ট্র্যাক করুন
+                {isEnglish ? 'Track Now' : 'ট্র্যাক করুন'}
               </button>
             </div>
 
             {/* Quick Demo Pill Chips */}
             <div className="mt-2.5 flex items-center gap-2 text-[11px] text-slate-500 flex-wrap">
-              <span>ডেমো আইডি দিয়ে পরীক্ষা করুন:</span>
+              <span>{isEnglish ? 'Try with demo IDs:' : 'ডেমো আইডি দিয়ে পরীক্ষা করুন:'}</span>
               <button
                 type="button"
                 onClick={() => {
@@ -164,7 +178,7 @@ export const OrderTrackingModal: React.FC = () => {
                 }}
                 className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-300 font-mono font-bold cursor-pointer"
               >
-                ✓ NS-1048 (Steadfast ডেলিভারড)
+                {isEnglish ? '✓ NS-1048 (Steadfast Delivered)' : '✓ NS-1048 (Steadfast ডেলিভারড)'}
               </button>
               <button
                 type="button"
@@ -176,7 +190,7 @@ export const OrderTrackingModal: React.FC = () => {
                 }}
                 className="bg-white hover:bg-rose-50 text-rose-600 px-2 py-0.5 rounded border border-rose-200 font-mono cursor-pointer"
               >
-                NS-1045 (কুরিয়ারে আছে)
+                {isEnglish ? 'NS-1045 (In Courier)' : 'NS-1045 (কুরিয়ারে আছে)'}
               </button>
               <button
                 type="button"
@@ -188,7 +202,7 @@ export const OrderTrackingModal: React.FC = () => {
                 }}
                 className="bg-white hover:bg-rose-50 text-rose-600 px-2 py-0.5 rounded border border-rose-200 font-mono cursor-pointer"
               >
-                NS-1046 (প্রসেসিং)
+                {isEnglish ? 'NS-1046 (Processing)' : 'NS-1046 (প্রসেসিং)'}
               </button>
             </div>
           </form>
@@ -206,13 +220,15 @@ export const OrderTrackingModal: React.FC = () => {
                   <div className="bg-rose-50/40 p-4 rounded-xl border border-rose-100 space-y-1.5">
                     <h5 className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
                       <MapPin className="w-3.5 h-3.5 text-rose-600" />
-                      <span>ডেলিভারি গন্তব্য</span>
+                      <span>{isEnglish ? 'Delivery Destination' : 'ডেলিভারি গন্তব্য'}</span>
                     </h5>
-                    <p className="text-slate-700"><strong>প্রাপক:</strong> {matchedOrder.customerName}</p>
-                    <p className="text-slate-700"><strong>ফোন:</strong> {matchedOrder.phone}</p>
-                    <p className="text-slate-600"><strong>ঠিকানা:</strong> {matchedOrder.address}, {matchedOrder.thana ? `থানা: ${matchedOrder.thana}, ` : ''}{matchedOrder.district}</p>
+                    <p className="text-slate-700"><strong>{isEnglish ? 'Recipient:' : 'প্রাপক:'}</strong> {matchedOrder.customerName}</p>
+                    <p className="text-slate-700"><strong>{isEnglish ? 'Phone:' : 'ফোন:'}</strong> {matchedOrder.phone}</p>
                     <p className="text-slate-600">
-                      <strong>পেমেন্ট:</strong> {matchedOrder.paymentMethod === 'cod' ? 'ক্যাশ অন ডেলিভারি' : matchedOrder.paymentMethod.toUpperCase()}
+                      <strong>{isEnglish ? 'Address:' : 'ঠিকানা:'}</strong> {matchedOrder.address}, {matchedOrder.thana ? `${isEnglish ? 'Thana:' : 'থানা:'} ${matchedOrder.thana}, ` : ''}{translateDistrict(matchedOrder.district)}
+                    </p>
+                    <p className="text-slate-600">
+                      <strong>{isEnglish ? 'Payment:' : 'পেমেন্ট:'}</strong> {matchedOrder.paymentMethod === 'cod' ? (isEnglish ? 'Cash on Delivery' : 'ক্যাশ অন ডেলিভারি') : matchedOrder.paymentMethod.toUpperCase()}
                     </p>
                   </div>
 
@@ -220,48 +236,49 @@ export const OrderTrackingModal: React.FC = () => {
                   <div className="bg-rose-50/40 p-4 rounded-xl border border-rose-100 space-y-2">
                     <h5 className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
                       <Package className="w-3.5 h-3.5 text-rose-600" />
-                      <span>অর্ডারকৃত পণ্যসমূহ</span>
+                      <span>{isEnglish ? 'Ordered Items' : 'অর্ডারকৃত পণ্যসমূহ'}</span>
                     </h5>
                     <div className="space-y-2">
                       {matchedOrder.items.map((it, i) => {
                         const itemImg = it.selectedImage || (it.product.images && it.product.images[0]) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=200&q=80';
                         const colorHex = it.product.colors?.find(c => c.name === it.selectedColor)?.hex;
                         const displayColor = it.selectedColor || (it.product.colors && it.product.colors[0]?.name) || 'ডিফল্ট';
+                        const itemName = translateProductName(it.product);
 
                         return (
                           <div key={i} className="flex items-center gap-2.5 p-2 bg-white rounded-xl border border-rose-100 shadow-2xs">
                             <img
                               src={itemImg}
-                              alt={it.product.bengaliName}
+                              alt={itemName}
                               className="w-11 h-13 rounded-lg object-cover border border-rose-100 shrink-0"
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="font-bold text-slate-800 line-clamp-1">{it.product.bengaliName}</p>
+                              <p className="font-bold text-slate-800 line-clamp-1">{itemName}</p>
                               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                 <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-rose-50 text-rose-800 px-1.5 py-0.5 rounded border border-rose-200">
                                   {colorHex && (
                                     <span className="w-2 h-2 rounded-full border border-black/20" style={{ backgroundColor: colorHex }} />
                                   )}
-                                  <span>রঙ: {displayColor}</span>
+                                  <span>{isEnglish ? 'Color:' : 'রঙ:'} {translateColor(displayColor)}</span>
                                 </span>
                                 <span className="text-[10px] text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
-                                  সাইজ: {it.selectedSize}
+                                  {isEnglish ? 'Size:' : 'সাইজ:'} {translateSize(it.selectedSize)}
                                 </span>
                                 <span className="text-[10px] text-slate-600">
-                                  × {it.quantity} টি
+                                  × {formatNumber(it.quantity)} {isEnglish ? 'pcs' : 'টি'}
                                 </span>
                               </div>
                             </div>
                             <span className="font-bold font-['Outfit'] text-rose-700 text-xs sm:text-sm shrink-0">
-                              ৳{(it.product.price * it.quantity).toLocaleString()}
+                              {formatPrice(it.product.price * it.quantity)}
                             </span>
                           </div>
                         );
                       })}
                     </div>
                     <div className="pt-2 flex justify-between items-center font-bold text-rose-700 border-t border-rose-100">
-                      <span className="text-slate-600 text-xs">মোট পরিশোধযোগ্য:</span>
-                      <span className="font-['Outfit'] text-sm sm:text-base font-black">৳{matchedOrder.total.toLocaleString()}</span>
+                      <span className="text-slate-600 text-xs">{isEnglish ? 'Total Payable:' : 'মোট পরিশোধযোগ্য:'}</span>
+                      <span className="font-['Outfit'] text-sm sm:text-base font-black">{formatPrice(matchedOrder.total)}</span>
                     </div>
                   </div>
                 </div>
@@ -279,9 +296,11 @@ export const OrderTrackingModal: React.FC = () => {
                   <div className="flex items-center gap-2 text-slate-700">
                     <Phone className="w-4 h-4 text-rose-600 shrink-0" />
                     <div>
-                      <span className="font-semibold text-slate-800">কাস্টমার সাপোর্ট ও সরাসরি ফোন:</span>
+                      <span className="font-semibold text-slate-800">
+                        {isEnglish ? 'Customer Support & Direct Call:' : 'কাস্টমার সাপোর্ট ও সরাসরি ফোন:'}
+                      </span>
                       {settings.supportHours && settings.supportHours.trim() ? (
-                        <p className="text-[10px] text-emerald-600 font-semibold">{settings.supportHours}</p>
+                        <p className="text-[10px] text-emerald-600 font-semibold">{translateSupportHours(settings.supportHours)}</p>
                       ) : null}
                     </div>
                   </div>
@@ -296,9 +315,13 @@ export const OrderTrackingModal: React.FC = () => {
               /* Not Found Message */
               <div className="text-center py-8 space-y-3">
                 <AlertCircle className="w-12 h-12 text-amber-500 mx-auto" />
-                <h4 className="text-base font-bold text-slate-800">কোনো অর্ডার খুঁজে পাওয়া যায়নি</h4>
+                <h4 className="text-base font-bold text-slate-800">
+                  {isEnglish ? 'No Order Found' : 'কোনো অর্ডার খুঁজে পাওয়া যায়নি'}
+                </h4>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  অনুগ্রহ করে আপনার সঠিক অর্ডার আইডি (যেমন: NS-1045) অথবা যে মোবাইল নম্বর দিয়ে অর্ডার করেছেন তা দিয়ে আবার চেষ্টা করুন।
+                  {isEnglish
+                    ? 'Please check your Order ID (e.g. NS-1045) or the phone number used during ordering and try again.'
+                    : 'অনুগ্রহ করে আপনার সঠিক অর্ডার আইডি (যেমন: NS-1045) অথবা যে মোবাইল নম্বর দিয়ে অর্ডার করেছেন তা দিয়ে আবার চেষ্টা করুন।'}
                 </p>
               </div>
             )

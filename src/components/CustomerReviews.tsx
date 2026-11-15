@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useShop } from '../context/ShopContext';
-import { Product, ProductReview } from '../types';
+import { useLanguage } from '../context/LanguageContext';
+import { Product } from '../types';
 import { 
   Star, 
   MessageSquarePlus, 
@@ -11,7 +12,6 @@ import {
   Filter, 
   Check, 
   Sparkles,
-  ChevronDown,
   X
 } from 'lucide-react';
 
@@ -20,7 +20,7 @@ interface CustomerReviewsProps {
   product: Product;
 }
 
-const QUICK_TAGS = [
+const QUICK_TAGS_BN = [
   'অসাধারণ ফেব্রিক ও কাপড়',
   'রং ছবির মতোই নিখুঁত',
   'সেলাই ও কাজের ফিনিশিং চমৎকার',
@@ -29,12 +29,29 @@ const QUICK_TAGS = [
   'পরতে খুবই আরামদায়ক'
 ];
 
-const RATING_LABELS: Record<number, string> = {
+const QUICK_TAGS_EN = [
+  'Amazing fabric quality',
+  'Color is exactly like the photo',
+  'Neat stitching & finishing',
+  'Super fast delivery',
+  'Perfect size & fitting',
+  'Very comfortable to wear'
+];
+
+const RATING_LABELS_BN: Record<number, string> = {
   5: 'অসাধারণ! (৫/৫)',
   4: 'খুব ভালো (৪/৫)',
   3: 'ভালো (৩/৫)',
   2: 'মোটামুটি সন্তোষজনক (২/৫)',
   1: 'পছন্দ হয়নি (১/৫)',
+};
+
+const RATING_LABELS_EN: Record<number, string> = {
+  5: 'Excellent! (5/5)',
+  4: 'Very Good (4/5)',
+  3: 'Good (3/5)',
+  2: 'Fair (2/5)',
+  1: 'Poor (1/5)',
 };
 
 const AVATAR_GRADIENTS = [
@@ -48,8 +65,11 @@ const AVATAR_GRADIENTS = [
 
 export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, product }) => {
   const { getProductReviews, addProductReview, voteReviewHelpful } = useShop();
+  const { isEnglish, formatNumber, translateProductName } = useLanguage();
 
   const reviews = getProductReviews(productId);
+  const quickTags = isEnglish ? QUICK_TAGS_EN : QUICK_TAGS_BN;
+  const ratingLabels = isEnglish ? RATING_LABELS_EN : RATING_LABELS_BN;
 
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -90,7 +110,6 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
     }
 
     if (sortBy === 'newest') {
-      // Keep natural order or ID based
       result.sort((a, b) => (b.id > a.id ? 1 : -1));
     } else if (sortBy === 'highest') {
       result.sort((a, b) => b.rating - a.rating);
@@ -104,11 +123,11 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
   const handleSubmitReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName.trim()) {
-      setFormError('অনুগ্রহ করে আপনার নাম লিখুন।');
+      setFormError(isEnglish ? 'Please enter your name.' : 'অনুগ্রহ করে আপনার নাম লিখুন।');
       return;
     }
     if (!comment.trim()) {
-      setFormError('অনুগ্রহ করে আপনার অভিজ্ঞতা বা মতামত লিখুন।');
+      setFormError(isEnglish ? 'Please write your review comment.' : 'অনুগ্রহ করে আপনার অভিজ্ঞতা বা মতামত লিখুন।');
       return;
     }
 
@@ -117,7 +136,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
       customerName: customerName.trim(),
       rating,
       comment: comment.trim(),
-      location: location.trim() || 'বাংলাদেশ',
+      location: location.trim() || (isEnglish ? 'Bangladesh' : 'বাংলাদেশ'),
       verifiedPurchase: true,
       helpfulCount: 0,
     });
@@ -141,7 +160,8 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
 
   const addQuickTagToComment = (tag: string) => {
     if (comment.includes(tag)) return;
-    setComment((prev) => (prev ? `${prev}। ${tag}` : tag));
+    const sep = isEnglish ? '. ' : '। ';
+    setComment((prev) => (prev ? `${prev}${sep}${tag}` : tag));
   };
 
   return (
@@ -154,12 +174,12 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
               <Check className="w-4 h-4 text-white" />
             </div>
             <p className="text-xs sm:text-sm font-semibold">
-              ধন্যবাদ! আপনার মূল্যবান রিভিউটি সফলভাবে প্রকাশিত হয়েছে।
+              {isEnglish ? 'Thank you! Your valuable review has been published.' : 'ধন্যবাদ! আপনার মূল্যবান রিভিউটি সফলভাবে প্রকাশিত হয়েছে।'}
             </p>
           </div>
           <button 
             onClick={() => setSubmittedToast(false)}
-            className="text-white/80 hover:text-white"
+            className="text-white/80 hover:text-white cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -173,7 +193,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
           <div className="flex items-center gap-3 sm:gap-6 min-w-0">
             <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border border-rose-100 min-w-[96px] sm:min-w-[130px] shrink-0">
               <span className="text-3xl sm:text-4xl font-extrabold text-rose-700 font-['Outfit'] block leading-none mb-1">
-                {avgRating}
+                {formatNumber(avgRating)}
               </span>
               <div className="flex items-center justify-center gap-0.5 mb-1 text-amber-400">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -188,22 +208,24 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
                 ))}
               </div>
               <span className="text-[11px] text-slate-500 font-medium">
-                {totalReviews} টি রিভিউ
+                {isEnglish ? `${totalReviews} reviews` : `${formatNumber(totalReviews)} টি রিভিউ`}
               </span>
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <h3 className="text-base sm:text-xl font-bold text-slate-800 font-['Hind_Siliguri']">
-                  ক্রেতাদের রিভিউ ও রেটিং
+                  {isEnglish ? 'Customer Reviews & Ratings' : 'ক্রেতাদের রিভিউ ও রেটিং'}
                 </h3>
                 <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
                   <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                  ১০০% ভেরিফাইড ক্রেতা
+                  {isEnglish ? '100% Verified Buyers' : '১০০% ভেরিফাইড ক্রেতা'}
                 </span>
               </div>
               <p className="text-xs text-slate-500 max-w-sm">
-                এই প্রোডাক্টটি যারা কিনে ব্যবহার করেছেন তাদের বাস্তব অভিজ্ঞতা ও মতামত
+                {isEnglish
+                  ? 'Real experiences and feedback shared by customers who purchased this product'
+                  : 'এই প্রোডাক্টটি যারা কিনে ব্যবহার করেছেন তাদের বাস্তব অভিজ্ঞতা ও মতামত'}
               </p>
             </div>
           </div>
@@ -218,10 +240,10 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
                   key={stars}
                   onClick={() => setSelectedStarFilter(selectedStarFilter === stars ? 'all' : stars)}
                   className="group flex items-center gap-2 text-xs cursor-pointer select-none"
-                  title={`${stars} স্টার রিভিউ ফিল্টার করুন`}
+                  title={isEnglish ? `Filter ${stars}-star reviews` : `${formatNumber(stars)} স্টার রিভিউ ফিল্টার করুন`}
                 >
                   <span className="w-10 font-semibold text-slate-600 group-hover:text-rose-600 transition flex items-center gap-1">
-                    <span>{stars}</span>
+                    <span>{formatNumber(stars)}</span>
                     <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                   </span>
                   <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -231,7 +253,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
                     />
                   </div>
                   <span className="w-8 text-right font-mono text-[11px] text-slate-400 group-hover:text-slate-700">
-                    {count}
+                    {formatNumber(count)}
                   </span>
                 </div>
               );
@@ -243,7 +265,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
             <button
               id="btn-write-review-toggle"
               onClick={() => setIsFormOpen(!isFormOpen)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm active:scale-95 ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm active:scale-95 cursor-pointer ${
                 isFormOpen
                   ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
                   : 'bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white shadow-rose-200 hover:shadow-md'
@@ -252,12 +274,12 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
               {isFormOpen ? (
                 <>
                   <X className="w-4 h-4" />
-                  <span>ফর্ম বন্ধ করুন</span>
+                  <span>{isEnglish ? 'Close Form' : 'ফর্ম বন্ধ করুন'}</span>
                 </>
               ) : (
                 <>
                   <MessageSquarePlus className="w-4 h-4" />
-                  <span>একটি রিভিউ লিখুন</span>
+                  <span>{isEnglish ? 'Write a Review' : 'একটি রিভিউ লিখুন'}</span>
                 </>
               )}
             </button>
@@ -275,11 +297,11 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse shrink-0"></span>
               <h4 className="text-sm sm:text-base font-bold text-slate-800 font-['Hind_Siliguri']">
-                আপনার মতামত বা রিভিউ দিন
+                {isEnglish ? 'Share Your Review' : 'আপনার মতামত বা রিভিউ দিন'}
               </h4>
             </div>
             <span className="text-xs text-rose-600 font-medium truncate max-w-full">
-              প্রোডাক্ট: {product.bengaliName}
+              {isEnglish ? `Product: ${translateProductName(product)}` : `প্রোডাক্ট: ${translateProductName(product)}`}
             </span>
           </div>
 
@@ -292,7 +314,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
           {/* Star Selection */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-700">
-              রেটিং দিন: <span className="text-rose-500">*</span>
+              {isEnglish ? 'Your Rating:' : 'রেটিং দিন:'} <span className="text-rose-500">*</span>
             </label>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
@@ -305,8 +327,8 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
                       onMouseEnter={() => setHoverRating(star)}
                       onMouseLeave={() => setHoverRating(0)}
                       onClick={() => setRating(star)}
-                      className="p-1 text-slate-300 hover:scale-125 transition-transform"
-                      title={`${star} স্টার`}
+                      className="p-1 text-slate-300 hover:scale-125 transition-transform cursor-pointer"
+                      title={`${star} ${isEnglish ? 'Stars' : 'স্টার'}`}
                     >
                       <Star
                         className={`w-6 h-6 sm:w-7 sm:h-7 transition-colors ${
@@ -320,7 +342,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
                 })}
               </div>
               <span className="text-xs font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-100">
-                {RATING_LABELS[hoverRating || rating]}
+                {ratingLabels[hoverRating || rating]}
               </span>
             </div>
           </div>
@@ -329,13 +351,13 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                আপনার নাম: <span className="text-rose-500">*</span>
+                {isEnglish ? 'Your Name:' : 'আপনার নাম:'} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="যেমন: সাদিয়া ইসলাম"
+                placeholder={isEnglish ? 'e.g. Sadia Islam' : 'যেমন: সাদিয়া ইসলাম'}
                 className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 outline-none transition"
                 required
               />
@@ -343,13 +365,14 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                আপনার এলাকা/শহর: <span className="text-slate-400 font-normal">(ঐচ্ছিক)</span>
+                {isEnglish ? 'Area / City:' : 'আপনার এলাকা/শহর:'}{' '}
+                <span className="text-slate-400 font-normal">({isEnglish ? 'Optional' : 'ঐচ্ছিক'})</span>
               </label>
               <input
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="যেমন: ধানমন্ডি, ঢাকা"
+                placeholder={isEnglish ? 'e.g. Dhanmondi, Dhaka' : 'যেমন: ধানমন্ডি, ঢাকা'}
                 className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 outline-none transition"
               />
             </div>
@@ -359,15 +382,15 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
           <div className="space-y-1.5">
             <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-amber-500" />
-              ক্লিক করে দ্রুত মতামত যুক্ত করুন:
+              {isEnglish ? 'Tap to add quick feedback:' : 'ক্লিক করে দ্রুত মতামত যুক্ত করুন:'}
             </span>
             <div className="flex flex-wrap gap-1.5">
-              {QUICK_TAGS.map((tag) => (
+              {quickTags.map((tag) => (
                 <button
                   type="button"
                   key={tag}
                   onClick={() => addQuickTagToComment(tag)}
-                  className="text-[11px] font-medium bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 px-2.5 py-1 rounded-full transition active:scale-95"
+                  className="text-[11px] font-medium bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 px-2.5 py-1 rounded-full transition active:scale-95 cursor-pointer"
                 >
                   + {tag}
                 </button>
@@ -378,13 +401,15 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
           {/* Feedback Textarea */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              আপনার মতামত ও অভিজ্ঞতা: <span className="text-rose-500">*</span>
+              {isEnglish ? 'Your Feedback & Experience:' : 'আপনার মতামত ও অভিজ্ঞতা:'} <span className="text-rose-500">*</span>
             </label>
             <textarea
               rows={3}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="কাপড়ের মান, কাজের ফিনিশিং, ফিটিং বা ডেলিভারি নিয়ে আপনার অনুভূতি লিখুন..."
+              placeholder={isEnglish
+                ? 'Write about fabric quality, finishing, fitting, or delivery experience...'
+                : 'কাপড়ের মান, কাজের ফিনিশিং, ফিটিং বা ডেলিভারি নিয়ে আপনার অনুভূতি লিখুন...'}
               className="w-full text-xs sm:text-sm p-3 rounded-xl border border-slate-200 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 outline-none transition resize-none"
               required
             />
@@ -395,15 +420,15 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
             <button
               type="button"
               onClick={() => setIsFormOpen(false)}
-              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
             >
-              বাতিল
+              {isEnglish ? 'Cancel' : 'বাতিল'}
             </button>
             <button
               type="submit"
-              className="bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-95"
+              className="bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
             >
-              রিভিউ প্রকাশ করুন
+              {isEnglish ? 'Publish Review' : 'রিভিউ প্রকাশ করুন'}
             </button>
           </div>
         </form>
@@ -415,45 +440,47 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
         <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 sm:pb-0 scrollbar-none min-w-0">
           <span className="font-bold text-slate-600 flex items-center gap-1 shrink-0 mr-1">
             <Filter className="w-3 h-3 text-rose-600" />
-            ফিল্টার:
+            {isEnglish ? 'Filter:' : 'ফিল্টার:'}
           </span>
           <button
             onClick={() => setSelectedStarFilter('all')}
-            className={`px-3 py-1 rounded-full font-bold transition shrink-0 ${
+            className={`px-3 py-1 rounded-full font-bold transition shrink-0 cursor-pointer ${
               selectedStarFilter === 'all'
                 ? 'bg-rose-600 text-white shadow-xs'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
-            সবগুলো ({totalReviews})
+            {isEnglish ? `All (${totalReviews})` : `সবগুলো (${formatNumber(totalReviews)})`}
           </button>
           {[5, 4, 3, 2, 1].map((s) => (
             <button
               key={s}
               onClick={() => setSelectedStarFilter(s)}
-              className={`px-2.5 py-1 rounded-full font-bold transition shrink-0 flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded-full font-bold transition shrink-0 flex items-center gap-1 cursor-pointer ${
                 selectedStarFilter === s
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
-              <span>{s}★</span>
-              <span className="text-[10px] opacity-80">({starCounts[s as 1 | 2 | 3 | 4 | 5] || 0})</span>
+              <span>{formatNumber(s)}★</span>
+              <span className="text-[10px] opacity-80">({formatNumber(starCounts[s as 1 | 2 | 3 | 4 | 5] || 0)})</span>
             </button>
           ))}
         </div>
 
         {/* Sorting Dropdown */}
         <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-          <span className="text-slate-500 font-medium hidden sm:inline">সর্ট করুন:</span>
+          <span className="text-slate-500 font-medium hidden sm:inline">
+            {isEnglish ? 'Sort by:' : 'সর্ট করুন:'}
+          </span>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
             className="bg-slate-50 border border-slate-200 text-slate-700 font-semibold rounded-lg px-2.5 py-1 outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer text-xs"
           >
-            <option value="newest">সর্বশেষ রিভিউ</option>
-            <option value="highest">সর্বোচ্চ রেটিং</option>
-            <option value="helpful">সবচেয়ে সহায়ক</option>
+            <option value="newest">{isEnglish ? 'Newest Reviews' : 'সর্বশেষ রিভিউ'}</option>
+            <option value="highest">{isEnglish ? 'Highest Rated' : 'সর্বোচ্চ রেটিং'}</option>
+            <option value="helpful">{isEnglish ? 'Most Helpful' : 'সবচেয়ে সহায়ক'}</option>
           </select>
         </div>
       </div>
@@ -463,20 +490,20 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
         {filteredReviews.length === 0 ? (
           <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-rose-200 p-6">
             <p className="text-sm font-semibold text-slate-600 mb-2">
-              এই ফিল্টারে কোনো রিভিউ পাওয়া যায়নি।
+              {isEnglish ? 'No reviews found for this rating filter.' : 'এই ফিল্টারে কোনো রিভিউ পাওয়া যায়নি।'}
             </p>
             <button
               onClick={() => setSelectedStarFilter('all')}
-              className="text-xs font-bold text-rose-600 hover:underline"
+              className="text-xs font-bold text-rose-600 hover:underline cursor-pointer"
             >
-              সব রিভিউ দেখতে ক্লিক করুন
+              {isEnglish ? 'Click to view all reviews' : 'সব রিভিউ দেখতে ক্লিক করুন'}
             </button>
           </div>
         ) : (
           filteredReviews.map((rev, index) => {
             const hasVoted = votedReviews[rev.id];
             const gradient = AVATAR_GRADIENTS[index % AVATAR_GRADIENTS.length];
-            const initial = rev.customerName ? rev.customerName.trim().charAt(0) : 'ক';
+            const initial = rev.customerName ? rev.customerName.trim().charAt(0) : (isEnglish ? 'U' : 'ক');
 
             return (
               <div
@@ -499,7 +526,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
                         {rev.verifiedPurchase && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-full">
                             <Check className="w-2.5 h-2.5 stroke-[3]" />
-                            ভেরিফাইড ক্রেতা
+                            {isEnglish ? 'Verified Buyer' : 'ভেরিফাইড ক্রেতা'}
                           </span>
                         )}
                       </div>
@@ -534,7 +561,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
                       />
                     ))}
                     <span className="text-xs font-bold text-amber-700 ml-1 font-mono">
-                      {rev.rating}.0
+                      {formatNumber(`${rev.rating}.0`)}
                     </span>
                   </div>
                 </div>
@@ -547,21 +574,24 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId, pro
                 {/* Helpful voting footer */}
                 <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-400">
                   <span className="italic">
-                    নারীর স্বপ্ন থেকে যাচাইকৃত অর্ডার
+                    {isEnglish ? 'Verified purchase from Naarir Shopno' : 'নারীর স্বপ্ন থেকে যাচাইকৃত অর্ডার'}
                   </span>
 
                   <button
                     onClick={() => handleHelpfulClick(rev.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                       hasVoted
                         ? 'bg-rose-50 text-rose-600 font-bold border border-rose-200'
                         : 'hover:bg-slate-100 text-slate-500 hover:text-slate-800'
                     }`}
-                    title="এই রিভিউটি আপনার উপকারে এসেছে?"
+                    title={isEnglish ? 'Was this review helpful?' : 'এই রিভিউটি আপনার উপকারে এসেছে?'}
                   >
                     <ThumbsUp className={`w-3 h-3 ${hasVoted ? 'fill-rose-600 text-rose-600' : ''}`} />
                     <span>
-                      {hasVoted ? 'সহায়ক লেগেছে!' : 'সহায়ক ছিল'} ({(rev.helpfulCount || 0) + (hasVoted ? 1 : 0)})
+                      {hasVoted
+                        ? (isEnglish ? 'Helpful!' : 'সহায়ক লেগেছে!')
+                        : (isEnglish ? 'Helpful' : 'সহায়ক ছিল')}{' '}
+                      ({formatNumber((rev.helpfulCount || 0) + (hasVoted ? 1 : 0))})
                     </span>
                   </button>
                 </div>

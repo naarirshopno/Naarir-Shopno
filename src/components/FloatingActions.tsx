@@ -34,7 +34,10 @@ export const FloatingActions: React.FC = () => {
       : cleanNumber.startsWith('0') 
         ? `88${cleanNumber}` 
         : `880${cleanNumber}`;
-    return `https://wa.me/${formattedNumber}?text=${encodeURIComponent('আসসালামু আলাইকুম, নারীর স্বপ্ন শপ থেকে পোশাক অর্ডার ও কালেকশন সম্পর্কে জানতে চাচ্ছি।')}`;
+    const waMsg = isEnglish
+      ? 'Assalamu Alaikum, I would like to inquire about ordering and collections at Naarir Shopno.'
+      : 'আসসালামু আলাইকুম, নারীর স্বপ্ন শপ থেকে পোশাক অর্ডার ও কালেকশন সম্পর্কে জানতে চাচ্ছি।';
+    return `https://wa.me/${formattedNumber}?text=${encodeURIComponent(waMsg)}`;
   };
 
   const whatsappUrl = getWhatsAppUrl();
@@ -46,7 +49,7 @@ export const FloatingActions: React.FC = () => {
       <button
         id="btn-scroll-top"
         onClick={scrollToTop}
-        title="উপরে যান"
+        title={isEnglish ? 'Scroll to top' : 'উপরে যান'}
         className="fixed bottom-18 sm:bottom-18 right-4 sm:right-6 z-40 w-10 h-10 rounded-full bg-white hover:bg-slate-50 text-slate-600 shadow-md border border-slate-200 flex items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer"
       >
         <ArrowUp className="w-4 h-4" />

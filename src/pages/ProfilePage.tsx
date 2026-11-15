@@ -56,7 +56,8 @@ export const ProfilePage: React.FC = () => {
     translateColor, 
     translateSize, 
     translateStatus, 
-    translateDistrict 
+    translateDistrict,
+    translateSupportHours,
   } = useLanguage();
 
   // Selected order for cancellation modal
@@ -193,7 +194,7 @@ export const ProfilePage: React.FC = () => {
         const merged = Array.from(new Set([...found.map(o => o.id), ...currentIds]));
         localStorage.setItem('ns_my_order_ids', JSON.stringify(merged));
       } catch {}
-      setLookupFeedback(isEnglish ? `Found ${found.length} orders linked to your phone!` : `আপনার ${found.length}টি পূর্ববর্তী অর্ডার পাওয়া গেছে!`);
+      setLookupFeedback(isEnglish ? `Found ${formatNumber(found.length)} orders linked to your phone!` : `আপনার ${formatNumber(found.length)}টি পূর্ববর্তী অর্ডার পাওয়া গেছে!`);
       setTimeout(() => setLookupFeedback(null), 4000);
     } else {
       setLookupFeedback(isEnglish ? 'No orders found matching this phone number.' : 'এই ফোন নম্বরে কোনো পূর্ববর্তী অর্ডার খুঁজে পাওয়া যায়নি।');
@@ -290,7 +291,9 @@ export const ProfilePage: React.FC = () => {
 
     setReorderToast({
       show: true,
-      message: `"${catalogProduct.bengaliName}" কার্টে যুক্ত করা হয়েছে!`,
+      message: isEnglish 
+        ? `"${translateProductName(catalogProduct)}" added to bag!` 
+        : `"${translateProductName(catalogProduct)}" কার্টে যুক্ত করা হয়েছে!`,
       itemsCount: 1
     });
 
@@ -322,7 +325,9 @@ export const ProfilePage: React.FC = () => {
 
     setReorderToast({
       show: true,
-      message: `অর্ডার #${order.id}-এর সকল পণ্য (${addedCount} টি) কার্টে সফলভাবে যোগ হয়েছে!`,
+      message: isEnglish
+        ? `All items (${formatNumber(addedCount)}) from Order #${order.id} added to bag!`
+        : `অর্ডার #${order.id}-এর সকল পণ্য (${formatNumber(addedCount)} টি) কার্টে সফলভাবে যোগ হয়েছে!`,
       itemsCount: addedCount
     });
 
@@ -404,7 +409,9 @@ export const ProfilePage: React.FC = () => {
               </div>
               <div>
                 <p className="text-xs font-bold font-['Hind_Siliguri']">{reorderToast.message}</p>
-                <p className="text-[10px] text-rose-300">কার্ট চেক করুন অথবা সরাসরি চেকআউট করুন</p>
+                <p className="text-[10px] text-rose-300">
+                  {isEnglish ? 'Check your bag or proceed to checkout' : 'কার্ট চেক করুন অথবা সরাসরি চেকআউট করুন'}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -412,7 +419,7 @@ export const ProfilePage: React.FC = () => {
                 onClick={() => navigate('/checkout')}
                 className="text-xs bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded-lg transition"
               >
-                চেকআউট
+                {isEnglish ? 'Checkout' : 'চেকআউট'}
               </button>
               <button
                 onClick={() => setReorderToast(prev => ({ ...prev, show: false }))}
@@ -428,7 +435,11 @@ export const ProfilePage: React.FC = () => {
         {saveSuccessToast && (
           <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm animate-fadeIn">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>আপনার প্রোফাইল ও ডেলিভারি ঠিকানা সফলভাবে সংরক্ষিত হয়েছে!</span>
+            <span>
+              {isEnglish
+                ? 'Your profile and delivery address have been saved!'
+                : 'আপনার প্রোফাইল ও ডেলিভারি ঠিকানা সফলভাবে সংরক্ষিত হয়েছে!'}
+            </span>
           </div>
         )}
 
@@ -446,11 +457,11 @@ export const ProfilePage: React.FC = () => {
               <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-xl sm:text-2xl font-black text-slate-900 font-['Hind_Siliguri']">
-                    {profile.name || 'সম্মানিত গ্রাহক'}
+                    {profile.name || (isEnglish ? 'Valued Customer' : 'সম্মানিত গ্রাহক')}
                   </h1>
                   <span className="bg-rose-50 text-rose-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-rose-200 uppercase tracking-wider flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-rose-600" />
-                    <span>ভেরিফাইড কাস্টমার</span>
+                    <span>{isEnglish ? 'Verified Customer' : 'ভেরিফাইড কাস্টমার'}</span>
                   </span>
                 </div>
 
@@ -464,13 +475,15 @@ export const ProfilePage: React.FC = () => {
                   {profile.district && (
                     <span className="flex items-center gap-1 text-slate-600">
                       <MapPin className="w-3.5 h-3.5 text-rose-600" />
-                      <span>{profile.thana ? `${profile.thana}, ` : ''}{profile.district}</span>
+                      <span>{profile.thana ? `${profile.thana}, ` : ''}{translateDistrict(profile.district)}</span>
                     </span>
                   )}
                 </div>
 
                 <p className="text-[11px] text-slate-400 pt-0.5">
-                  নারীর স্বপ্ন ফ্যাশন পরিবারের সাথে আপনার কেনাকাটা সবসময় নিরাপদ ও নির্ভরযোগ্য।
+                  {isEnglish
+                    ? 'Your shopping with the Naarir Shopno fashion family is always safe and reliable.'
+                    : 'নারীর স্বপ্ন ফ্যাশন পরিবারের সাথে আপনার কেনাকাটা সবসময় নিরাপদ ও নির্ভরযোগ্য।'}
                 </p>
               </div>
             </div>
@@ -486,7 +499,7 @@ export const ProfilePage: React.FC = () => {
                 }`}
               >
                 <Edit3 className="w-3.5 h-3.5" />
-                <span>{isEditingProfile ? 'বাতিল করুন' : 'প্রোফাইল এডিট করুন'}</span>
+                <span>{isEditingProfile ? (isEnglish ? 'Cancel' : 'বাতিল করুন') : (isEnglish ? 'Edit Profile' : 'প্রোফাইল এডিট করুন')}</span>
               </button>
 
               <button
@@ -494,7 +507,7 @@ export const ProfilePage: React.FC = () => {
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-pink-50 text-pink-700 hover:bg-pink-100 border border-pink-200 transition shadow-xs cursor-pointer"
               >
                 <Heart className="w-3.5 h-3.5 fill-pink-600 text-pink-600" />
-                <span>উইশলিস্ট ({stats.wishlistCount})</span>
+                <span>{isEnglish ? `Wishlist (${formatNumber(stats.wishlistCount)})` : `উইশলিস্ট (${formatNumber(stats.wishlistCount)})`}</span>
               </button>
             </div>
           </div>
@@ -558,7 +571,7 @@ export const ProfilePage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <User className="w-5 h-5 text-rose-600" />
                 <h3 className="text-base sm:text-lg font-bold text-slate-900 font-['Hind_Siliguri']">
-                  গ্রাহক তথ্য ও স্থায়ী ডেলিভারি ঠিকানা সম্পাদনা
+                  {isEnglish ? 'Edit Customer Details & Permanent Delivery Address' : 'গ্রাহক তথ্য ও স্থায়ী ডেলিভারি ঠিকানা সম্পাদনা'}
                 </h3>
               </div>
               <button
@@ -572,45 +585,55 @@ export const ProfilePage: React.FC = () => {
             <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1.5">আপনার নাম *</label>
+                  <label className="block font-bold text-slate-700 mb-1.5">
+                    {isEnglish ? 'Your Name *' : 'আপনার নাম *'}
+                  </label>
                   <input
                     type="text"
                     required
                     value={editForm.name}
                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                     className="w-full px-3 py-2.5 bg-rose-50/30 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none text-slate-800"
-                    placeholder="আপনার পূর্ণ নাম লিখুন"
+                    placeholder={isEnglish ? 'Enter your full name' : 'আপনার পূর্ণ নাম লিখুন'}
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1.5">মোবাইল নম্বর (১১ ডিজিট) *</label>
+                  <label className="block font-bold text-slate-700 mb-1.5">
+                    {isEnglish ? 'Mobile Number (11 Digits) *' : 'মোবাইল নম্বর (১১ ডিজিট) *'}
+                  </label>
                   <input
                     type="tel"
                     required
                     value={editForm.phone}
                     onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                     className="w-full px-3 py-2.5 bg-rose-50/30 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none text-slate-800 font-mono"
-                    placeholder="০১XXXXXXXXX"
+                    placeholder="01XXXXXXXXX"
                   />
                   <span className="text-[10px] text-slate-400 mt-0.5 block">
-                    এই নম্বরে অর্ডার সংক্রান্ত এসএমএস ও হিস্টোরি প্রদর্শিত হবে
+                    {isEnglish
+                      ? 'Order SMS updates and order history will be synced with this number'
+                      : 'এই নম্বরে অর্ডার সংক্রান্ত এসএমএস ও হিস্টোরি প্রদর্শিত হবে'}
                   </span>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1.5">বিকল্প মোবাইল নম্বর (ঐচ্ছিক)</label>
+                  <label className="block font-bold text-slate-700 mb-1.5">
+                    {isEnglish ? 'Alternative Mobile (Optional)' : 'বিকল্প মোবাইল নম্বর (ঐচ্ছিক)'}
+                  </label>
                   <input
                     type="tel"
                     value={editForm.altPhone || ''}
                     onChange={(e) => setEditForm({ ...editForm, altPhone: e.target.value })}
                     className="w-full px-3 py-2.5 bg-rose-50/30 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none text-slate-800 font-mono"
-                    placeholder="জরুরি যোগাযোগের জন্য বিকল্প নম্বর"
+                    placeholder={isEnglish ? 'Alternative number for urgent contact' : 'জরুরি যোগাযোগের জন্য বিকল্প নম্বর'}
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1.5">ইমেইল ঠিকানা (ঐচ্ছিক)</label>
+                  <label className="block font-bold text-slate-700 mb-1.5">
+                    {isEnglish ? 'Email Address (Optional)' : 'ইমেইল ঠিকানা (ঐচ্ছিক)'}
+                  </label>
                   <input
                     type="email"
                     value={editForm.email || ''}
@@ -621,39 +644,45 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1.5">জেলা *</label>
+                  <label className="block font-bold text-slate-700 mb-1.5">
+                    {isEnglish ? 'District *' : 'জেলা *'}
+                  </label>
                   <select
                     value={editForm.district}
                     onChange={(e) => setEditForm({ ...editForm, district: e.target.value, thana: '' })}
                     className="w-full px-3 py-2.5 bg-rose-50/30 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none text-slate-800"
                   >
                     {BANGLADESH_DISTRICTS.map((dist) => (
-                      <option key={dist} value={dist}>{dist}</option>
+                      <option key={dist} value={dist}>{translateDistrict(dist)}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1.5">থানা / উপজেলা *</label>
+                  <label className="block font-bold text-slate-700 mb-1.5">
+                    {isEnglish ? 'Thana / Upazila *' : 'থানা / উপজেলা *'}
+                  </label>
                   <input
                     type="text"
                     value={editForm.thana}
                     onChange={(e) => setEditForm({ ...editForm, thana: e.target.value })}
                     className="w-full px-3 py-2.5 bg-rose-50/30 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none text-slate-800"
-                    placeholder="থানা বা উপজেলার নাম"
+                    placeholder={isEnglish ? 'Enter thana or upazila name' : 'থানা বা উপজেলার নাম'}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1.5">বিস্তারিত ডেলিভারি ঠিকানা *</label>
+                <label className="block font-bold text-slate-700 mb-1.5">
+                  {isEnglish ? 'Detailed Delivery Address *' : 'বিস্তারিত ডেলিভারি ঠিকানা *'}
+                </label>
                 <textarea
                   rows={2}
                   required
                   value={editForm.address}
                   onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
                   className="w-full px-3 py-2 bg-rose-50/30 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none text-slate-800"
-                  placeholder="রোড নম্বর, বাসা নম্বর, এলাকা বা ল্যান্ডমার্ক..."
+                  placeholder={isEnglish ? 'Road number, house number, area or landmark...' : 'রোড নম্বর, বাসা নম্বর, এলাকা বা ল্যান্ডমার্ক...'}
                 />
               </div>
 
@@ -661,16 +690,16 @@ export const ProfilePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsEditingProfile(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer"
                 >
-                  বাতিল
+                  {isEnglish ? 'Cancel' : 'বাতিল'}
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition shadow-md flex items-center gap-1.5"
+                  className="px-6 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition shadow-md flex items-center gap-1.5 cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
-                  <span>তথ্য সংরক্ষণ করুন</span>
+                  <span>{isEnglish ? 'Save Information' : 'তথ্য সংরক্ষণ করুন'}</span>
                 </button>
               </div>
             </form>
@@ -834,7 +863,7 @@ export const ProfilePage: React.FC = () => {
                     </button>
                   </form>
                   {lookupFeedback && (
-                    <p className={`text-[11px] font-semibold mt-2.5 ${lookupFeedback.includes('✅') || lookupFeedback.includes('পাওয়া গেছে') ? 'text-emerald-700' : 'text-rose-700'}`}>
+                    <p className={`text-[11px] font-semibold mt-2.5 ${lookupFeedback.includes('✅') || lookupFeedback.includes('পাওয়া গেছে') || lookupFeedback.includes('Found') ? 'text-emerald-700' : 'text-rose-700'}`}>
                       {lookupFeedback}
                     </p>
                   )}
@@ -861,7 +890,7 @@ export const ProfilePage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleCopyOrderId(order.id)}
-                            title="অর্ডার আইডি কপি করুন"
+                            title={isEnglish ? 'Copy Order ID' : 'অর্ডার আইডি কপি করুন'}
                             className="text-slate-400 hover:text-rose-600 transition"
                           >
                             {copiedOrderId === order.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
@@ -906,7 +935,7 @@ export const ProfilePage: React.FC = () => {
                         <button
                           type="button"
                           onClick={(e) => handleReorderEntireOrder(order, e)}
-                          title="এই অর্ডারের সব পণ্য পুনরায় কার্টে যুক্ত করে অর্ডার করুন"
+                          title={isEnglish ? 'Add all items from this order back to cart' : 'এই অর্ডারের সব পণ্য পুনরায় কার্টে যুক্ত করে অর্ডার করুন'}
                           className="inline-flex items-center gap-1.5 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm transition active:scale-95 cursor-pointer"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
@@ -916,7 +945,7 @@ export const ProfilePage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setSelectedInvoiceOrder(order)}
-                          title="ইনভয়েস বা রসিদ দেখুন ও প্রিন্ট করুন"
+                          title={isEnglish ? 'View & Print Invoice / Receipt' : 'ইনভয়েস বা রসিদ দেখুন ও প্রিন্ট করুন'}
                           className="p-1.5 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-300 rounded-xl transition cursor-pointer"
                         >
                           <FileText className="w-4 h-4" />
@@ -938,7 +967,7 @@ export const ProfilePage: React.FC = () => {
                               <div className="flex items-center gap-3 min-w-0">
                                 <img
                                   src={itemImg}
-                                  alt={item.product.bengaliName}
+                                  alt={translateProductName(item.product)}
                                   className="w-14 h-16 sm:w-16 sm:h-20 rounded-xl object-cover border border-rose-100 shadow-2xs shrink-0 cursor-pointer hover:opacity-90 transition"
                                   onClick={() => navigate(`/product/${item.product.id}`)}
                                 />
@@ -947,7 +976,7 @@ export const ProfilePage: React.FC = () => {
                                     to={`/product/${item.product.id}`}
                                     className="font-bold text-slate-900 hover:text-rose-600 transition truncate block text-xs sm:text-sm font-['Hind_Siliguri']"
                                   >
-                                    {item.product.bengaliName}
+                                    {translateProductName(item.product)}
                                   </Link>
 
                                   <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
@@ -955,20 +984,20 @@ export const ProfilePage: React.FC = () => {
                                       {colorHex && (
                                         <span className="w-2 h-2 rounded-full border border-black/20" style={{ backgroundColor: colorHex }} />
                                       )}
-                                      <span>রঙ: {displayColor}</span>
+                                      <span>{isEnglish ? 'Color:' : 'রঙ:'} {translateColor(displayColor)}</span>
                                     </span>
 
                                     <span className="font-semibold bg-slate-50 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200">
-                                      সাইজ: {item.selectedSize}
+                                      {isEnglish ? 'Size:' : 'সাইজ:'} {translateSize(item.selectedSize)}
                                     </span>
 
                                     <span className="text-slate-600 font-semibold font-mono">
-                                      × {item.quantity} টি
+                                      × {formatNumber(item.quantity)} {isEnglish ? 'pcs' : 'টি'}
                                     </span>
                                   </div>
 
                                   <p className="text-[11px] font-bold text-rose-700 font-['Outfit']">
-                                    ৳{item.product.price.toLocaleString()} × {item.quantity} = ৳{(item.product.price * item.quantity).toLocaleString()}
+                                    {formatPrice(item.product.price)} × {formatNumber(item.quantity)} = {formatPrice(item.product.price * item.quantity)}
                                   </p>
                                 </div>
                               </div>
@@ -979,10 +1008,10 @@ export const ProfilePage: React.FC = () => {
                                   type="button"
                                   onClick={(e) => handleReorderItem(item, e)}
                                   className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition active:scale-95 cursor-pointer shadow-2xs"
-                                  title="শুধুমাত্র এই পণ্যটি পুনরায় কার্টে যোগ করুন"
+                                  title={isEnglish ? 'Add only this item back to cart' : 'শুধুমাত্র এই পণ্যটি পুনরায় কার্টে যোগ করুন'}
                                 >
                                   <RotateCcw className="w-3 h-3 text-rose-600" />
-                                  <span>পুনরায় কিনুন</span>
+                                  <span>{isEnglish ? 'Buy Again' : 'পুনরায় কিনুন'}</span>
                                 </button>
                               </div>
                             </div>
@@ -995,25 +1024,33 @@ export const ProfilePage: React.FC = () => {
                         <div className="space-y-0.5 text-slate-600">
                           <p className="flex items-center gap-1">
                             <MapPin className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                            <span><strong>ডেলিভারি ঠিকানা:</strong> {order.address}, {order.thana ? `${order.thana}, ` : ''}{order.district}</span>
+                            <span>
+                              <strong>{isEnglish ? 'Delivery Address:' : 'ডেলিভারি ঠিকানা:'}</strong>{' '}
+                              {order.address}, {order.thana ? `${order.thana}, ` : ''}{translateDistrict(order.district)}
+                            </span>
                           </p>
                           <p className="flex items-center gap-1.5 text-[11px]">
                             <CreditCard className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                             <span>
-                              <strong>পেমেন্ট:</strong> {order.paymentMethod === 'cod' ? 'ক্যাশ অন ডেলিভারি (COD)' : order.paymentMethod.toUpperCase()}
+                              <strong>{isEnglish ? 'Payment:' : 'পেমেন্ট:'}</strong>{' '}
+                              {order.paymentMethod === 'cod'
+                                ? (isEnglish ? 'Cash on Delivery (COD)' : 'ক্যাশ অন ডেলিভারি (COD)')
+                                : order.paymentMethod.toUpperCase()}
                             </span>
                             <span className="text-rose-300">|</span>
                             <span>
-                              ডেলিভারি চার্জ: ৳{order.deliveryCharge}
+                              {isEnglish ? 'Delivery Charge:' : 'ডেলিভারি চার্জ:'} {formatPrice(order.deliveryCharge)}
                             </span>
                           </p>
                         </div>
 
                         <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
                           <div className="text-right">
-                            <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">সর্বমোট প্রদেয়</span>
+                            <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
+                              {isEnglish ? 'Total Payable' : 'সর্বমোট প্রদেয়'}
+                            </span>
                             <span className="text-base sm:text-lg font-black text-rose-700 font-['Outfit']">
-                              ৳{order.total.toLocaleString()}
+                              {formatPrice(order.total)}
                             </span>
                           </div>
 
@@ -1028,7 +1065,11 @@ export const ProfilePage: React.FC = () => {
                             }`}
                           >
                             <Truck className="w-3.5 h-3.5" />
-                            <span>{isExpandedTracker ? 'ট্র্যাকার লুকান' : 'অগ্রগতি ট্র্যাকার'}</span>
+                            <span>
+                              {isExpandedTracker
+                                ? (isEnglish ? 'Hide Tracker' : 'ট্র্যাকার লুকান')
+                                : (isEnglish ? 'Progress Tracker' : 'অগ্রগতি ট্র্যাকার')}
+                            </span>
                             {isExpandedTracker ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                           </button>
                         </div>
@@ -1056,10 +1097,10 @@ export const ProfilePage: React.FC = () => {
             </div>
             <div>
               <p className="font-bold text-slate-900 font-['Hind_Siliguri'] text-sm">
-                অর্ডার সংক্রান্ত কোনো জিজ্ঞাসা বা পরিবর্তনের প্রয়োজন?
+                {isEnglish ? 'Questions or changes regarding an order?' : 'অর্ডার সংক্রান্ত কোনো জিজ্ঞাসা বা পরিবর্তনের প্রয়োজন?'}
               </p>
               <p className="text-slate-500 text-xs">
-                আমাদের কাস্টমার কেয়ার প্রতিনিধিরা সপ্তাহে ৭ দিন সকাল ৯টা থেকে রাত ১০টা পর্যন্ত প্রস্তুত।
+                {translateSupportHours(settings.supportHours)}
               </p>
             </div>
           </div>
@@ -1067,7 +1108,7 @@ export const ProfilePage: React.FC = () => {
             href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-sm transition shrink-0"
           >
-            <span>কল করুন: {settings.hotline1 || '09617-541717'}</span>
+            <span>{isEnglish ? 'Call:' : 'কল করুন:'} {settings.hotline1 || '09617-541717'}</span>
           </a>
         </div>
 

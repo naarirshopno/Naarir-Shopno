@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   X, 
   ShoppingBag, 
@@ -33,6 +34,18 @@ export const ProductDetailModal: React.FC = () => {
     isInWishlist,
     settings 
   } = useShop();
+
+  const {
+    isEnglish,
+    formatPrice,
+    formatNumber,
+    translateCategory,
+    translateProductName,
+    translateColor,
+    translateSize,
+    translateFabric,
+    translateSupportHours,
+  } = useLanguage();
 
   const product = selectedProductModal;
   const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80';
@@ -129,11 +142,15 @@ export const ProductDetailModal: React.FC = () => {
     setIsCheckoutOpen(true);
   };
 
+  const productDisplayName = translateProductName(product);
+
   const handleShareModal = async () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const shareUrl = `${origin}/?product=${product.id}`;
-    const shareTitle = `${product.bengaliName} | নারীর স্বপ্ন`;
-    const shareText = `নারীর স্বপ্ন - ${product.bengaliName}\nমূল্য: ৳${product.price.toLocaleString()} টাকা। সরাসরি অর্ডার করতে লিংকটি দেখুন:`;
+    const shareTitle = isEnglish ? `${productDisplayName} | Naarir Shopno` : `${productDisplayName} | নারীর স্বপ্ন`;
+    const shareText = isEnglish
+      ? `Naarir Shopno - ${productDisplayName}\nPrice: ${formatPrice(product.price)}. Check link to order directly:`
+      : `নারীর স্বপ্ন - ${productDisplayName}\nমূল্য: ${formatPrice(product.price)} টাকা। সরাসরি অর্ডার করতে লিংকটি দেখুন:`;
 
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
@@ -142,7 +159,7 @@ export const ProductDetailModal: React.FC = () => {
           text: shareText,
           url: shareUrl,
         });
-        setShareToast('শেয়ার সফল হয়েছে!');
+        setShareToast(isEnglish ? 'Shared successfully!' : 'শেয়ার সফল হয়েছে!');
         setTimeout(() => setShareToast(null), 2000);
       } catch (err: any) {
         if (err?.name !== 'AbortError') {
@@ -158,7 +175,7 @@ export const ProductDetailModal: React.FC = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(url)
         .then(() => {
-          setShareToast('লিংক কপি করা হয়েছে! 📋');
+          setShareToast(isEnglish ? 'Link copied to clipboard! 📋' : 'লিংক কপি করা হয়েছে! 📋');
           setTimeout(() => setShareToast(null), 2000);
         })
         .catch(() => fallbackCopy(url));
@@ -177,9 +194,9 @@ export const ProductDetailModal: React.FC = () => {
       textarea.select();
       document.execCommand('copy');
       document.body.removeChild(textarea);
-      setShareToast('লিংক কপি করা হয়েছে! 📋');
+      setShareToast(isEnglish ? 'Link copied to clipboard! 📋' : 'লিংক কপি করা হয়েছে! 📋');
     } catch {
-      setShareToast('শেয়ার লিংক প্রস্তুত');
+      setShareToast(isEnglish ? 'Share link ready' : 'শেয়ার লিংক প্রস্তুত');
     }
     setTimeout(() => setShareToast(null), 2000);
   };
@@ -215,11 +232,11 @@ export const ProductDetailModal: React.FC = () => {
               onTouchMove={handleTouchMove}
               onTouchEnd={() => setIsZooming(false)}
               className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-white shadow-md border border-rose-100 mb-3 cursor-zoom-in select-none group/zoom"
-              title="মাউস নাড়িয়ে কাপড়ের নিখুঁত বুনন ও কাজ বড় করে দেখুন"
+              title={isEnglish ? 'Move cursor to magnify fabric and craftsmanship' : 'মাউস নাড়িয়ে কাপড়ের নিখুঁত বুনন ও কাজ বড় করে দেখুন'}
             >
               <img
                 src={activeImage}
-                alt={product.bengaliName}
+                alt={productDisplayName}
                 style={{
                   transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
                   transform: isZooming ? 'scale(2.5)' : 'scale(1)',
@@ -234,7 +251,7 @@ export const ProductDetailModal: React.FC = () => {
               {/* Discount Badge */}
               {discountPercent > 0 && !isZooming && (
                 <div className="absolute top-3 left-3 bg-rose-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow pointer-events-none">
-                  {discountPercent}% ছাড়
+                  {formatNumber(discountPercent)}% {isEnglish ? 'OFF' : 'ছাড়'}
                 </div>
               )}
 
@@ -256,14 +273,14 @@ export const ProductDetailModal: React.FC = () => {
                 }`}
               >
                 <ZoomIn className="w-3.5 h-3.5 text-rose-300" />
-                <span>মাউস দিয়ে কাপড়ের নিখুঁত ফেব্রিক ও কাজ জুম করুন</span>
+                <span>{isEnglish ? 'Hover to zoom fine fabric & detail' : 'মাউস দিয়ে কাপড়ের নিখুঁত ফেব্রিক ও কাজ জুম করুন'}</span>
               </div>
 
               {/* Zoom Active Indicator */}
               {isZooming && (
                 <div className="absolute top-3 right-3 bg-rose-600/90 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md pointer-events-none flex items-center gap-1 border border-white/20 animate-fadeIn">
                   <Sparkles className="w-3 h-3 text-amber-300" />
-                  <span>2.5x ম্যাগনিফায়ার</span>
+                  <span>{isEnglish ? '2.5x Magnifier' : '2.5x ম্যাগনিফায়ার'}</span>
                 </div>
               )}
             </div>
@@ -299,14 +316,14 @@ export const ProductDetailModal: React.FC = () => {
               {/* Category, SKU & Star rating */}
               <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
                 <span className="font-semibold text-rose-600 uppercase bg-rose-50 px-2 py-0.5 rounded">
-                  {displayCategory}
+                  {translateCategory(displayCategory)}
                 </span>
-                <span>কোড: {product.sku}</span>
+                <span>{isEnglish ? 'Code:' : 'কোড:'} {product.sku}</span>
               </div>
 
               {/* Title */}
               <h2 className="text-xl sm:text-2xl font-bold text-slate-900 font-['Hind_Siliguri'] leading-snug">
-                {product.bengaliName}
+                {productDisplayName}
               </h2>
 
               {/* Rating */}
@@ -323,32 +340,38 @@ export const ProductDetailModal: React.FC = () => {
                     />
                   ))}
                 </div>
-                <span className="text-xs font-bold text-slate-700">{product.rating}</span>
+                <span className="text-xs font-bold text-slate-700">{formatNumber(product.rating)}</span>
                 <span className="text-slate-300">•</span>
                 <button
                   type="button"
                   onClick={scrollToReviews}
                   className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1 cursor-pointer"
-                  title="নিচে কাস্টমারদের রিভিউ পড়ুন"
+                  title={isEnglish ? 'Read customer reviews below' : 'নিচে কাস্টমারদের রিভিউ পড়ুন'}
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
-                  <span>({product.reviewsCount} টি রিভিউ দেখুন)</span>
+                  <span>
+                    {isEnglish
+                      ? `(${formatNumber(product.reviewsCount)} Reviews)`
+                      : `(${formatNumber(product.reviewsCount)} টি রিভিউ দেখুন)`}
+                  </span>
                 </button>
               </div>
 
               {/* Price Banner */}
               <div className="mt-4 p-3 bg-rose-50/60 rounded-xl border border-rose-100 flex items-baseline gap-3">
                 <span className="text-2xl sm:text-3xl font-black text-rose-700 font-['Outfit']">
-                  ৳{product.price.toLocaleString()}
+                  {formatPrice(product.price)}
                 </span>
                 {product.regularPrice > product.price && (
                   <span className="text-sm text-slate-400 line-through font-['Outfit']">
-                    ৳{product.regularPrice.toLocaleString()}
+                    {formatPrice(product.regularPrice)}
                   </span>
                 )}
                 {discountPercent > 0 && (
                   <span className="ml-auto text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
-                    আপনার সাশ্রয় ৳{(product.regularPrice - product.price).toLocaleString()}
+                    {isEnglish
+                      ? `Save ${formatPrice(product.regularPrice - product.price)}`
+                      : `আপনার সাশ্রয় ${formatPrice(product.regularPrice - product.price)}`}
                   </span>
                 )}
               </div>
@@ -356,23 +379,29 @@ export const ProductDetailModal: React.FC = () => {
               {/* Fabric Specs */}
               <div className="mt-4 text-xs text-slate-600 space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-200/80">
                 <p className="flex items-center gap-1.5">
-                  <strong className="text-slate-800 shrink-0">কাপড়ের বিবরণ:</strong>
-                  <span className="text-slate-700">{product.fabric}</span>
+                  <strong className="text-slate-800 shrink-0">{isEnglish ? 'Fabric Details:' : 'কাপড়ের বিবরণ:'}</strong>
+                  <span className="text-slate-700">{translateFabric(product.fabric)}</span>
                 </p>
                 <p className="flex items-center gap-1.5">
-                  <strong className="text-slate-800 shrink-0">স্টক অবস্থা:</strong>
+                  <strong className="text-slate-800 shrink-0">{isEnglish ? 'Stock Status:' : 'স্টক অবস্থা:'}</strong>
                   {!product.inStock || (product.stockCount !== undefined && product.stockCount <= 0) ? (
                     <span className="text-red-700 font-bold bg-red-50 px-2 py-0.5 rounded text-[11px] border border-red-200">
-                      স্টক শেষ (আউট অব স্টক)
+                      {isEnglish ? 'Out of Stock' : 'স্টক শেষ (আউট অব স্টক)'}
                     </span>
                   ) : product.stockCount !== undefined && product.stockCount < 5 ? (
                     <span className="text-red-700 font-bold bg-red-50 px-2 py-0.5 rounded text-[11px] border border-red-200 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                      <span>সীমিত স্টক (আর মাত্র {product.stockCount}টি বাকি!)</span>
+                      <span>
+                        {isEnglish
+                          ? `Low Stock (Only ${formatNumber(product.stockCount)} left!)`
+                          : `সীমিত স্টক (আর মাত্র ${formatNumber(product.stockCount)}টি বাকি!)`}
+                      </span>
                     </span>
                   ) : (
                     <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded text-[11px] border border-emerald-200">
-                      ইন স্টক ({product.stockCount !== undefined ? `${product.stockCount}টি রেডি আছে` : 'পণ্যটি রেডি আছে'})
+                      {isEnglish
+                        ? `In Stock (${product.stockCount !== undefined ? `${formatNumber(product.stockCount)} available` : 'Ready to ship'})`
+                        : `ইন স্টক (${product.stockCount !== undefined ? `${formatNumber(product.stockCount)}টি রেডি আছে` : 'পণ্যটি রেডি আছে'})`}
                     </span>
                   )}
                 </p>
@@ -383,7 +412,7 @@ export const ProductDetailModal: React.FC = () => {
                 <div className="mt-4 text-xs p-3.5 bg-rose-50/50 rounded-xl border border-rose-100/80 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold text-slate-800 font-['Hind_Siliguri']">
                     <Sparkles className="w-3.5 h-3.5 text-rose-500" />
-                    <span>পোশাকের বিবরণ (Description):</span>
+                    <span>{isEnglish ? 'Description:' : 'পোশাকের বিবরণ (Description):'}</span>
                   </div>
                   <p className="text-slate-600 leading-relaxed font-['Hind_Siliguri']">
                     {product.description}
@@ -395,8 +424,8 @@ export const ProductDetailModal: React.FC = () => {
               {product.sizes.length > 0 && (
                 <div className="mt-4">
                   <div className="flex justify-between items-center text-xs font-bold text-slate-800 mb-2">
-                    <span>সাইজ বেছে নিন:</span>
-                    <span className="text-rose-600 font-normal">{selectedSize}</span>
+                    <span>{isEnglish ? 'Select Size:' : 'সাইজ বেছে নিন:'}</span>
+                    <span className="text-rose-600 font-normal">{translateSize(selectedSize)}</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {product.sizes.map((s) => (
@@ -409,7 +438,7 @@ export const ProductDetailModal: React.FC = () => {
                             : 'bg-white text-slate-700 border-slate-200 hover:border-rose-300'
                         }`}
                       >
-                        {s}
+                        {translateSize(s)}
                       </button>
                     ))}
                   </div>
@@ -420,8 +449,8 @@ export const ProductDetailModal: React.FC = () => {
               {product.colors.length > 0 && (
                 <div className="mt-4">
                   <div className="flex justify-between items-center text-xs font-bold text-slate-800 mb-2">
-                    <span>রঙ বেছে নিন:</span>
-                    <span className="text-rose-600 font-normal">{selectedColor}</span>
+                    <span>{isEnglish ? 'Select Color:' : 'রঙ বেছে নিন:'}</span>
+                    <span className="text-rose-600 font-normal">{translateColor(selectedColor)}</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {product.colors.map((c, cIdx) => (
@@ -446,7 +475,7 @@ export const ProductDetailModal: React.FC = () => {
                           className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
                           style={{ backgroundColor: c.hex }}
                         />
-                        <span>{c.name}</span>
+                        <span>{translateColor(c.name)}</span>
                       </button>
                     ))}
                   </div>
@@ -455,7 +484,7 @@ export const ProductDetailModal: React.FC = () => {
 
               {/* Quantity Stepper */}
               <div className="mt-4 flex items-center gap-3">
-                <span className="text-xs font-bold text-slate-800">পরিমাণ:</span>
+                <span className="text-xs font-bold text-slate-800">{isEnglish ? 'Quantity:' : 'পরিমাণ:'}</span>
                 <div className="flex items-center border border-rose-200 rounded-lg overflow-hidden bg-rose-50/30">
                   <button
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -463,7 +492,7 @@ export const ProductDetailModal: React.FC = () => {
                   >
                     -
                   </button>
-                  <span className="px-3 text-sm font-bold text-slate-800">{quantity}</span>
+                  <span className="px-3 text-sm font-bold text-slate-800">{formatNumber(quantity)}</span>
                   <button
                     onClick={() => setQuantity((q) => q + 1)}
                     className="px-3 py-1 text-base font-bold text-rose-700 hover:bg-rose-100 transition"
@@ -483,7 +512,7 @@ export const ProductDetailModal: React.FC = () => {
                   className="flex-1 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-bold text-xs sm:text-sm py-3 px-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 active:scale-95"
                 >
                   <Zap className="w-4 h-4 fill-current text-amber-300" />
-                  <span>সরাসরি অর্ডার</span>
+                  <span>{isEnglish ? 'Order Now' : 'সরাসরি অর্ডার'}</span>
                 </button>
 
                 <button
@@ -498,12 +527,12 @@ export const ProductDetailModal: React.FC = () => {
                   {addedToast ? (
                     <>
                       <Check className="w-4 h-4 text-emerald-600" />
-                      <span>যোগ হয়েছে!</span>
+                      <span>{isEnglish ? 'Added!' : 'যোগ হয়েছে!'}</span>
                     </>
                   ) : (
                     <>
                       <ShoppingBag className="w-4 h-4 text-rose-600" />
-                      <span>কার্টে নিন</span>
+                      <span>{isEnglish ? 'Add to Bag' : 'কার্টে নিন'}</span>
                     </>
                   )}
                 </button>
@@ -512,8 +541,8 @@ export const ProductDetailModal: React.FC = () => {
                   id="btn-modal-wishlist"
                   type="button"
                   onClick={() => toggleWishlist(product.id)}
-                  title={isInWishlist(product.id) ? "পছন্দের তালিকা থেকে সরান" : "পছন্দের তালিকায় রাখুন"}
-                  aria-label={isInWishlist(product.id) ? "পছন্দের তালিকা থেকে সরান" : "পছন্দের তালিকায় রাখুন"}
+                  title={isInWishlist(product.id) ? (isEnglish ? 'Remove from Wishlist' : 'পছন্দের তালিকা থেকে সরান') : (isEnglish ? 'Add to Wishlist' : 'পছন্দের তালিকায় রাখুন')}
+                  aria-label={isInWishlist(product.id) ? (isEnglish ? 'Remove from Wishlist' : 'পছন্দের তালিকা থেকে সরান') : (isEnglish ? 'Add to Wishlist' : 'পছন্দের তালিকায় রাখুন')}
                   className={`px-3 py-3 rounded-xl border transition-all flex items-center justify-center shrink-0 cursor-pointer ${
                     isInWishlist(product.id)
                       ? 'bg-rose-50 border-rose-300 text-rose-600 scale-102'
@@ -528,8 +557,8 @@ export const ProductDetailModal: React.FC = () => {
                   id="btn-modal-share"
                   type="button"
                   onClick={handleShareModal}
-                  title="শেয়ার করুন (Web Share)"
-                  aria-label={`${product.bengaliName} শেয়ার করুন`}
+                  title={isEnglish ? 'Share' : 'শেয়ার করুন (Web Share)'}
+                  aria-label={isEnglish ? `Share ${productDisplayName}` : `${productDisplayName} শেয়ার করুন`}
                   className="px-3 py-3 rounded-xl border border-slate-200 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 transition-all flex items-center justify-center shrink-0 cursor-pointer"
                 >
                   <Share2 className="w-5 h-5" />
@@ -548,9 +577,9 @@ export const ProductDetailModal: React.FC = () => {
                 <div className="flex items-center gap-2 text-slate-700 font-medium">
                   <Phone className="w-4 h-4 text-rose-600 shrink-0" />
                   <div>
-                    <span>সরাসরি ফোন সাপোর্ট ও অর্ডার:</span>
+                    <span>{isEnglish ? 'Direct Phone Support & Order:' : 'সরাসরি ফোন সাপোর্ট ও অর্ডার:'}</span>
                     {settings.supportHours && settings.supportHours.trim() ? (
-                      <p className="text-[10px] text-emerald-600 font-semibold">{settings.supportHours}</p>
+                      <p className="text-[10px] text-emerald-600 font-semibold">{translateSupportHours(settings.supportHours)}</p>
                     ) : null}
                   </div>
                 </div>
@@ -566,15 +595,15 @@ export const ProductDetailModal: React.FC = () => {
               <div className="grid grid-cols-3 gap-2 text-[10px] text-slate-500 text-center pt-1">
                 <div className="flex items-center justify-center gap-1">
                   <Truck className="w-3.5 h-3.5 text-rose-500" />
-                  <span>হোম ডেলিভারি</span>
+                  <span>{isEnglish ? 'Home Delivery' : 'হোম ডেলিভারি'}</span>
                 </div>
                 <div className="flex items-center justify-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
-                  <span>ক্যাশ অন ডেলিভারি</span>
+                  <span>{isEnglish ? 'Cash on Delivery' : 'ক্যাশ অন ডেলিভারি'}</span>
                 </div>
                 <div className="flex items-center justify-center gap-1">
                   <RefreshCw className="w-3.5 h-3.5 text-pink-500" />
-                  <span>৩ দিন এক্সচেঞ্জ</span>
+                  <span>{isEnglish ? '3-Day Exchange' : '৩ দিন এক্সচেঞ্জ'}</span>
                 </div>
               </div>
             </div>
@@ -585,7 +614,7 @@ export const ProductDetailModal: React.FC = () => {
             <div className="flex items-center gap-2 border-b border-rose-100 pb-3">
               <FileText className="w-5 h-5 text-rose-600" />
               <h3 className="text-base sm:text-lg font-bold text-slate-900 font-['Hind_Siliguri']">
-                পোশাকের সম্পূর্ণ বিবরণ ও স্পেসিফিকেশন (Full Details)
+                {isEnglish ? 'Full Product Details & Specifications' : 'পোশাকের সম্পূর্ণ বিবরণ ও স্পেসিফিকেশন (Full Details)'}
               </h3>
             </div>
 
@@ -594,10 +623,10 @@ export const ProductDetailModal: React.FC = () => {
               <div className="md:col-span-2 p-4 rounded-2xl bg-rose-50/40 border border-rose-100 space-y-2">
                 <h4 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5 font-['Hind_Siliguri']">
                   <Sparkles className="w-4 h-4 text-amber-500" />
-                  <span>ডিজাইন ও কাজের বিবরণ:</span>
+                  <span>{isEnglish ? 'Design & Craftsmanship:' : 'ডিজাইন ও কাজের বিবরণ:'}</span>
                 </h4>
                 <div className="text-xs sm:text-sm text-slate-700 leading-relaxed font-['Hind_Siliguri'] whitespace-pre-line">
-                  {product.description || `${product.bengaliName} - এক্সক্লুসিভ কালেকশনের সেরা পোশাক।`}
+                  {product.description || (isEnglish ? `${productDisplayName} — Exclusive collection from Naarir Shopno.` : `${productDisplayName} - এক্সক্লুসিভ কালেকশনের সেরা পোশাক।`)}
                 </div>
               </div>
 
@@ -605,17 +634,17 @@ export const ProductDetailModal: React.FC = () => {
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5 text-xs text-slate-700 font-['Hind_Siliguri']">
                 <h4 className="font-bold text-slate-800 flex items-center gap-1.5 text-xs sm:text-sm">
                   <Info className="w-4 h-4 text-rose-600" />
-                  <span>বৈশিষ্ট্যসমূহ:</span>
+                  <span>{isEnglish ? 'Specifications:' : 'বৈশিষ্ট্যসমূহ:'}</span>
                 </h4>
                 <div className="space-y-1.5">
-                  <p><strong className="text-slate-800">ক্যাটাগরি:</strong> {displayCategory}</p>
-                  <p><strong className="text-slate-800">প্রোডাক্ট কোড (SKU):</strong> {product.sku}</p>
-                  <p><strong className="text-slate-800">কাপড়ের ধরন:</strong> {product.fabric}</p>
+                  <p><strong className="text-slate-800">{isEnglish ? 'Category:' : 'ক্যাটাগরি:'}</strong> {translateCategory(displayCategory)}</p>
+                  <p><strong className="text-slate-800">{isEnglish ? 'Product Code (SKU):' : 'প্রোডাক্ট কোড (SKU):'}</strong> {product.sku}</p>
+                  <p><strong className="text-slate-800">{isEnglish ? 'Fabric Type:' : 'কাপড়ের ধরন:'}</strong> {translateFabric(product.fabric)}</p>
                   {product.sizes && product.sizes.length > 0 && (
-                    <p><strong className="text-slate-800">উপলব্ধ সাইজ:</strong> {product.sizes.join(', ')}</p>
+                    <p><strong className="text-slate-800">{isEnglish ? 'Available Sizes:' : 'উপলব্ধ সাইজ:'}</strong> {product.sizes.map(s => translateSize(s)).join(', ')}</p>
                   )}
                   {product.colors && product.colors.length > 0 && (
-                    <p><strong className="text-slate-800">উপলব্ধ রঙ:</strong> {product.colors.map(c => c.name).join(', ')}</p>
+                    <p><strong className="text-slate-800">{isEnglish ? 'Available Colors:' : 'উপলব্ধ রঙ:'}</strong> {product.colors.map(c => translateColor(c.name)).join(', ')}</p>
                   )}
                 </div>
               </div>

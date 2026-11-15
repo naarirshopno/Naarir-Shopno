@@ -950,7 +950,7 @@ export const CheckoutPage: React.FC = () => {
                         <span className="text-rose-600">
                           {isEnglish 
                             ? `Shop ${formatPrice(settings.deliveryCharges.freeDeliveryAbove - subtotal)} more for Free Delivery` 
-                            : `আরও ৳${(settings.deliveryCharges.freeDeliveryAbove - subtotal).toLocaleString()} কেনাকাটায় ফ্রি ডেলিভারি`}
+                            : `আরও ${formatPrice(settings.deliveryCharges.freeDeliveryAbove - subtotal)} কেনাকাটায় ফ্রি ডেলিভারি`}
                         </span>
                       )}
                     </div>

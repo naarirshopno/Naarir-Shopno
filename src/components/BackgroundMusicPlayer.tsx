@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   Music, 
   Volume2, 
@@ -17,8 +18,10 @@ import {
 export interface MusicTrack {
   id: string;
   title: string;
+  titleEn: string;
   artist: string;
   category: string;
+  categoryEn: string;
   url: string;
 }
 
@@ -26,43 +29,55 @@ export const PRESET_TRACKS: MusicTrack[] = [
   {
     id: 'track-acoustic',
     title: 'শান্ত অ্যাকোস্টিক গিটার মেলোডি',
+    titleEn: 'Calm Acoustic Guitar Melody',
     artist: 'Boutique Acoustic Ambient',
     category: 'অ্যাকোস্টিক গিটার',
+    categoryEn: 'Acoustic Guitar',
     url: '/audio/track-acoustic.mp3',
   },
   {
     id: 'track-piano-serenade',
     title: 'রেশমি পিয়ানো ও সফট মেলোডি',
+    titleEn: 'Silky Piano & Soft Melody',
     artist: 'Kai Engel Neoclassical',
     category: 'রিল্যাক্সিং পিয়ানো',
+    categoryEn: 'Relaxing Piano',
     url: '/audio/track-piano-serenade.mp3',
   },
   {
     id: 'track-eastern-sitar',
     title: 'ঐতিহ্যবাহী সেতার ও বাঁশির রাগ',
+    titleEn: 'Traditional Sitar & Flute Raga',
     artist: 'Eastern Classical Boutique',
     category: 'ভারতীয় ক্লাসিক্যাল',
+    categoryEn: 'Eastern Classical',
     url: '/audio/track-eastern-sitar.mp3',
   },
   {
     id: 'track-placid',
     title: 'মন জুড়ানো স্নিগ্ধ শান্ত সুর',
+    titleEn: 'Soothing Peaceful Serenity',
     artist: 'MusicLFiles Peaceful Serenity',
     category: 'মেডিটেটিভ অ্যাম্বিয়েন্ট',
+    categoryEn: 'Meditative Ambient',
     url: '/audio/track-placid.mp3',
   },
   {
     id: 'track-lounge',
     title: 'সুইট বুটিক লাউঞ্জ টিউন',
+    titleEn: 'Sweet Boutique Lounge Tune',
     artist: 'Fashion Chillout',
     category: 'মডার্ন ফ্যাশন',
+    categoryEn: 'Modern Fashion',
     url: '/audio/track-lounge.mp3',
   },
   {
     id: 'track-boutique-theme',
     title: 'নারীর স্বপ্ন স্পেশাল মেলোডি',
+    titleEn: 'Naarir Shopno Special Melody',
     artist: 'Boutique Ambient Studio',
     category: 'এক্সক্লুসিভ থিম',
+    categoryEn: 'Exclusive Theme',
     url: '/audio/theme-melody.mp3',
   },
 ];
@@ -78,6 +93,7 @@ const resolveAudioUrl = (url: string): string => {
 
 export const BackgroundMusicPlayer: React.FC = () => {
   const { settings, updateSettings } = useShop();
+  const { isEnglish, formatNumber } = useLanguage();
 
   const musicConfig = settings.backgroundMusic || {
     enabled: true,
@@ -243,10 +259,10 @@ export const BackgroundMusicPlayer: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="text-xs sm:text-sm font-bold text-slate-800 font-['Hind_Siliguri']">
-                    ব্যাকগ্রাউন্ড মিউজিক
+                    {isEnglish ? 'Background Music' : 'ব্যাকগ্রাউন্ড মিউজিক'}
                   </h4>
                   <p className="text-[10px] text-slate-500">
-                    শপিংয়ের সময় মিষ্টি সুর উপভোগ করুন
+                    {isEnglish ? 'Enjoy soft melodies while shopping' : 'শপিংয়ের সময় মিষ্টি সুর উপভোগ করুন'}
                   </p>
                 </div>
               </div>
@@ -263,10 +279,16 @@ export const BackgroundMusicPlayer: React.FC = () => {
               <div className="min-w-0 flex-1 mr-2">
                 <div className="flex items-center gap-1.5 text-[11px] font-bold text-rose-700">
                   <Disc className={`w-3.5 h-3.5 ${isPlaying ? 'animate-spin' : ''}`} />
-                  <span className="truncate">{currentTrackTitle}</span>
+                  <span className="truncate">
+                    {isEnglish
+                      ? (PRESET_TRACKS.find((tr) => resolveAudioUrl(tr.url) === currentUrl)?.titleEn || (currentTrackTitle === 'কাস্টম অডিও ট্র্যাক' ? 'Custom Audio Track' : currentTrackTitle))
+                      : currentTrackTitle}
+                  </span>
                 </div>
                 <p className="text-[10px] text-slate-500 mt-0.5">
-                  {isPlaying ? 'সুর বাজছে 🎵' : 'সুর থামানো আছে'}
+                  {isPlaying
+                    ? (isEnglish ? 'Playing now 🎵' : 'সুর বাজছে 🎵')
+                    : (isEnglish ? 'Paused' : 'সুর থামানো আছে')}
                 </p>
               </div>
 
@@ -274,7 +296,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
               <button
                 onClick={togglePlay}
                 className="w-9 h-9 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white flex items-center justify-center shadow-md active:scale-95 transition shrink-0 cursor-pointer"
-                title={isPlaying ? 'মিউজিক থামান' : 'মিউজিক চালান'}
+                title={isPlaying ? (isEnglish ? 'Pause music' : 'মিউজিক থামান') : (isEnglish ? 'Play music' : 'মিউজিক চালান')}
               >
                 {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
               </button>
@@ -285,17 +307,17 @@ export const BackgroundMusicPlayer: React.FC = () => {
               <div className="flex items-center justify-between text-xs text-slate-600">
                 <span className="flex items-center gap-1">
                   <Sliders className="w-3 h-3 text-rose-600" />
-                  <span>শব্দ মাত্রা (ভলিউম)</span>
+                  <span>{isEnglish ? 'Volume Level' : 'শব্দ মাত্রা (ভলিউম)'}</span>
                 </span>
                 <span className="font-mono font-bold text-rose-600">
-                  {isMuted ? '০%' : `${Math.round(volume * 100)}%`}
+                  {isMuted ? `${formatNumber(0)}%` : `${formatNumber(Math.round(volume * 100))}%`}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <button 
                   onClick={toggleMute}
                   className="text-slate-500 hover:text-rose-600 transition cursor-pointer"
-                  title={isMuted ? 'শব্দ চালু করুন' : 'নিঃশব্দ করুন'}
+                  title={isMuted ? (isEnglish ? 'Unmute' : 'শব্দ চালু করুন') : (isEnglish ? 'Mute' : 'নিঃশব্দ করুন')}
                 >
                   {isMuted || volume === 0 ? (
                     <VolumeX className="w-4 h-4 text-rose-600" />
@@ -322,7 +344,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
             <div className="space-y-2 mb-3">
               <p className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-amber-500" />
-                <span>শান্ত ও মনকাড়া সুর নির্বাচন করুন:</span>
+                <span>{isEnglish ? 'Choose a soothing tune:' : 'শান্ত ও মনকাড়া সুর নির্বাচন করুন:'}</span>
               </p>
               <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                 {PRESET_TRACKS.map((t) => {
@@ -338,9 +360,9 @@ export const BackgroundMusicPlayer: React.FC = () => {
                       }`}
                     >
                       <div className="truncate mr-2">
-                        <p className="truncate text-xs">{t.title}</p>
+                        <p className="truncate text-xs">{isEnglish ? t.titleEn : t.title}</p>
                         <p className={`text-[10px] ${isSelected ? 'text-rose-100' : 'text-slate-400'}`}>
-                          {t.category} • {t.artist}
+                          {isEnglish ? t.categoryEn : t.category} • {t.artist}
                         </p>
                       </div>
                       {isSelected && <Check className="w-3.5 h-3.5 shrink-0" />}
@@ -353,12 +375,12 @@ export const BackgroundMusicPlayer: React.FC = () => {
             {/* Custom URL Input Accordion */}
             <div className="border-t border-rose-100 pt-2.5">
               <p className="text-[11px] font-medium text-slate-600 mb-1.5">
-                নিজের অডিও লিঙ্ক / MP3 যোগ করতে চান?
+                {isEnglish ? 'Want to add a custom MP3 / audio link?' : 'নিজের অডিও লিঙ্ক / MP3 যোগ করতে চান?'}
               </p>
               <div className="flex gap-1.5">
                 <input
                   type="url"
-                  placeholder="https://.../music.mp3 বা /audio.mp3"
+                  placeholder={isEnglish ? 'https://.../music.mp3 or /audio.mp3' : 'https://.../music.mp3 বা /audio.mp3'}
                   value={customUrl}
                   onChange={(e) => setCustomUrl(e.target.value)}
                   className="flex-1 text-xs border border-rose-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-rose-500"
@@ -368,7 +390,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
                   disabled={!customUrl.trim()}
                   className="bg-rose-600 disabled:opacity-50 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold hover:bg-rose-700 transition shrink-0 cursor-pointer"
                 >
-                  সেট
+                  {isEnglish ? 'Set' : 'সেট'}
                 </button>
               </div>
             </div>
@@ -384,7 +406,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
                 ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white border-rose-300 ring-2 ring-rose-200'
                 : 'bg-white hover:bg-rose-50 text-slate-700 border-rose-200'
             }`}
-            title="ব্যাকগ্রাউন্ড মিউজিক প্লেয়ার খুলুন"
+            title={isEnglish ? 'Open background music player' : 'ব্যাকগ্রাউন্ড মিউজিক প্লেয়ার খুলুন'}
           >
             {/* Animated Equalizer Waves when playing */}
             {isPlaying ? (
@@ -398,10 +420,14 @@ export const BackgroundMusicPlayer: React.FC = () => {
             )}
 
             <span className="hidden sm:inline text-xs font-bold font-['Hind_Siliguri']">
-              {isPlaying ? 'মিউজিক বাজছে' : 'ব্যাকগ্রাউন্ড মিউজিক'}
+              {isPlaying
+                ? (isEnglish ? 'Playing Music' : 'মিউজিক বাজছে')
+                : (isEnglish ? 'Background Music' : 'ব্যাকগ্রাউন্ড মিউজিক')}
             </span>
             <span className="sm:hidden text-[11px] font-bold font-['Hind_Siliguri']">
-              {isPlaying ? 'সুর বাজছে' : 'মিউজিক'}
+              {isPlaying
+                ? (isEnglish ? 'Playing' : 'সুর বাজছে')
+                : (isEnglish ? 'Music' : 'মিউজিক')}
             </span>
 
             <ChevronUp className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -415,7 +441,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
                 ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
                 : 'bg-white text-slate-600 hover:bg-rose-50 border border-slate-200'
             }`}
-            title={isPlaying ? 'থামান' : 'চালান'}
+            title={isPlaying ? (isEnglish ? 'Pause' : 'থামান') : (isEnglish ? 'Play' : 'চালান')}
           >
             {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
           </button>

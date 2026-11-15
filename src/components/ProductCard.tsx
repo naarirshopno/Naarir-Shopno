@@ -18,19 +18,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
     settings
   } = useShop();
 
-  const { t, formatPrice, formatNumber, isEnglish } = useLanguage();
+  const { t, formatPrice, formatNumber, translateCategory, translateProductName, isEnglish } = useLanguage();
 
   const navigate = useNavigate();
 
   const displayCategory = React.useMemo(() => {
     const cats = Array.isArray(settings.categories) ? settings.categories : [];
     const found = cats.find(c => c.id === product.category);
-    if (found) return found.title;
-    if (product.categoryBengali && product.categoryBengali !== 'থ্রি-পিস') {
-      return product.categoryBengali;
-    }
-    return cats[0]?.title || product.categoryBengali || 'পোশাক';
-  }, [product.category, product.categoryBengali, settings.categories]);
+    const rawCat = found
+      ? found.title
+      : (product.categoryBengali && product.categoryBengali !== 'থ্রি-পিস'
+          ? product.categoryBengali
+          : cats[0]?.title || product.categoryBengali || 'পোশাক');
+    return translateCategory(rawCat);
+  }, [product.category, product.categoryBengali, settings.categories, translateCategory]);
 
   const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80';
 
@@ -65,7 +66,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
     setTimeout(() => setHeartBurst(false), 500);
 
     // Visual toast feedback
-    setToastFeedback(nextSaved ? 'পছন্দের তালিকায় সেভ হয়েছে!' : 'তালিকা থেকে সরানো হয়েছে');
+    setToastFeedback(nextSaved ? t('card.wishlist_added') : t('card.wishlist_removed'));
     setTimeout(() => setToastFeedback(null), 2000);
   };
 
@@ -75,8 +76,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
 
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const shareUrl = `${origin}/product/${product.id}`;
-    const shareTitle = `${product.bengaliName} | নারীর স্বপ্ন`;
-    const shareText = `নারীর স্বপ্ন - ${product.bengaliName}\nমূল্য: ৳${product.price.toLocaleString()} টাকা। সরাসরি অর্ডার করতে লিংকটি দেখুন: ${shareUrl}`;
+    const prodTitle = translateProductName(product);
+    const brandName = t('brand.name');
+    const shareTitle = `${prodTitle} | ${brandName}`;
+    const shareText = isEnglish
+      ? `${brandName} - ${prodTitle}\nPrice: ${formatPrice(product.price)}. Check the link to order: ${shareUrl}`
+      : `${brandName} - ${prodTitle}\nমূল্য: ${formatPrice(product.price)} টাকা। সরাসরি অর্ডার করতে লিংকটি দেখুন: ${shareUrl}`;
 
     // 1. Always copy the direct product link to clipboard first
     copyShareLink(shareUrl);
@@ -99,7 +104,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(url)
         .then(() => {
-          setToastFeedback('লিংক কপি করা হয়েছে! 📋');
+          setToastFeedback(t('card.link_copied'));
           setTimeout(() => setToastFeedback(null), 2000);
         })
         .catch(() => fallbackCopy(url));
@@ -118,9 +123,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
       textarea.select();
       document.execCommand('copy');
       document.body.removeChild(textarea);
-      setToastFeedback('লিংক কপি করা হয়েছে! 📋');
+      setToastFeedback(t('card.link_copied'));
     } catch {
-      setToastFeedback('শেয়ার লিংক প্রস্তুত');
+      setToastFeedback(isEnglish ? 'Share link ready' : 'শেয়ার লিংক প্রস্তুত');
     }
     setTimeout(() => setToastFeedback(null), 2000);
   };
@@ -204,8 +209,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
           id={`btn-share-${product.id}`}
           type="button"
           onClick={handleShare}
-          title="প্রোডাক্ট লিংক কপি করুন (Share with Friends)"
-          aria-label={`${product.bengaliName} লিংক কপি করুন`}
+          title={isEnglish ? 'Copy product link to share' : 'প্রোডাক্ট লিংক কপি করুন (Share with Friends)'}
+          aria-label={isEnglish ? `Copy link for ${translateProductName(product)}` : `${translateProductName(product)} লিংক কপি করুন`}
           className="w-7.5 h-7.5 sm:w-8.5 sm:h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shadow-md bg-white/95 text-slate-600 hover:text-rose-600 hover:bg-white hover:scale-110 shadow-xs cursor-pointer"
         >
           <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600 hover:text-rose-600 transition-colors" />
@@ -223,7 +228,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
       <div className="relative aspect-[3/4] overflow-hidden bg-rose-50/50 cursor-pointer">
         <img
           src={activeImg || (product.images && product.images.length > 0 && product.images[0]) || FALLBACK_IMAGE}
-          alt={product.bengaliName}
+          alt={translateProductName(product)}
           className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700 ease-out"
           loading="lazy"
           onError={(e) => {
@@ -238,7 +243,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
           <div className="absolute inset-0 bg-slate-950/35 backdrop-blur-[0.5px] flex items-center justify-center pointer-events-none z-10">
             <span className="bg-rose-950/95 text-rose-100 text-xs sm:text-sm font-bold px-3.5 py-1.5 rounded-full shadow-2xl border border-rose-500/50 flex items-center gap-1.5 tracking-wide">
               <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
-              <span>স্টক আউট</span>
+              <span>{t('card.out_of_stock')}</span>
             </span>
           </div>
         )}

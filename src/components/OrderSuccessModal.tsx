@@ -31,7 +31,7 @@ export const OrderSuccessModal: React.FC = () => {
     settings
   } = useShop();
 
-  const { isEnglish, formatPrice } = useLanguage();
+  const { isEnglish, formatPrice, formatNumber, translateProductName, translateColor, translateSize, translateDistrict, translateSupportHours } = useLanguage();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -81,15 +81,15 @@ export const OrderSuccessModal: React.FC = () => {
     setIsPrinting(true);
     try {
       const hotline = settings.hotline1 || '09617-541717';
-      const storeName = settings.storeName || 'নারীর স্বপ্ন (Naarir Shopno)';
+      const storeName = settings.storeName || (isEnglish ? 'Naarir Shopno' : 'নারীর স্বপ্ন (Naarir Shopno)');
       const printWindow = window.open('', '_blank', 'width=800,height=900');
       if (printWindow) {
         printWindow.document.write(`
           <!DOCTYPE html>
-          <html>
+          <html lang="${isEnglish ? 'en' : 'bn'}">
             <head>
               <meta charset="utf-8" />
-              <title>Invoice #${order.id} - ${storeName}</title>
+              <title>${isEnglish ? 'Invoice' : 'ইনভয়েস'} #${order.id} - ${storeName}</title>
               <style>
                 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #1e293b; background: #fff; margin: 0; }
                 .receipt { max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; }
@@ -114,48 +114,48 @@ export const OrderSuccessModal: React.FC = () => {
               <div class="receipt">
                 <div class="header">
                   <h1>${storeName}</h1>
-                  <p>Women's Fashion — Dress Your Dreams | Helpline: ${hotline}</p>
+                  <p>Women's Fashion — Dress Your Dreams | ${isEnglish ? 'Helpline:' : 'হটলাইন:'} ${hotline}</p>
                 </div>
                 <div class="meta">
-                  <div><strong>Invoice #:</strong> ${order.id}</div>
-                  <div><strong>Date:</strong> ${order.createdAt}</div>
+                  <div><strong>${isEnglish ? 'Invoice #' : 'ইনভয়েস নং:'}</strong> ${order.id}</div>
+                  <div><strong>${isEnglish ? 'Date:' : 'তারিখ:'}</strong> ${order.createdAt}</div>
                 </div>
                 <div class="customer">
-                  <strong>Customer Details:</strong><br/>
-                  ${order.customerName} | Phone: ${order.phone}<br/>
-                  Address: ${order.address}, ${order.thana ? order.thana + ', ' : ''}${order.district}<br/>
-                  Payment Method: ${order.paymentMethod === 'cod' ? 'Cash on Delivery (COD)' : order.paymentMethod.toUpperCase()}
+                  <strong>${isEnglish ? 'Customer Details:' : 'গ্রাহকের তথ্য:'}</strong><br/>
+                  ${order.customerName} | ${isEnglish ? 'Phone:' : 'মোবাইল:'} ${order.phone}<br/>
+                  ${isEnglish ? 'Address:' : 'ঠিকানা:'} ${order.address}, ${order.thana ? order.thana + ', ' : ''}${translateDistrict(order.district)}<br/>
+                  ${isEnglish ? 'Payment Method:' : 'পেমেন্ট মেথড:'} ${order.paymentMethod === 'cod' ? (isEnglish ? 'Cash on Delivery (COD)' : 'ক্যাশ অন ডেলিভারি (COD)') : order.paymentMethod.toUpperCase()}
                 </div>
                 <table>
                   <thead>
                     <tr>
-                      <th>Item</th>
-                      <th style="text-align: center;">Qty</th>
-                      <th style="text-align: right;">Price</th>
+                      <th>${isEnglish ? 'Item' : 'পণ্য'}</th>
+                      <th style="text-align: center;">${isEnglish ? 'Qty' : 'পরিমাণ'}</th>
+                      <th style="text-align: right;">${isEnglish ? 'Price' : 'মূল্য'}</th>
                     </tr>
                   </thead>
                   <tbody>
                     ${(order.items || []).map(i => `
                       <tr>
                         <td>
-                          <strong>${i.product?.bengaliName || i.product?.name || 'Dress'}</strong><br/>
-                          <small style="color: #64748b;">Size: ${i.selectedSize || 'Free'} | Color: ${i.selectedColor || 'Default'}</small>
+                          <strong>${translateProductName(i.product) || (isEnglish ? 'Dress' : 'পোশাক')}</strong><br/>
+                          <small style="color: #64748b;">${isEnglish ? 'Size:' : 'সাইজ:'} ${translateSize(i.selectedSize || (isEnglish ? 'Free' : 'ফ্রি'))} | ${isEnglish ? 'Color:' : 'রং:'} ${translateColor(i.selectedColor || (isEnglish ? 'Default' : 'ডিফল্ট'))}</small>
                         </td>
-                        <td style="text-align: center;">×${i.quantity}</td>
-                        <td style="text-align: right;">৳${((i.product?.price || 0) * i.quantity).toLocaleString()}</td>
+                        <td style="text-align: center;">×${formatNumber(i.quantity)}</td>
+                        <td style="text-align: right;">${formatPrice((i.product?.price || 0) * i.quantity)}</td>
                       </tr>
                     `).join('')}
                   </tbody>
                 </table>
                 <div class="totals">
-                  <div>Subtotal: ৳${(order.subtotal || 0).toLocaleString()}</div>
-                  <div>Delivery Charge: ৳${order.deliveryCharge || 0}</div>
-                  ${order.discount ? `<div>Discount: -৳${order.discount}</div>` : ''}
-                  <div class="total-amount">Total: ৳${(order.total || 0).toLocaleString()}</div>
+                  <div>${isEnglish ? 'Subtotal:' : 'সাবটোটাল:'} ${formatPrice(order.subtotal || 0)}</div>
+                  <div>${isEnglish ? 'Delivery Charge:' : 'ডেলিভারি চার্জ:'} ${order.deliveryCharge === 0 ? (isEnglish ? 'FREE' : 'ফ্রি') : formatPrice(order.deliveryCharge || 0)}</div>
+                  ${order.discount ? `<div>${isEnglish ? 'Discount:' : 'ডিসকাউন্ট:'} -${formatPrice(order.discount)}</div>` : ''}
+                  <div class="total-amount">${isEnglish ? 'Total:' : 'সর্বমোট:'} ${formatPrice(order.total || 0)}</div>
                 </div>
                 <div class="footer">
-                  <p>Thank you for shopping with ${storeName}!</p>
-                  <p>Helpline: ${hotline} (10:00 AM - 10:00 PM)</p>
+                  <p>${isEnglish ? `Thank you for shopping with ${storeName}!` : `${storeName}-এর সাথে কেনাকাটার জন্য ধন্যবাদ!`}</p>
+                  <p>${isEnglish ? 'Helpline:' : 'হটলাইন:'} ${hotline} (${translateSupportHours(settings.supportHours)})</p>
                 </div>
               </div>
               <script>
@@ -184,7 +184,11 @@ export const OrderSuccessModal: React.FC = () => {
     : whatsappNumber.startsWith('0') 
       ? `88${whatsappNumber}` 
       : `880${whatsappNumber}`;
-  const whatsappUrl = `https://wa.me/${cleanWhatsappNumber}?text=${encodeURIComponent(`আসসালামু আলাইকুম, আমি মাত্র একটি অর্ডার করেছি (অর্ডার আইডি: #${order.id})।`)}`;
+  const whatsappUrl = `https://wa.me/${cleanWhatsappNumber}?text=${encodeURIComponent(
+    isEnglish
+      ? `Assalamu Alaikum, I just placed an order (Order ID: #${order.id}).`
+      : `আসসালামু আলাইকুম, আমি মাত্র একটি অর্ডার করেছি (অর্ডার আইডি: #${order.id})।`
+  )}`;
 
   return (
     <div 
@@ -329,7 +333,7 @@ export const OrderSuccessModal: React.FC = () => {
               <div>
                 <p className="text-slate-500 text-[11px]">{isEnglish ? 'Address:' : 'ঠিকানা:'}</p>
                 <p className="font-semibold text-slate-900">{order.address}</p>
-                <p className="text-slate-600">{order.thana ? `${order.thana}, ` : ''}{order.district}</p>
+                <p className="text-slate-600">{order.thana ? `${order.thana}, ` : ''}{translateDistrict(order.district)}</p>
               </div>
             </div>
 
@@ -364,7 +368,7 @@ export const OrderSuccessModal: React.FC = () => {
           {/* Ordered Items Preview */}
           <div className="bg-slate-50 rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 text-xs space-y-2.5">
             <div className="flex justify-between items-center pb-2 border-b border-slate-200 font-bold text-slate-800">
-              <span>{isEnglish ? 'Ordered Items' : 'অর্ডারকৃত পোশাকসমূহ'} ({(order.items || []).length})</span>
+              <span>{isEnglish ? 'Ordered Items' : 'অর্ডারকৃত পোশাকসমূহ'} ({formatNumber((order.items || []).length)})</span>
               <span className="text-rose-600 font-black font-['Outfit'] text-sm">
                 {formatPrice(order.total)}
               </span>
@@ -373,7 +377,7 @@ export const OrderSuccessModal: React.FC = () => {
             <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
               {(order.items || []).map((item, idx) => {
                 const img = item.selectedImage || (item.product?.images && item.product.images[0]) || '';
-                const name = item.product?.bengaliName || item.product?.name || 'পোশাক';
+                const name = translateProductName(item.product) || (isEnglish ? 'Dress' : 'পোশাক');
                 return (
                   <div key={idx} className="flex items-center justify-between gap-2.5 p-2 bg-white rounded-xl border border-slate-200/70 shadow-2xs">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -391,16 +395,16 @@ export const OrderSuccessModal: React.FC = () => {
                       <div className="min-w-0">
                         <p className="font-bold text-slate-900 truncate text-xs">{name}</p>
                         <p className="text-[11px] text-slate-500">
-                          {isEnglish ? 'Size:' : 'সাইজ:'} <span className="font-semibold text-rose-700">{item.selectedSize || 'Free'}</span>
-                          {item.selectedColor ? ` | ${isEnglish ? 'Color:' : 'রং:'} ${item.selectedColor}` : ''}
+                          {isEnglish ? 'Size:' : 'সাইজ:'} <span className="font-semibold text-rose-700">{translateSize(item.selectedSize || (isEnglish ? 'Free' : 'ফ্রি'))}</span>
+                          {item.selectedColor ? ` | ${isEnglish ? 'Color:' : 'রং:'} ${translateColor(item.selectedColor)}` : ''}
                         </p>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-bold text-slate-900 text-xs">
-                        ৳{((item.product?.price || 0) * item.quantity).toLocaleString()}
+                        {formatPrice((item.product?.price || 0) * item.quantity)}
                       </p>
-                      <p className="text-[11px] text-slate-500">×{item.quantity}</p>
+                      <p className="text-[11px] text-slate-500">×{formatNumber(item.quantity)}</p>
                     </div>
                   </div>
                 );
@@ -411,7 +415,7 @@ export const OrderSuccessModal: React.FC = () => {
             <div className="pt-2 border-t border-slate-200 space-y-1 text-slate-600 text-xs">
               <div className="flex justify-between">
                 <span>{isEnglish ? 'Subtotal:' : 'পণ্যের মূল্য:'}</span>
-                <span className="font-medium text-slate-800">৳{(order.subtotal || 0).toLocaleString()}</span>
+                <span className="font-medium text-slate-800">{formatPrice(order.subtotal || 0)}</span>
               </div>
               <div className="flex justify-between">
                 <span>{isEnglish ? 'Delivery Charge:' : 'ডেলিভারি চার্জ:'}</span>
@@ -419,19 +423,19 @@ export const OrderSuccessModal: React.FC = () => {
                   {order.deliveryCharge === 0 ? (
                     <span className="text-emerald-600 font-bold">{isEnglish ? 'FREE' : 'ফ্রি'}</span>
                   ) : (
-                    `৳${order.deliveryCharge}`
+                    formatPrice(order.deliveryCharge)
                   )}
                 </span>
               </div>
               {order.discount ? (
                 <div className="flex justify-between text-emerald-600">
                   <span>{isEnglish ? 'Discount:' : 'ডিসকাউন্ট:'}</span>
-                  <span className="font-bold">-৳{order.discount}</span>
+                  <span className="font-bold">-{formatPrice(order.discount)}</span>
                 </div>
               ) : null}
               <div className="flex justify-between pt-1 border-t border-dashed border-slate-300 font-black text-slate-900 text-sm">
                 <span>{isEnglish ? 'Total Payable:' : 'সর্বমোট পরিশোধযোগ্য:'}</span>
-                <span className="text-rose-600 font-['Outfit']">৳{(order.total || 0).toLocaleString()}</span>
+                <span className="text-rose-600 font-['Outfit']">{formatPrice(order.total || 0)}</span>
               </div>
               <div className="text-[11px] text-slate-500 pt-0.5">
                 {isEnglish ? 'Payment Method:' : 'পেমেন্ট মেথড:'} <strong className="text-slate-800">{order.paymentMethod === 'cod' ? (isEnglish ? 'Cash on Delivery' : 'ক্যাশ অন ডেলিভারি (পণ্য পেয়ে পরিশোধ)') : order.paymentMethod.toUpperCase()}</strong>

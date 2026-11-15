@@ -10,11 +10,15 @@ export interface LanguageContextType {
   formatNumber: (num: number | string) => string;
   formatPrice: (amount: number) => string;
   translateCategory: (nameOrId: string) => string;
+  translateCategorySubtitle: (subtitle?: string) => string;
   translateProductName: (product: { name?: string; bengaliName?: string } | null | undefined) => string;
   translateColor: (colorName: string) => string;
   translateSize: (size: string) => string;
   translateStatus: (status: string) => string;
   translateDistrict: (district: string) => string;
+  translateSupportHours: (hours?: string) => string;
+  translateOfficeAddress: (addr?: string) => string;
+  translateFabric: (fabric?: string) => string;
   isBangla: boolean;
   isEnglish: boolean;
 }
@@ -37,17 +41,57 @@ const CATEGORY_MAP: Record<string, string> = {
   'মসলিন শাড়ী': 'Muslin Sarees',
   'সিল্ক শাড়ী': 'Silk Sarees',
   'অরগাঞ্জা শাড়ী': 'Organza Sarees',
+  'তাঁতের শাড়ী': 'Tant Handloom Sarees',
+  'হিজাব & নিকাব': 'Hijab & Niqab',
+  'সুন্নাতি ড্রেস': 'Sunnati Modest Wear',
+  'লেডিস উইন্টার': 'Ladies Winter Wear',
+  'জুয়েলারি ও ব্যাগ': 'Jewellery & Bags',
   'ব্র্যান্ডেড পোশাক': 'Branded Dresses',
   'বাচ্চাদের পোশাক': 'Kids Wear',
+  'থ্রি-পিস': 'Three-Piece',
+  'কুর্তি': 'Kurtis',
+  'গাউন': 'Gowns',
+  'লেহেঙ্গা': 'Lehengas',
+  'হিজাব ও আবায়া': 'Hijab & Abaya',
+  'পোশাক': 'Apparel',
   'সবগুলো কালেকশন': 'All Collections',
   'সকল কালেকশন': 'All Collections',
+  'সব কালেকশন': 'All Collections',
+  'নতুন': 'New Arrivals',
   'all': 'All Collections',
   'three_piece': 'Three-Piece',
+  'readymade_three_piece': 'Readymade Three-Piece',
+  'cat_1791038823348': 'Readymade Three-Piece',
+  'cat_1793739806022': 'Ladies Winter Wear',
   'saree': 'Sarees',
   'kurti': 'Kurtis',
   'gown': 'Gowns',
   'lehenga': 'Lehengas',
+  'hijab_abaya': 'Hijab & Abaya',
+  'jewellery_bags': 'Jewellery & Bags',
   'western': 'Western Wear',
+  'Bed.Sheet & Curtain': 'Bed Sheets & Curtains',
+};
+
+const CATEGORY_SUBTITLE_MAP: Record<string, string> = {
+  '💥আধুনিক ডিজাইনে আপনার সৌন্দর্যের প্রকাশ': 'Express your elegance with modern designs',
+  '🌟নিজের পছন্দে সাজুন, নিজের মতো করে': 'Style yourself your way with custom tailoring',
+  '🌸 প্রতিটি সাজে ফুটে উঠুক আপনার নিজস্ব স্টাইল': 'Let your signature style shine in every look',
+  '💖 গর্জিয়াস লুকে ফুটে উঠুক আপনার সৌন্দর্য': 'Radiate glamour at every celebration',
+  '👗 স্মার্ট লুক, স্টাইলিশ উপস্থিতি': 'Smart silhouettes & stylish presence',
+  '🌸 ক্যাজুয়াল লুকে স্টাইলিশ ফ্যাশনের ছোঁয়া': 'Stylish fashion touch for everyday wear',
+  '💖 আরাম ও স্বাচ্ছন্দ্যে প্রতিদিনের সঙ্গী': 'Everyday companion of comfort & ease',
+  '🌷 বাঙালিয়ানার ছোঁয়ায় ফুটে উঠুক আপনার সৌন্দর্য': 'Celebrate grace with timeless Bengali heritage',
+  '🌸 ঐতিহ্যবাহী নকশায় আধুনিকতার মেলবন্ধন': 'Traditional artistry meets modern elegance',
+  '🌸 ইন্ডিয়ান ডিজাইনে রাজকীয় সাজের ছোঁয়া': 'A touch of royal charm in Indian weaves',
+  '🌷 ঐতিহ্যের বুননে ফুটে উঠুক বাঙালিয়ানার সৌন্দর্য': 'Authentic handloom weaves crafted with heritage',
+  '🌸 পর্দার সৌন্দর্যে নিজেকে সাজান রুচিশীলভাব': 'Tasteful elegance with modest grace',
+  '🕌 সুন্নাহসম্মত পোশাকে থাকুক পরিমিত সৌন্দর্য': 'Modest & graceful Sunnah-inspired attire',
+  'Exclusive Design': 'Exclusive Design',
+  '❄️ শীতের ফ্যাশনে আরামদায়ক ও ট্রেন্ডি পোশাক': 'Cozy & trendy winter fashion essentials',
+  '✨ আভিজাত্য ও সৌন্দর্যের অপূর্ব মেলবন্ধন': 'Exquisite harmony of luxury & beauty',
+  'নারীর স্বপ্নের সম্পূর্ণ এক্সক্লুসিভ পোশাক কালেকশন': "Naarir Shopno's complete exclusive fashion collection",
+  'নারীর স্বপ্ন স্পেশাল কালেকশন': 'Naarir Shopno Special Collection',
 };
 
 const COLOR_MAP: Record<string, string> = {
@@ -66,11 +110,64 @@ const COLOR_MAP: Record<string, string> = {
   'গোল্ডেন': 'Golden',
   'গ্রে': 'Grey',
   'অফ হোয়াইট': 'Off White',
+  'অফ-হোয়াইট': 'Off-White',
+  'অফ-হোয়াইট গোল্ড': 'Off-White Gold',
   'ম্যাজেন্টা': 'Magenta',
   'নেভি ব্লু': 'Navy Blue',
+  'রয়েল ব্লু': 'Royal Blue',
   'টিয়া': 'Parrot Green',
+  'টিয়া গ্রিন': 'Parrot Green',
   'পেস্ট': 'Paste',
+  'পেস্ট গ্রিন': 'Paste Green',
+  'রোজ পিঙ্ক': 'Rose Pink',
+  'রানি গোলাপি': 'Rani Pink',
+  'রানি ম্যাজেন্টা': 'Rani Magenta',
+  'পিচ পিঙ্ক': 'Peach Pink',
+  'ল্যাভেন্ডার': 'Lavender',
+  'স্কাই ব্লু': 'Sky Blue',
+  'ডিপ ওয়াইন': 'Deep Wine',
+  'গোলাপী গোল্ড': 'Rose Gold',
+  'রোজ গোল্ড': 'Rose Gold',
+  'এমেরাল্ড গ্রিন': 'Emerald Green',
+  'ব্ল্যাক রোজ': 'Black Rose',
+  'ডাস্টি পিঙ্ক': 'Dusty Pink',
+  'কফি মচা': 'Coffee Mocha',
+  'রুবী রেড': 'Ruby Red',
+  'মেরুন পিঙ্ক': 'Maroon Pink',
+  'হালকা বেগুনি': 'Light Purple',
+  'হানি ইয়েলো': 'Honey Yellow',
+  'বেবি পিঙ্ক': 'Baby Pink',
+  'গোল্ডেন কুন্দন': 'Golden Kundan',
+  'গোল্ডেন মাস্টার্ড': 'Golden Mustard',
+  'ব্লাশ পিঙ্ক': 'Blush Pink',
+  'ক্লাসিক ব্ল্যাক': 'Classic Black',
+  'ট্যান ব্রাউন': 'Tan Brown',
+  'ফিরোজা': 'Firoza',
   'ডিফল্ট': 'Default',
+};
+
+const FABRIC_MAP: Record<string, string> = {
+  'প্রিমিয়াম সফট জর্জেট সাথে সুতি ইনার এবং এম্ব্রয়ডারি কাজের ওড়না': 'Premium Soft Georgette with Cotton Inner & Embroidered Dupatta',
+  'হ্যান্ডলুম পিওর কটন হাফ-সিল্ক জামদানি (১২ হাত সাথে ব্লাউজ পিস)': 'Handloom Pure Cotton Half-Silk Jamdani (12 Haat with Blouse Piece)',
+  '১০০% প্রিমিয়াম সুতি রেয়ন ফ্যাব্রিক (কালার গ্যারান্টি)': '100% Premium Cotton Rayon Fabric (Color Guaranteed)',
+  'প্রিমিয়াম অরগাঞ্জা সাথে গ্লিটার সিকোয়েন্স ও সফট সাটিন ইনার': 'Premium Organza with Glitter Sequin & Soft Satin Inner',
+  'অরিজিনাল দুবাই চেরি জর্জেট (অস্বচ্ছ, নরম এবং দীর্ঘস্থায়ী)': 'Original Dubai Cherry Georgette (Opaque, Soft & Durable)',
+  'মাইক্রো ভেলভেট সাথে ডাবল ক্যানক্যান এবং রিয়েল স্টোন ওয়ার্ক': 'Micro Velvet with Double Cancan & Real Stone Work',
+  '১০০% প্রিমিয়াম সুতি ভয়েল কাপড় সাথে কাশ্মীরি কাজ': '100% Premium Cotton Voile with Kashmiri Embroidery',
+  'হাই কোয়ালিটি গোল্ড প্লেটেড ব্রাস, কুন্দন ও কালচার্ড পার্ল': 'High-Quality Gold-Plated Brass, Kundan & Cultured Pearl',
+  'প্রিমিয়াম কাঞ্জিভরম আর্ট সিল্ক উইথ রিচ জড়ির আঁচল': 'Premium Kanjivaram Art Silk with Rich Zari Pallu',
+  'হাই-গ্রেড পিইউ লেদার উইথ মেটাল গোল্ড হার্ডওয়্যার': 'High-Grade PU Leather with Gold Metal Hardware',
+  'সফট জর্জেট': 'Soft Georgette',
+  'সুতি': 'Cotton',
+  'জর্জেট': 'Georgette',
+  'সিল্ক': 'Silk',
+  'কাতান': 'Katan',
+  'জামদানি': 'Jamdani',
+  'মসলিন': 'Muslin',
+  'ভেলভেট': 'Velvet',
+  'অরগাঞ্জা': 'Organza',
+  'লিনেন': 'Linen',
+  'রেয়ন': 'Rayon',
 };
 
 const STATUS_MAP: Record<string, { bn: string; en: string }> = {
@@ -96,6 +193,7 @@ const DISTRICT_MAP: Record<string, string> = {
   'ময়মনসিংহ': 'Mymensingh',
   'গাজীপুর': 'Gazipur',
   'নারায়ণগঞ্জ': 'Narayanganj',
+  'নারায়ণগঞ্জ': 'Narayanganj',
   'কুমিল্লা': 'Cumilla',
   'বগুড়া': 'Bogura',
   'কক্সবাজার': "Cox's Bazar",
@@ -112,6 +210,7 @@ const DISTRICT_MAP: Record<string, string> = {
   'কিশোরগঞ্জ': 'Kishoreganj',
   'সিরাজগঞ্জ': 'Sirajganj',
   'নেত্রকোণা': 'Netrokona',
+  'নেত্রকোনা': 'Netrokona',
   'হবিগঞ্জ': 'Habiganj',
   'মৌলভীবাজার': 'Moulvibazar',
   'সুনামগঞ্জ': 'Sunamganj',
@@ -509,9 +608,16 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return fallback || key;
   };
 
+  const toEnglishDigits = (val: string): string => {
+    return val.replace(/[০-৯]/g, (ch) => {
+      const idx = BENGALI_NUMERALS.indexOf(ch);
+      return idx >= 0 ? idx.toString() : ch;
+    });
+  };
+
   const formatNumber = (num: number | string): string => {
     if (language === 'en') {
-      return num.toString();
+      return toEnglishDigits(num.toString());
     }
     return num.toString().replace(/\d/g, (d) => BENGALI_NUMERALS[parseInt(d, 10)]);
   };
@@ -529,6 +635,12 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!nameOrId) return '';
     if (language === 'bn') return nameOrId;
     return CATEGORY_MAP[nameOrId] || CATEGORY_MAP[nameOrId.trim()] || nameOrId;
+  };
+
+  const translateCategorySubtitle = (subtitle?: string): string => {
+    if (!subtitle) return '';
+    if (language === 'bn') return subtitle;
+    return CATEGORY_SUBTITLE_MAP[subtitle] || CATEGORY_SUBTITLE_MAP[subtitle.trim()] || subtitle;
   };
 
   const translateProductName = (product: { name?: string; bengaliName?: string } | null | undefined): string => {
@@ -551,10 +663,26 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const translateSize = (size: string): string => {
     if (!size) return '';
     if (language === 'en') {
-      if (size === 'ফ্রি সাইজ' || size === 'ফ্রি') return 'Free Size';
-      if (size === 'ডিফল্ট') return 'Default';
-      if (size === 'সেলাই ছাড়া') return 'Unstitched';
-      return size;
+      const trimmed = size.trim();
+      const exactMap: Record<string, string> = {
+        'ফ্রি সাইজ': 'Free Size',
+        'ফ্রি': 'Free Size',
+        'ডিফল্ট': 'Default',
+        'সেলাই ছাড়া': 'Unstitched',
+        'ফ্রি সাইজ (১২ হাত)': 'Free Size (12 Haat)',
+        '১২ হাত সাথে রানিং ব্লাউজ পিস': '12 Haat with Running Blouse Piece',
+        'সেমি-স্টিচড (যেকোনো সাইজে ফিটিং উপযোগী)': 'Semi-Stitched (Fits Any Size)',
+        'এডজাস্টেবল থ্রেড (ফ্রি সাইজ)': 'Adjustable Thread (Free Size)',
+        'দৈর্ঘ্য: ১২ ইঞ্চি, উচ্চতা: ১০ ইঞ্চি': 'Length: 12", Height: 10"',
+      };
+      if (exactMap[trimmed]) return exactMap[trimmed];
+      return toEnglishDigits(trimmed)
+        .replace(/ফ্রি সাইজ/g, 'Free Size')
+        .replace(/সাথে রানিং ব্লাউজ পিস/g, 'with Running Blouse Piece')
+        .replace(/দৈর্ঘ্য:/g, 'Length:')
+        .replace(/উচ্চতা:/g, 'Height:')
+        .replace(/\s*ইঞ্চি/g, '"')
+        .replace(/\s*হাত/g, ' Haat');
     }
     return size;
   };
@@ -574,6 +702,38 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return DISTRICT_MAP[districtName.trim()] || districtName;
   };
 
+  const translateSupportHours = (hours?: string): string => {
+    const fallbackBn = 'সকাল ১০টা - রাত ১০টা সার্বক্ষণিক সেবা';
+    const fallbackEn = '10:00 AM - 10:00 PM Daily Support';
+    if (!hours || !hours.trim()) return language === 'en' ? fallbackEn : fallbackBn;
+    if (language === 'bn') return hours;
+    const hMap: Record<string, string> = {
+      'সকাল ১০টা - রাত ১০টা সার্বক্ষণিক সেবা': '10:00 AM - 10:00 PM Daily Support',
+      'সকাল ১০টা - রাত ১০টা': '10:00 AM - 10:00 PM',
+      'প্রতিদিন সকাল ৯টা - রাত ১১টা': 'Daily 9:00 AM - 11:00 PM',
+      'সপ্তাহে ৭ দিন, সকাল ৯টা - রাত ১১টা': '7 Days a Week, 9:00 AM - 11:00 PM',
+      'সকাল ৯টা থেকে রাত ১০টা': '9:00 AM to 10:00 PM',
+    };
+    return hMap[hours.trim()] || (/[\u0980-\u09FF]/.test(hours) ? fallbackEn : hours);
+  };
+
+  const translateOfficeAddress = (addr?: string): string => {
+    const fallbackBn = 'হাউজ# ফকিরবাড়ি, ৮নং কোড়ালতলী, ভেদরগঞ্জ, শরিয়তপুর-৮০৩০, বাংলাদেশ';
+    const fallbackEn = 'House# Fakirbari, 8 No. Koraltali, Bhedarganj, Shariatpur-8030, Bangladesh';
+    if (!addr || !addr.trim()) return language === 'en' ? fallbackEn : fallbackBn;
+    if (language === 'bn') return addr;
+    const trimmed = addr.trim();
+    if (trimmed === fallbackBn || trimmed.includes('ফকিরবাড়ি')) return fallbackEn;
+    if (trimmed === 'ঢাকা, বাংলাদেশ') return 'Dhaka, Bangladesh';
+    return addr;
+  };
+
+  const translateFabric = (fabric?: string): string => {
+    if (!fabric) return '';
+    if (language === 'bn') return fabric;
+    return FABRIC_MAP[fabric.trim()] || fabric;
+  };
+
   const value = useMemo<LanguageContextType>(() => ({
     language,
     setLanguage,
@@ -582,11 +742,15 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     formatNumber,
     formatPrice,
     translateCategory,
+    translateCategorySubtitle,
     translateProductName,
     translateColor,
     translateSize,
     translateStatus,
     translateDistrict,
+    translateSupportHours,
+    translateOfficeAddress,
+    translateFabric,
     isBangla: language === 'bn',
     isEnglish: language === 'en',
   }), [language]);

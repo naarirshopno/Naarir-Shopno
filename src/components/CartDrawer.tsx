@@ -1,6 +1,7 @@
 import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { X, Trash2, ShoppingBag, ArrowRight, Truck, Plus, Minus } from 'lucide-react';
 
 export const CartDrawer: React.FC = () => {
@@ -13,10 +14,17 @@ export const CartDrawer: React.FC = () => {
     updateQuantity, 
     getCartSubtotal, 
     clearCart,
-    setIsCheckoutOpen,
     setDirectCheckoutItem,
     settings 
   } = useShop();
+  const { 
+    isEnglish, 
+    formatPrice, 
+    formatNumber, 
+    translateProductName, 
+    translateSize, 
+    translateColor 
+  } = useLanguage();
 
   if (!isCartOpen) return null;
 
@@ -57,13 +65,14 @@ export const CartDrawer: React.FC = () => {
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-rose-600" />
             <h3 className="text-lg font-bold text-slate-900 font-['Hind_Siliguri']">
-              আপনার শপিং কার্ট ({totalItemCount})
+              {isEnglish ? `Your Shopping Cart (${totalItemCount})` : `আপনার শপিং কার্ট (${formatNumber(totalItemCount)})`}
             </h3>
           </div>
           <button
             id="btn-close-cart-drawer"
             onClick={() => setIsCartOpen(false)}
             className="w-8 h-8 rounded-full bg-white hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors shadow-sm"
+            aria-label={isEnglish ? 'Close' : 'বন্ধ করুন'}
           >
             <X className="w-5 h-5" />
           </button>
@@ -75,11 +84,17 @@ export const CartDrawer: React.FC = () => {
             <Truck className="w-4 h-4 text-rose-600 animate-bounce shrink-0" />
             {isFreeDelivery ? (
               <span className="text-emerald-700 font-bold">
-                🎉 অভিনন্দন! আপনি ফ্রি ডেলিভারি উপভোগ করছেন! {isFreeByCount ? `(${totalItemCount}টি পোশাক অর্ডারে)` : `(৳${subtotal.toLocaleString()} টাকার অর্ডারে)`}
+                {isEnglish
+                  ? `🎉 Congrats! You unlocked Free Delivery! ${isFreeByCount ? `(${totalItemCount} dresses)` : `(Orders ${formatPrice(subtotal)}+)`}`
+                  : `🎉 অভিনন্দন! আপনি ফ্রি ডেলিভারি উপভোগ করছেন! ${isFreeByCount ? `(${formatNumber(totalItemCount)}টি পোশাক অর্ডারে)` : `(${formatPrice(subtotal)} টাকার অর্ডারে)`}`}
               </span>
             ) : (
               <span>
-                যেকোনো <strong className="text-rose-950 font-bold">৩টি পোশাক</strong> (আরও {diffItemsToFree}টি) অথবা আর মাত্র <strong className="text-rose-950 font-['Outfit']">৳{diffToFree.toLocaleString()}</strong> টাকার অর্ডারে ফ্রি ডেলিভারি!
+                {isEnglish ? (
+                  <>Add <strong className="text-rose-950 font-bold">{diffItemsToFree} more</strong> dress(es) (min {freeMinItems}) or spend <strong className="text-rose-950 font-['Outfit']">{formatPrice(diffToFree)}</strong> more for Free Delivery!</>
+                ) : (
+                  <>যেকোনো <strong className="text-rose-950 font-bold">{formatNumber(freeMinItems)}টি পোশাক</strong> (আরও {formatNumber(diffItemsToFree)}টি) অথবা আর মাত্র <strong className="text-rose-950 font-['Outfit']">{formatPrice(diffToFree)}</strong> টাকার অর্ডারে ফ্রি ডেলিভারি!</>
+                )}
               </span>
             )}
           </div>
@@ -99,20 +114,25 @@ export const CartDrawer: React.FC = () => {
                 <ShoppingBag className="w-10 h-10" />
               </div>
               <div className="space-y-1">
-                <h4 className="text-base font-bold text-slate-800">আপনার কার্ট খালি রয়েছে</h4>
-                <p className="text-xs text-slate-500">পছন্দের পোশাক যুক্ত করে দ্রুত অর্ডার সম্পন্ন করুন</p>
+                <h4 className="text-base font-bold text-slate-800">
+                  {isEnglish ? 'Your shopping bag is empty' : 'আপনার কার্ট খালি রয়েছে'}
+                </h4>
+                <p className="text-xs text-slate-500">
+                  {isEnglish ? 'Add your favorite dresses to checkout quickly' : 'পছন্দের পোশাক যুক্ত করে দ্রুত অর্ডার সম্পন্ন করুন'}
+                </p>
               </div>
               <button
                 onClick={() => setIsCartOpen(false)}
                 className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-6 py-2.5 rounded-full shadow transition"
               >
-                কেনাকাটা শুরু করুন
+                {isEnglish ? 'Start Shopping' : 'কেনাকাটা শুরু করুন'}
               </button>
             </div>
           ) : (
             cart.map((item, index) => {
               const itemImg = item.selectedImage || (item.product.images && item.product.images.length > 0 && item.product.images[0]) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80';
               const colorHex = item.product.colors?.find(c => c.name === item.selectedColor)?.hex;
+              const prodTitle = translateProductName(item.product);
 
               return (
                 <div
@@ -123,7 +143,7 @@ export const CartDrawer: React.FC = () => {
                   <div className="w-18 h-22 rounded-xl overflow-hidden bg-white shrink-0 border border-rose-100 shadow-2xs">
                     <img
                       src={itemImg}
-                      alt={item.product.bengaliName}
+                      alt={prodTitle}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         e.currentTarget.src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80';
@@ -135,21 +155,25 @@ export const CartDrawer: React.FC = () => {
                   <div className="flex-1 flex flex-col justify-between">
                     <div className="space-y-0.5">
                       <h5 className="text-xs font-bold text-slate-800 line-clamp-1">
-                        {item.product.bengaliName}
+                        {prodTitle}
                       </h5>
                       <div className="flex items-center gap-2 text-[11px] text-slate-500 flex-wrap">
-                        <span>সাইজ: <strong className="text-slate-700">{item.selectedSize}</strong></span>
+                        <span>
+                          {isEnglish ? 'Size:' : 'সাইজ:'} <strong className="text-slate-700">{translateSize(item.selectedSize)}</strong>
+                        </span>
                         {item.selectedColor && (
                           <span className="inline-flex items-center gap-1 font-medium">
                             {colorHex && (
                               <span className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0" style={{ backgroundColor: colorHex }} />
                             )}
-                            <span>রঙ: <strong className="text-slate-700">{item.selectedColor}</strong></span>
+                            <span>
+                              {isEnglish ? 'Color:' : 'রঙ:'} <strong className="text-slate-700">{translateColor(item.selectedColor)}</strong>
+                            </span>
                           </span>
                         )}
                       </div>
                       <div className="text-xs font-bold text-rose-700 font-['Outfit']">
-                        ৳{item.product.price.toLocaleString()}
+                        {formatPrice(item.product.price)}
                       </div>
                     </div>
 
@@ -162,7 +186,7 @@ export const CartDrawer: React.FC = () => {
                         >
                           <Minus className="w-3 h-3" />
                         </button>
-                        <span className="px-2 text-xs font-bold text-slate-800">{item.quantity}</span>
+                        <span className="px-2 text-xs font-bold text-slate-800">{formatNumber(item.quantity)}</span>
                         <button
                           onClick={() => updateQuantity(item.product.id, item.selectedSize, item.selectedColor, 1, item.selectedImage)}
                           className="p-1 hover:bg-rose-50 text-rose-700 transition cursor-pointer"
@@ -174,7 +198,7 @@ export const CartDrawer: React.FC = () => {
                       <button
                         onClick={() => removeFromCart(item.product.id, item.selectedSize, item.selectedColor, item.selectedImage)}
                         className="text-slate-400 hover:text-red-500 p-1 transition cursor-pointer"
-                        title="মুছে ফেলুন"
+                        title={isEnglish ? 'Remove' : 'মুছে ফেলুন'}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -191,21 +215,25 @@ export const CartDrawer: React.FC = () => {
           <div className="p-4 sm:p-5 border-t border-rose-100 bg-white space-y-3">
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between text-slate-600">
-                <span>পণ্যের মোট মূল্য:</span>
-                <span className="font-bold text-slate-900 font-['Outfit']">৳{subtotal.toLocaleString()}</span>
+                <span>{isEnglish ? 'Items Subtotal:' : 'পণ্যের মোট মূল্য:'}</span>
+                <span className="font-bold text-slate-900 font-['Outfit']">{formatPrice(subtotal)}</span>
               </div>
               <div className="flex justify-between text-slate-600">
-                <span>ডেলিভারি চার্জ:</span>
+                <span>{isEnglish ? 'Delivery Charge:' : 'ডেলিভারি চার্জ:'}</span>
                 {isFreeDelivery ? (
-                  <span className="font-bold text-emerald-600">ফ্রি ডেলিভারি 🎉</span>
+                  <span className="font-bold text-emerald-600">
+                    {isEnglish ? 'Free Delivery 🎉' : 'ফ্রি ডেলিভারি 🎉'}
+                  </span>
                 ) : (
-                  <span className="font-medium text-rose-600">চেকআউটে নির্ধারিত হবে</span>
+                  <span className="font-medium text-rose-600">
+                    {isEnglish ? 'Calculated at checkout' : 'চেকআউটে নির্ধারিত হবে'}
+                  </span>
                 )}
               </div>
               <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-100">
-                <span>সর্বমোট (আনুমানিক):</span>
+                <span>{isEnglish ? 'Total (Estimated):' : 'সর্বমোট (আনুমানিক):'}</span>
                 <span className="text-base text-rose-700 font-black font-['Outfit']">
-                  ৳{subtotal.toLocaleString()}
+                  {formatPrice(subtotal)}
                 </span>
               </div>
             </div>
@@ -214,24 +242,24 @@ export const CartDrawer: React.FC = () => {
               <button
                 id="btn-drawer-checkout"
                 onClick={handleProceedToCheckout}
-                className="w-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-bold text-sm py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95"
+                className="w-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-bold text-sm py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
               >
-                <span>অর্ডার সম্পন্ন করতে এগিয়ে যান</span>
+                <span>{isEnglish ? 'Proceed to Checkout' : 'অর্ডার সম্পন্ন করতে এগিয়ে যান'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
               <div className="flex justify-between items-center text-xs">
                 <button
                   onClick={clearCart}
-                  className="text-slate-400 hover:text-red-500 font-medium transition"
+                  className="text-slate-400 hover:text-red-500 font-medium transition cursor-pointer"
                 >
-                  কার্ট খালি করুন
+                  {isEnglish ? 'Clear Cart' : 'কার্ট খালি করুন'}
                 </button>
                 <button
                   onClick={() => setIsCartOpen(false)}
-                  className="text-rose-600 hover:underline font-semibold"
+                  className="text-rose-600 hover:underline font-semibold cursor-pointer"
                 >
-                  আরও কেনাকাটা করুন
+                  {isEnglish ? 'Continue Shopping' : 'আরও কেনাকাটা করুন'}
                 </button>
               </div>
             </div>

@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   X, 
   MessageCircle, 
   Send, 
   CheckCircle2, 
-  Phone, 
-  ExternalLink,
   Sparkles
 } from 'lucide-react';
 
 export const CustomerChatDrawer: React.FC = () => {
   const { isCustomerChatOpen, setIsCustomerChatOpen, sendCustomerMessage, settings } = useShop();
+  const { isEnglish, translateSupportHours } = useLanguage();
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -25,7 +25,9 @@ export const CustomerChatDrawer: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim() || !message.trim()) {
-      setError('অনুগ্রহ করে নাম, মোবাইল নম্বর ও আপনার মেসেজটি পূরণ করুন');
+      setError(isEnglish
+        ? 'Please fill in your name, phone number, and message'
+        : 'অনুগ্রহ করে নাম, মোবাইল নম্বর ও আপনার মেসেজটি পূরণ করুন');
       return;
     }
 
@@ -48,6 +50,10 @@ export const CustomerChatDrawer: React.FC = () => {
     setIsCustomerChatOpen(false);
   };
 
+  const waDefaultText = isEnglish
+    ? 'Assalamu Alaikum, I want to know about a dress from Naarir Shopno.'
+    : 'আসসালামু আলাইকুম, নারীর স্বপ্ন থেকে একটি পোশাক সম্পর্কে জানতে চাই।';
+
   return (
     <div 
       className="fixed inset-0 z-50 overflow-hidden bg-black/50 flex justify-end animate-fadeIn cursor-pointer"
@@ -64,13 +70,17 @@ export const CustomerChatDrawer: React.FC = () => {
               <MessageCircle className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-base font-bold font-['Hind_Siliguri']">নারীর স্বপ্ন হেল্পডেস্ক</h3>
-              <p className="text-[11px] text-pink-200">আমরা সরাসরি অনলাইনে সক্রিয় আছি</p>
+              <h3 className="text-base font-bold font-['Hind_Siliguri']">
+                {isEnglish ? 'Naarir Shopno Helpdesk' : 'নারীর স্বপ্ন হেল্পডেস্ক'}
+              </h3>
+              <p className="text-[11px] text-pink-200">
+                {isEnglish ? 'We are live online to help you' : 'আমরা সরাসরি অনলাইনে সক্রিয় আছি'}
+              </p>
             </div>
           </div>
           <button
             onClick={resetAndClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition"
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -84,24 +94,30 @@ export const CustomerChatDrawer: React.FC = () => {
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <div className="space-y-1">
-                <h4 className="text-lg font-bold text-slate-900">মেসেজ সফলভাবে পৌঁছেছে!</h4>
+                <h4 className="text-lg font-bold text-slate-900">
+                  {isEnglish ? 'Message Sent Successfully!' : 'মেসেজ সফলভাবে পৌঁছেছে!'}
+                </h4>
                 <p className="text-xs text-slate-600">
-                  ধন্যবাদ <strong>{name}</strong>। আপনার বার্তাটি আমাদের কাস্টমার সার্ভিস ইনবক্সে জমা হয়েছে। খুব শীঘ্রই আমাদের প্রতিনিধি আপনার নম্বরে যোগাযোগ করবেন।
+                  {isEnglish ? (
+                    <>Thank you <strong>{name}</strong>. Your message has been received in our customer care inbox. Our team will contact you shortly.</>
+                  ) : (
+                    <>ধন্যবাদ <strong>{name}</strong>। আপনার বার্তাটি আমাদের কাস্টমার সার্ভিস ইনবক্সে জমা হয়েছে। খুব শীঘ্রই আমাদের প্রতিনিধি আপনার নম্বরে যোগাযোগ করবেন।</>
+                  )}
                 </p>
               </div>
 
               <div className="pt-4 flex flex-col gap-2 w-full">
                 <button
                   onClick={() => setIsSent(false)}
-                  className="bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs py-2.5 rounded-xl transition"
+                  className="bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer"
                 >
-                  আরেকটি মেসেজ পাঠান
+                  {isEnglish ? 'Send Another Message' : 'আরেকটি মেসেজ পাঠান'}
                 </button>
                 <button
                   onClick={resetAndClose}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-xl transition"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer"
                 >
-                  বন্ধ করুন
+                  {isEnglish ? 'Close' : 'বন্ধ করুন'}
                 </button>
               </div>
             </div>
@@ -111,16 +127,20 @@ export const CustomerChatDrawer: React.FC = () => {
               <div className="p-3.5 bg-rose-50/70 rounded-2xl border border-rose-100 text-xs text-slate-700 space-y-1">
                 <p className="font-bold text-rose-800 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-rose-600" />
-                  <span>আসসালামু আলাইকুম!</span>
+                  <span>{isEnglish ? 'Assalamu Alaikum!' : 'আসসালামু আলাইকুম!'}</span>
                 </p>
                 <p className="text-slate-600 leading-relaxed">
-                  পোশাকের সাইজ, ফেব্রিক, ডেলিভারি বা যেকোনো প্রশ্ন নিচে লিখে পাঠান। আমাদের টিম সরাসরি উত্তর দেবে।
+                  {isEnglish
+                    ? 'Ask us about dress sizes, fabrics, delivery, or anything else below. Our support team will reply promptly.'
+                    : 'পোশাকের সাইজ, ফেব্রিক, ডেলিভারি বা যেকোনো প্রশ্ন নিচে লিখে পাঠান। আমাদের টিম সরাসরি উত্তর দেবে।'}
                 </p>
               </div>
 
               {/* Direct Instant Channels */}
               <div className="space-y-2">
-                <p className="text-xs font-bold text-slate-700">অথবা সরাসরি তাৎক্ষণিক চ্যাট করুন:</p>
+                <p className="text-xs font-bold text-slate-700">
+                  {isEnglish ? 'Or chat instantly via:' : 'অথবা সরাসরি তাৎক্ষণিক চ্যাট করুন:'}
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   <a
                     href="https://m.me/NaarirShopno"
@@ -131,35 +151,39 @@ export const CustomerChatDrawer: React.FC = () => {
                     <svg className="w-4 h-4 fill-current text-blue-600" viewBox="0 0 24 24">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
-                    <span>ফেসবুক মেসেঞ্জার</span>
+                    <span>{isEnglish ? 'Messenger' : 'ফেসবুক মেসেঞ্জার'}</span>
                   </a>
 
                   <a
                     href={
                       settings.whatsappShortLink && settings.whatsappShortLink.trim()
                         ? (settings.whatsappShortLink.startsWith('http') ? settings.whatsappShortLink.trim() : `https://${settings.whatsappShortLink.trim()}`)
-                        : `https://wa.me/${(settings.whatsappNumber || settings.hotline1 || '01911541717').replace(/[^0-9]/g, '')}?text=আসসালামু%20আলাইকুম,%20নারীর%20স্বপ্ন%20থেকে%20একটি%20পোশাক%20সম্পর্কে%20জানতে%20চাই।`
+                        : `https://wa.me/${(settings.whatsappNumber || settings.hotline1 || '01911541717').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waDefaultText)}`
                     }
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center justify-center gap-1.5 p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 transition"
                   >
-                    <span>💬 হোয়াটসঅ্যাপ</span>
+                    <span>{isEnglish ? '💬 WhatsApp' : '💬 হোয়াটসঅ্যাপ'}</span>
                   </a>
                 </div>
               </div>
 
               {/* Form to submit direct message */}
               <form onSubmit={handleSubmit} className="space-y-3 pt-2">
-                <p className="text-xs sm:text-sm font-extrabold text-slate-900">মেসেজ ফর্ম:</p>
+                <p className="text-xs sm:text-sm font-extrabold text-slate-900">
+                  {isEnglish ? 'Message Form:' : 'মেসেজ ফর্ম:'}
+                </p>
                 {error && <p className="text-xs font-bold text-red-700 bg-red-50 p-2.5 rounded-xl border border-red-200">{error}</p>}
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-900 mb-1">আপনার নাম *</label>
+                  <label className="block text-xs font-bold text-slate-900 mb-1">
+                    {isEnglish ? 'Your Name *' : 'আপনার নাম *'}
+                  </label>
                   <input
                     id="input-chat-name"
                     type="text"
-                    placeholder="আপনার পুরো নাম"
+                    placeholder={isEnglish ? 'Your full name' : 'আপনার পুরো নাম'}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-semibold placeholder:text-slate-400 shadow-2xs"
@@ -167,7 +191,9 @@ export const CustomerChatDrawer: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-900 mb-1">মোবাইল নাম্বার *</label>
+                  <label className="block text-xs font-bold text-slate-900 mb-1">
+                    {isEnglish ? 'Mobile Number *' : 'মোবাইল নাম্বার *'}
+                  </label>
                   <input
                     id="input-chat-phone"
                     type="tel"
@@ -179,29 +205,45 @@ export const CustomerChatDrawer: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-900 mb-1">বিষয়</label>
+                  <label className="block text-xs font-bold text-slate-900 mb-1">
+                    {isEnglish ? 'Subject' : 'বিষয়'}
+                  </label>
                   <select
                     id="select-chat-subject"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-bold shadow-2xs"
                   >
-                    <option value="পোশাকের সাইজ ও ফ্যাব্রিক তথ্য">পোশাকের সাইজ ও ফ্যাব্রিক তথ্য</option>
-                    <option value="ডেলিভারি সংক্রান্ত প্রশ্ন">ডেলিভারি সংক্রান্ত প্রশ্ন</option>
-                    <option value="স্টক আছে কি না জানার জন্য">স্টক আছে কি না জানার জন্য</option>
-                    <option value="রিটার্ন ও এক্সচেঞ্জ জিজ্ঞাসা">রিটার্ন ও এক্সচেঞ্জ জিজ্ঞাসা</option>
-                    <option value="পাইকারি / হোলসেল ক্রয়">পাইকারি / হোলসেল ক্রয়</option>
+                    <option value="পোশাকের সাইজ ও ফ্যাব্রিক তথ্য">
+                      {isEnglish ? 'Dress Size & Fabric Information' : 'পোশাকের সাইজ ও ফ্যাব্রিক তথ্য'}
+                    </option>
+                    <option value="ডেলিভারি সংক্রান্ত প্রশ্ন">
+                      {isEnglish ? 'Delivery Related Question' : 'ডেলিভারি সংক্রান্ত প্রশ্ন'}
+                    </option>
+                    <option value="স্টক আছে কি না জানার জন্য">
+                      {isEnglish ? 'Stock Availability Check' : 'স্টক আছে কি না জানার জন্য'}
+                    </option>
+                    <option value="রিটার্ন ও এক্সচেঞ্জ জিজ্ঞাসা">
+                      {isEnglish ? 'Return & Exchange Inquiry' : 'রিটার্ন ও এক্সচেঞ্জ জিজ্ঞাসা'}
+                    </option>
+                    <option value="পাইকারি / হোলসেল ক্রয়">
+                      {isEnglish ? 'Wholesale / Bulk Purchase' : 'পাইকারি / হোলসেল ক্রয়'}
+                    </option>
                   </select>
                 </div>
 
                 <div>
                   <div className="mb-1">
-                    <label className="text-xs font-bold text-slate-900">আপনার মেসেজ লিখুন *</label>
+                    <label className="text-xs font-bold text-slate-900">
+                      {isEnglish ? 'Write Your Message *' : 'আপনার মেসেজ লিখুন *'}
+                    </label>
                   </div>
                   <textarea
                     id="textarea-chat-msg"
                     rows={4}
-                    placeholder="আপনার প্রশ্ন বা পছন্দের প্রোডাক্ট সম্পর্কে বিস্তারিত লিখুন..."
+                    placeholder={isEnglish
+                      ? 'Write details about your inquiry or favorite dress...'
+                      : 'আপনার প্রশ্ন বা পছন্দের প্রোডাক্ট সম্পর্কে বিস্তারিত লিখুন...'}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-slate-900 font-medium leading-relaxed placeholder:text-slate-400 shadow-2xs"
@@ -219,7 +261,7 @@ export const CustomerChatDrawer: React.FC = () => {
                     }}
                     className="px-3.5 py-3 rounded-xl border border-slate-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50 text-xs font-bold transition cursor-pointer"
                   >
-                    ক্লিয়ার চ্যাট
+                    {isEnglish ? 'Clear' : 'ক্লিয়ার চ্যাট'}
                   </button>
                   <button
                     id="btn-submit-chat"
@@ -227,7 +269,7 @@ export const CustomerChatDrawer: React.FC = () => {
                     className="flex-1 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-bold text-xs py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
                   >
                     <Send className="w-4 h-4" />
-                    <span>মেসেজ পাঠান</span>
+                    <span>{isEnglish ? 'Send Message' : 'মেসেজ পাঠান'}</span>
                   </button>
                 </div>
               </form>
@@ -238,11 +280,14 @@ export const CustomerChatDrawer: React.FC = () => {
         {/* Footer info */}
         <div className="p-3 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500 text-center space-y-0.5">
           <p>
-            সরাসরি ফোন সাপোর্ট: <a href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`} className="font-bold text-rose-700 font-mono hover:underline">{settings.hotline1 || '09617-541717'}</a>
+            {isEnglish ? 'Direct Phone Support:' : 'সরাসরি ফোন সাপোর্ট:'}{' '}
+            <a href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`} className="font-bold text-rose-700 font-mono hover:underline">
+              {settings.hotline1 || '09617-541717'}
+            </a>
           </p>
           {settings.supportHours && settings.supportHours.trim() ? (
             <p className="text-[10px] text-emerald-600 font-semibold">
-              {settings.supportHours}
+              {translateSupportHours(settings.supportHours)}
             </p>
           ) : null}
         </div>

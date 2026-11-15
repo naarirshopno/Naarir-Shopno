@@ -1,10 +1,12 @@
 import React from 'react';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Eye, Clock, Trash2, ShoppingBag } from 'lucide-react';
 import { Product } from '../types';
 
 export const RecentlyViewedSection: React.FC = () => {
   const { recentlyViewed, clearRecentlyViewed, setSelectedProductModal, addToCart } = useShop();
+  const { isEnglish, formatPrice, formatNumber, translateProductName } = useLanguage();
 
   if (!recentlyViewed || recentlyViewed.length === 0) {
     return null;
@@ -22,24 +24,26 @@ export const RecentlyViewedSection: React.FC = () => {
               <Clock className="w-4 h-4" />
             </div>
             <h3 className="text-lg sm:text-xl font-bold text-slate-900 font-['Hind_Siliguri'] flex items-center gap-2">
-              <span>সম্প্রতি দেখা পোশাকসমূহ</span>
+              <span>{isEnglish ? 'Recently Viewed Dresses' : 'সম্প্রতি দেখা পোশাকসমূহ'}</span>
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-                {recentlyViewed.length}টি পোশাক
+                {isEnglish ? `${recentlyViewed.length} items` : `${formatNumber(recentlyViewed.length)}টি পোশাক`}
               </span>
             </h3>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            আপনার পছন্দের তালিকায় রাখা বা সম্প্রতি ভিজিট করা পোশাকগুলো সহজেই আবার খুঁজে নিন
+            {isEnglish
+              ? 'Easily revisit dresses you explored or saved recently'
+              : 'আপনার পছন্দের তালিকায় রাখা বা সম্প্রতি ভিজিট করা পোশাকগুলো সহজেই আবার খুঁজে নিন'}
           </p>
         </div>
 
         <button
           onClick={clearRecentlyViewed}
           className="self-start sm:self-auto text-xs text-slate-500 hover:text-rose-600 transition flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-rose-200 hover:bg-rose-50 cursor-pointer active:scale-95"
-          title="সম্প্রতি দেখা পোশাকের তালিকা মুছে ফেলুন"
+          title={isEnglish ? 'Clear recently viewed history' : 'সম্প্রতি দেখা পোশাকের তালিকা মুছে ফেলুন'}
         >
           <Trash2 className="w-3.5 h-3.5" />
-          <span>হিস্ট্রি মুছুন</span>
+          <span>{isEnglish ? 'Clear History' : 'হিস্ট্রি মুছুন'}</span>
         </button>
       </div>
 
@@ -51,6 +55,7 @@ export const RecentlyViewedSection: React.FC = () => {
             : 0;
 
           const thumbnail = product.images?.[0] || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80';
+          const title = translateProductName(product);
 
           return (
             <div
@@ -62,14 +67,14 @@ export const RecentlyViewedSection: React.FC = () => {
               <div className="relative aspect-[3/4] bg-slate-50 overflow-hidden">
                 <img
                   src={thumbnail}
-                  alt={product.name}
+                  alt={title}
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
                 />
 
                 {discount > 0 && (
                   <span className="absolute top-2 left-2 bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-xs">
-                    ৳{discount} ছাড়
+                    {formatPrice(discount)} {isEnglish ? 'OFF' : 'ছাড়'}
                   </span>
                 )}
 
@@ -77,7 +82,7 @@ export const RecentlyViewedSection: React.FC = () => {
                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <span className="bg-white/90 text-slate-800 text-[11px] font-bold px-2.5 py-1 rounded-full shadow flex items-center gap-1">
                     <Eye className="w-3.5 h-3.5 text-rose-600" />
-                    <span>দেখুন</span>
+                    <span>{isEnglish ? 'View' : 'দেখুন'}</span>
                   </span>
                 </div>
               </div>
@@ -86,15 +91,15 @@ export const RecentlyViewedSection: React.FC = () => {
               <div className="p-2.5 sm:p-3 flex-1 flex flex-col justify-between space-y-2">
                 <div>
                   <h4 className="text-xs sm:text-sm font-bold text-slate-800 line-clamp-1 group-hover:text-rose-600 transition font-['Hind_Siliguri']">
-                    {product.name}
+                    {title}
                   </h4>
                   <div className="flex items-baseline gap-1.5 mt-1 flex-wrap">
                     <span className="text-sm sm:text-base font-black text-rose-600 font-mono">
-                      ৳{product.price.toLocaleString('bn-BD')}
+                      {formatPrice(product.price)}
                     </span>
                     {product.regularPrice && product.regularPrice > product.price && (
                       <span className="text-[11px] text-slate-400 line-through font-mono">
-                        ৳{product.regularPrice.toLocaleString('bn-BD')}
+                        {formatPrice(product.regularPrice)}
                       </span>
                     )}
                   </div>
@@ -109,7 +114,7 @@ export const RecentlyViewedSection: React.FC = () => {
                   className="w-full py-1.5 px-2 bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1 active:scale-95 cursor-pointer shadow-2xs"
                 >
                   <ShoppingBag className="w-3 h-3" />
-                  <span>ব্যাগে নিন</span>
+                  <span>{isEnglish ? 'Add to Bag' : 'ব্যাগে নিন'}</span>
                 </button>
               </div>
             </div>

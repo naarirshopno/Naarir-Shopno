@@ -24,7 +24,7 @@ export const Footer: React.FC = () => {
     setIsCustomerChatOpen
   } = useShop();
 
-  const { t, isEnglish } = useLanguage();
+  const { t, isEnglish, translateSupportHours, translateOfficeAddress } = useLanguage();
 
   return (
     <footer className="relative bg-neutral-950 text-slate-200 pt-14 pb-48 sm:pb-14 border-t border-rose-950/40 overflow-hidden">
@@ -94,7 +94,7 @@ export const Footer: React.FC = () => {
                 {isEnglish ? 'Direct Phone Support' : 'সরাসরি ফোন সাপোর্ট'}
               </h4>
               <p className="text-xs text-slate-300">
-                {settings.supportHours || (isEnglish ? '10 AM - 10 PM daily support' : 'সকাল ১০টা - রাত ১০টা সার্বক্ষণিক সেবা')}
+                {translateSupportHours(settings.supportHours)}
               </p>
             </div>
           </div>
@@ -111,7 +111,7 @@ export const Footer: React.FC = () => {
               <div className="w-13 h-13 rounded-full overflow-hidden border-2 border-rose-500 shadow shrink-0">
                 <img
                   src="/logo.jpg"
-                  alt="নারীর স্বপ্ন"
+                  alt={t('brand.name')}
                   className="w-full h-full object-cover object-center"
                   onError={(e) => {
                     e.currentTarget.src = "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=100&q=80";
@@ -119,13 +119,15 @@ export const Footer: React.FC = () => {
                 />
               </div>
               <div>
-                <h3 className="text-lg font-black text-white font-['Hind_Siliguri']">নারীর স্বপ্ন</h3>
-                <p className="text-xs text-rose-400 font-medium">Dress Your Dreams • উইমেন্স ফ্যাশন</p>
+                <h3 className="text-lg font-black text-white font-['Hind_Siliguri']">{t('brand.name')}</h3>
+                <p className="text-xs text-rose-400 font-medium">
+                  {t('brand.slogan')} • {t('brand.tagline')}
+                </p>
               </div>
             </div>
 
             <p className="text-xs text-slate-400 leading-relaxed">
-              নারীর স্বপ্ন বাংলাদেশের আধুনিক ও আভিজাত্যময় নারী পোশাকের বিশ্বস্ত অনলাইন বুটিক শপ। প্রিমিয়াম কোয়ালিটির থ্রি-পিস, এক্সক্লুসিভ শাড়ি, স্টাইলিশ কুর্তি ও পার্টি গাউনের সেরা সংগ্রহ।
+              {t('footer.about_desc')}
             </p>
 
             {/* Social Media Buttons requested by user */}
@@ -133,7 +135,7 @@ export const Footer: React.FC = () => {
               <button
                 id="footer-facebook-btn"
                 onClick={() => setIsFacebookModalOpen(true)}
-                title="ফেসবুক পেজ দেখুন"
+                title={isEnglish ? 'View Facebook Page' : 'ফেসবুক পেজ দেখুন'}
                 className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition shadow shadow-blue-900/50"
               >
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -167,7 +169,7 @@ export const Footer: React.FC = () => {
 
               <button
                 onClick={() => setIsCustomerChatOpen(true)}
-                title="সরাসরি চ্যাট করুন"
+                title={isEnglish ? 'Chat directly with us' : 'সরাসরি চ্যাট করুন'}
                 className="w-9 h-9 rounded-xl bg-pink-600 hover:bg-pink-700 text-white flex items-center justify-center transition shadow shadow-pink-900/50"
               >
                 <MessageCircle className="w-4 h-4" />
@@ -229,7 +231,9 @@ export const Footer: React.FC = () => {
               <div className="flex items-start gap-2">
                 <Phone className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-slate-300 font-bold">সরাসরি ফোন সাপোর্ট:</p>
+                  <p className="text-slate-300 font-bold">
+                    {isEnglish ? 'Direct Phone Support:' : 'সরাসরি ফোন সাপোর্ট:'}
+                  </p>
                   <a
                     href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`}
                     className="font-mono text-white text-sm font-bold hover:text-rose-400 block transition mt-0.5"
@@ -241,11 +245,11 @@ export const Footer: React.FC = () => {
                       href={`tel:${settings.hotline2.replace(/[^0-9]/g, '')}`}
                       className="font-mono text-slate-300 text-xs hover:text-rose-400 block transition mt-0.5"
                     >
-                      বিকল্প: {settings.hotline2}
+                      {isEnglish ? `Alt: ${settings.hotline2}` : `বিকল্প: ${settings.hotline2}`}
                     </a>
                   )}
                   <p className="text-emerald-400 text-[11px] font-semibold mt-1">
-                    {settings.supportHours || 'সকাল ১০টা - রাত ১০টা সার্বক্ষণিক সেবা'}
+                    {translateSupportHours(settings.supportHours)}
                   </p>
                 </div>
               </div>
@@ -256,7 +260,9 @@ export const Footer: React.FC = () => {
                   <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
                 </svg>
                 <div>
-                  <p className="text-slate-300 font-bold">হোয়াটসঅ্যাপ সাপোর্ট:</p>
+                  <p className="text-slate-300 font-bold">
+                    {isEnglish ? 'WhatsApp Support:' : 'হোয়াটসঅ্যাপ সাপোর্ট:'}
+                  </p>
                   <a
                     href={
                       settings.whatsappShortLink && settings.whatsappShortLink.trim()
@@ -275,7 +281,7 @@ export const Footer: React.FC = () => {
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p>{settings.officeAddress || 'হাউজ# ফকিরবাড়ি, ৮নং কোড়ালতলী, ভেদরগঞ্জ, শরিয়তপুর-৮০৩০, বাংলাদেশ'}</p>
+                  <p>{translateOfficeAddress(settings.officeAddress)}</p>
                 </div>
               </div>
 
@@ -292,19 +298,23 @@ export const Footer: React.FC = () => {
 
           {/* Payment & Security */}
           <div className="lg:col-span-3 space-y-3">
-            <h4 className="text-white font-bold text-sm font-['Hind_Siliguri']">পেমেন্ট মেথডসমূহ</h4>
+            <h4 className="text-white font-bold text-sm font-['Hind_Siliguri']">
+              {isEnglish ? 'Payment Methods' : 'পেমেন্ট মেথডসমূহ'}
+            </h4>
             <p className="text-xs text-slate-400">
-              আমরা ক্যাশ অন ডেলিভারির পাশাপাশি বিকাশ ও নগদের মাধ্যমে নিরাপদ পেমেন্ট গ্রহণ করি।
+              {isEnglish
+                ? 'We accept Cash on Delivery along with safe bKash and Nagad payments.'
+                : 'আমরা ক্যাশ অন ডেলিভারির পাশাপাশি বিকাশ ও নগদের মাধ্যমে নিরাপদ পেমেন্ট গ্রহণ করি।'}
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               <div className="px-3 py-1.5 rounded-lg bg-black/60 border border-white/15 text-[11px] font-bold text-white flex items-center gap-1 shadow-xs">
-                <span>💵 ক্যাশ অন ডেলিভারি</span>
+                <span>💵 {isEnglish ? 'Cash on Delivery' : 'ক্যাশ অন ডেলিভারি'}</span>
               </div>
               <div className="px-3 py-1.5 rounded-lg bg-pink-950/80 border border-pink-700/60 text-[11px] font-bold text-pink-300 flex items-center gap-1 shadow-xs">
-                <span>📱 বিকাশ (bKash)</span>
+                <span>📱 {isEnglish ? 'bKash' : 'বিকাশ (bKash)'}</span>
               </div>
               <div className="px-3 py-1.5 rounded-lg bg-orange-950/80 border border-orange-700/60 text-[11px] font-bold text-orange-300 flex items-center gap-1 shadow-xs">
-                <span>💳 নগদ (Nagad)</span>
+                <span>💳 {isEnglish ? 'Nagad' : 'নগদ (Nagad)'}</span>
               </div>
             </div>
           </div>
@@ -314,7 +324,7 @@ export const Footer: React.FC = () => {
 
       {/* Bottom Copyright & Admin Direct Entry */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
-        <p>© {new Date().getFullYear()} নারীর স্বপ্ন - Naarir Shopno. সর্বস্বত্ব সংরক্ষিত।</p>
+        <p>© {new Date().getFullYear()} {t('footer.rights')}</p>
 
         <p className="flex items-center gap-1 text-[11px]">
           Made with <Heart className="w-3.5 h-3.5 text-rose-500 fill-current" /> for Bengali Women Fashion

@@ -29,8 +29,13 @@ import {
 } from 'lucide-react';
 
 const LiveClockBadge: React.FC<{ isMobile?: boolean }> = React.memo(({ isMobile }) => {
+  const { isEnglish, t } = useLanguage();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [useBengaliDigits, setUseBengaliDigits] = useState(true);
+  const [useBengaliDigits, setUseBengaliDigits] = useState(!isEnglish);
+
+  useEffect(() => {
+    setUseBengaliDigits(!isEnglish);
+  }, [isEnglish]);
 
   // Live real-time clock updating isolated to this badge only
   useEffect(() => {
@@ -77,18 +82,21 @@ const LiveClockBadge: React.FC<{ isMobile?: boolean }> = React.memo(({ isMobile 
     : `${padZero(hours12)}:${padZero(minutes)}:${padZero(seconds)} ${isPM ? 'PM' : 'AM'}`;
 
   const dayName = useBengaliDigits ? dayNameBn : dayNameEn;
+  const liveTitle = isEnglish
+    ? 'Live date & time (click to switch Bangla/English digits)'
+    : 'বর্তমান লাইভ তারিখ ও সময় (ক্লিক করে বাংলা/ইংরেজি পরিবর্তন করুন)';
 
   if (isMobile) {
     return (
       <div 
         onClick={() => setUseBengaliDigits(!useBengaliDigits)}
-        title="বর্তমান লাইভ তারিখ ও সময় (ক্লিক করে বাংলা/ইংরেজি পরিবর্তন করুন)"
+        title={liveTitle}
         className="inline-flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 px-2.5 py-1 rounded-full text-slate-800 bg-rose-50 border border-rose-200/80 shadow-xs cursor-pointer select-none text-center active:scale-95 transition-transform max-w-full"
       >
         <div className="flex items-center gap-1 shrink-0">
           <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs inline-block"></span>
           <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wider">
-            লাইভ
+            {useBengaliDigits ? 'লাইভ' : t('nav.live')}
           </span>
         </div>
         <span className="text-rose-300">|</span>
@@ -108,13 +116,13 @@ const LiveClockBadge: React.FC<{ isMobile?: boolean }> = React.memo(({ isMobile 
   return (
     <div 
       onClick={() => setUseBengaliDigits(!useBengaliDigits)}
-      title="বর্তমান লাইভ তারিখ ও সময় (ক্লিক করে বাংলা/ইংরেজি পরিবর্তন করুন)"
+      title={liveTitle}
       className="hidden sm:inline-flex group items-center gap-1.5 lg:gap-2 px-2.5 py-0.5 sm:py-1 rounded-full text-slate-700 hover:text-slate-900 transition-colors cursor-pointer select-none whitespace-nowrap max-w-full overflow-hidden"
     >
       <div className="flex items-center gap-1.5 shrink-0">
         <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs inline-block"></span>
         <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider hidden lg:inline">
-          লাইভ
+          {useBengaliDigits ? 'লাইভ' : t('nav.live')}
         </span>
       </div>
       <span className="text-rose-300 hidden lg:inline shrink-0">|</span>
@@ -154,7 +162,18 @@ export const Header: React.FC = () => {
     setSearchQuery
   } = useShop();
 
-  const { language, setLanguage, toggleLanguage, t, isEnglish } = useLanguage();
+  const { 
+    setLanguage, 
+    toggleLanguage, 
+    t, 
+    isEnglish, 
+    formatNumber, 
+    formatPrice, 
+    translateCategory, 
+    translateProductName, 
+    translateFabric, 
+    translateSupportHours 
+  } = useLanguage();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -214,10 +233,11 @@ export const Header: React.FC = () => {
     return categories.filter(c => 
       c.id !== 'all' && (
         c.label.toLowerCase().includes(trimmedQuery) ||
+        translateCategory(c.label).toLowerCase().includes(trimmedQuery) ||
         c.id.toLowerCase().includes(trimmedQuery)
       )
     );
-  }, [categories, trimmedQuery]);
+  }, [categories, trimmedQuery, translateCategory]);
 
   const matchedProducts = useMemo(() => {
     if (!trimmedQuery) return [];
@@ -226,6 +246,7 @@ export const Header: React.FC = () => {
       const bengaliName = (p.bengaliName || '').toLowerCase();
       const cat = (p.category || '').toLowerCase();
       const catBn = (p.categoryBengali || '').toLowerCase();
+      const catTranslated = translateCategory(p.categoryBengali || p.category).toLowerCase();
       const fabric = (p.fabric || '').toLowerCase();
       const desc = (p.description || '').toLowerCase();
 
@@ -234,21 +255,32 @@ export const Header: React.FC = () => {
         bengaliName.includes(trimmedQuery) ||
         cat.includes(trimmedQuery) ||
         catBn.includes(trimmedQuery) ||
+        catTranslated.includes(trimmedQuery) ||
         fabric.includes(trimmedQuery) ||
         desc.includes(trimmedQuery)
       );
     });
-  }, [products, trimmedQuery]);
+  }, [products, trimmedQuery, translateCategory]);
 
-  const popularSearches = [
-    { label: 'থ্রি-পিস', category: 'three_piece' },
-    { label: 'কাতান শাড়ি', category: 'saree' },
-    { label: 'কুর্তি কালেকশন', category: 'kurti' },
-    { label: 'জর্জেট গাউন', category: 'gown' },
-    { label: 'ব্রাইডাল লেহেঙ্গা', category: 'lehenga' },
-    { label: 'মাদার ব্রেস্টফিডিং ব্রা', query: 'ব্রা' },
-    { label: 'সুতি পোশাক', query: 'সুতি' },
-  ];
+  const popularSearches = isEnglish
+    ? [
+        { label: 'Three-Piece', query: 'Three' },
+        { label: 'Jamdani Saree', query: 'Jamdani' },
+        { label: 'Kurti', query: 'Kurti' },
+        { label: 'Party Gown', query: 'Gown' },
+        { label: 'Bridal Lehenga', query: 'Lehenga' },
+        { label: 'Hijab & Abaya', query: 'Hijab' },
+        { label: 'Cotton Dress', query: 'Cotton' },
+      ]
+    : [
+        { label: 'থ্রি-পিস', query: 'থ্রি-পিস' },
+        { label: 'কাতান শাড়ি', query: 'শাড়ি' },
+        { label: 'কুর্তি কালেকশন', query: 'কুর্তি' },
+        { label: 'জর্জেট গাউন', query: 'গাউন' },
+        { label: 'ব্রাইডাল লেহেঙ্গা', query: 'লেহেঙ্গা' },
+        { label: 'হিজাব ও আবায়া', query: 'হিজাব' },
+        { label: 'সুতি পোশাক', query: 'সুতি' },
+      ];
 
   // Reusable real-time search dropdown component
   const renderSearchDropdown = (closeDropdown: () => void) => (
@@ -258,7 +290,7 @@ export const Header: React.FC = () => {
         <div className="p-3.5 sm:p-4 space-y-3 text-left">
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
             <TrendingUp className="w-3.5 h-3.5 text-rose-600" />
-            <span>জনপ্রিয় সার্চ ও কিওয়ার্ড</span>
+            <span>{isEnglish ? 'Popular Searches & Keywords' : 'জনপ্রিয় সার্চ ও কিওয়ার্ড'}</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {popularSearches.map((ps, i) => (
@@ -266,7 +298,7 @@ export const Header: React.FC = () => {
                 key={i}
                 type="button"
                 onClick={() => {
-                  setSearchQuery(ps.label);
+                  setSearchQuery(ps.query);
                   closeDropdown();
                   if (location.pathname !== '/') navigate('/');
                 }}
@@ -282,7 +314,7 @@ export const Header: React.FC = () => {
           <div className="pt-2.5 border-t border-rose-50">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                ক্যাটাগরি ব্রাউজ করুন
+                {isEnglish ? 'Browse Categories' : 'ক্যাটাগরি ব্রাউজ করুন'}
               </span>
               <button
                 type="button"
@@ -292,7 +324,7 @@ export const Header: React.FC = () => {
                 }}
                 className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
               >
-                সকল ({categories.length - 1} টি)
+                {isEnglish ? `All (${categories.length - 1})` : `সকল (${formatNumber(categories.length - 1)} টি)`}
               </button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
@@ -316,7 +348,7 @@ export const Header: React.FC = () => {
                     />
                   )}
                   <span className="text-xs font-semibold text-slate-700 group-hover:text-rose-700 truncate">
-                    {cat.label}
+                    {translateCategory(cat.label)}
                   </span>
                 </button>
               ))}
@@ -330,10 +362,12 @@ export const Header: React.FC = () => {
           <div className="px-3.5 sm:px-4 py-2 bg-rose-50/80 flex items-center justify-between text-xs font-bold text-slate-700 border-b border-rose-100">
             <span className="flex items-center gap-1.5 truncate">
               <Search className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-              <span className="truncate">‘{searchQuery}’ দিয়ে খোঁজা হচ্ছে</span>
+              <span className="truncate">
+                {isEnglish ? `Searching for "${searchQuery}"` : `‘${searchQuery}’ দিয়ে খোঁজা হচ্ছে`}
+              </span>
             </span>
             <span className="text-[11px] bg-rose-200/80 text-rose-800 px-2.5 py-0.5 rounded-full font-mono shrink-0">
-              {matchedProducts.length} টি পণ্য
+              {isEnglish ? `${matchedProducts.length} items` : `${formatNumber(matchedProducts.length)} টি পণ্য`}
             </span>
           </div>
 
@@ -342,7 +376,7 @@ export const Header: React.FC = () => {
             <div className="p-2.5 sm:p-3 bg-amber-50/50 border-b border-amber-100/70 space-y-1.5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1">
                 <Tag className="w-3 h-3 text-amber-600" />
-                <span>সম্পর্কিত ক্যাটাগরি:</span>
+                <span>{isEnglish ? 'Related Categories:' : 'সম্পর্কিত ক্যাটাগরি:'}</span>
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {matchedCategories.map((cat) => {
@@ -361,8 +395,8 @@ export const Header: React.FC = () => {
                       {cat.image && (
                         <img src={cat.image} alt="" className="w-4 h-4 rounded-full object-cover shrink-0" />
                       )}
-                      <span>{cat.label}</span>
-                      <span className="text-[10px] text-amber-700 font-normal">({catCount})</span>
+                      <span>{translateCategory(cat.label)}</span>
+                      <span className="text-[10px] text-amber-700 font-normal">({formatNumber(catCount)})</span>
                     </button>
                   );
                 })}
@@ -375,6 +409,7 @@ export const Header: React.FC = () => {
             <div className="divide-y divide-rose-50 max-h-72 overflow-y-auto">
               {matchedProducts.slice(0, 6).map((product) => {
                 const prodImg = (product.images && product.images[0]) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=150&q=80';
+                const prodTitle = translateProductName(product);
                 return (
                   <div
                     key={product.id}
@@ -387,26 +422,26 @@ export const Header: React.FC = () => {
                     <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                       <img
                         src={prodImg}
-                        alt={product.bengaliName}
+                        alt={prodTitle}
                         className="w-11 h-13 sm:w-12 sm:h-14 rounded-xl object-cover border border-rose-100 shrink-0 group-hover:scale-105 transition-transform"
                       />
                       <div className="min-w-0 space-y-0.5">
                         <p className="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-rose-600 transition truncate font-['Hind_Siliguri']">
-                          {product.bengaliName}
+                          {prodTitle}
                         </p>
                         <div className="flex items-center gap-2 flex-wrap text-[10px]">
                           <span className="text-slate-600 font-medium bg-slate-100 px-1.5 py-0.5 rounded">
-                            {product.categoryBengali || product.category}
+                            {translateCategory(product.categoryBengali || product.category)}
                           </span>
                           {product.fabric && (
-                            <span className="text-slate-500 hidden sm:inline">
-                              ফেব্রিক: {product.fabric}
+                            <span className="text-slate-500 hidden sm:inline truncate max-w-[180px]">
+                              {isEnglish ? `Fabric: ${translateFabric(product.fabric)}` : `ফেব্রিক: ${product.fabric}`}
                             </span>
                           )}
                           {product.inStock ? (
-                            <span className="text-emerald-700 font-semibold">● স্টকে আছে</span>
+                            <span className="text-emerald-700 font-semibold">● {t('card.in_stock')}</span>
                           ) : (
-                            <span className="text-red-600 font-semibold">● স্টক আউট</span>
+                            <span className="text-red-600 font-semibold">● {t('card.out_of_stock')}</span>
                           )}
                         </div>
                       </div>
@@ -414,11 +449,11 @@ export const Header: React.FC = () => {
 
                     <div className="text-right shrink-0">
                       <p className="text-xs sm:text-sm font-black text-rose-700 font-['Outfit']">
-                        ৳{product.price.toLocaleString()}
+                        {formatPrice(product.price)}
                       </p>
                       {product.regularPrice > product.price && (
                         <p className="text-[10px] text-slate-400 line-through font-['Outfit']">
-                          ৳{product.regularPrice.toLocaleString()}
+                          {formatPrice(product.regularPrice)}
                         </p>
                       )}
                     </div>
@@ -431,10 +466,12 @@ export const Header: React.FC = () => {
             <div className="p-6 text-center space-y-2">
               <SearchX className="w-8 h-8 text-rose-400 mx-auto" />
               <p className="text-xs font-bold text-slate-800">
-                ‘{searchQuery}’ দিয়ে কোনো পণ্য পাওয়া যায়নি
+                {isEnglish ? `No products found for "${searchQuery}"` : `‘${searchQuery}’ দিয়ে কোনো পণ্য পাওয়া যায়নি`}
               </p>
               <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
-                বানান সঠিক আছে কি না পরীক্ষা করুন অথবা অন্য কোনো পোশাক বা ক্যাটাগরি সার্চ করুন।
+                {isEnglish
+                  ? 'Please check spelling or try searching for another dress or category.'
+                  : 'বানান সঠিক আছে কি না পরীক্ষা করুন অথবা অন্য কোনো পোশাক বা ক্যাটাগরি সার্চ করুন।'}
               </p>
             </div>
           )}
@@ -456,7 +493,11 @@ export const Header: React.FC = () => {
                 }}
                 className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>সকল {matchedProducts.length} টি ফলাফল দেখুন</span>
+                <span>
+                  {isEnglish
+                    ? `View all ${matchedProducts.length} results`
+                    : `সকল ${formatNumber(matchedProducts.length)} টি ফলাফল দেখুন`}
+                </span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -484,7 +525,7 @@ export const Header: React.FC = () => {
             <div className="relative w-8 h-8 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-rose-500 shadow-md group-hover:scale-105 transition-transform shrink-0 bg-white">
               <img 
                 src="/logo.jpg" 
-                alt="নারীর স্বপ্ন লোগো" 
+                alt={t('brand.name')}
                 className="w-full h-full object-cover object-center"
                 onError={(e) => {
                   // fallback to icon if missing
@@ -495,14 +536,14 @@ export const Header: React.FC = () => {
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <h1 className="text-sm sm:text-2xl font-bold tracking-tight text-rose-700 font-['Hind_Siliguri'] leading-none sm:leading-tight whitespace-nowrap">
-                  নারীর স্বপ্ন
+                  {t('brand.name')}
                 </h1>
                 <span className="hidden xl:inline-block text-rose-600/90 text-[11px] font-semibold tracking-wide uppercase whitespace-nowrap">
-                  Women's Fashion
+                  {t('brand.tagline')}
                 </span>
               </div>
               <p className="text-[8px] sm:text-xs text-rose-500 italic font-medium leading-tight whitespace-nowrap">
-                Dress Your Dreams
+                {t('brand.slogan')}
               </p>
             </div>
           </Link>
@@ -613,7 +654,7 @@ export const Header: React.FC = () => {
               />
               {getWishlistCount() > 0 && (
                 <span className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-600 to-pink-600 text-white font-bold text-[9px] sm:text-[10px] min-w-3.5 h-3.5 sm:min-w-4 sm:h-4 px-1 rounded-full flex items-center justify-center border-2 border-white shadow">
-                  {getWishlistCount()}
+                  {formatNumber(getWishlistCount())}
                 </span>
               )}
             </button>
@@ -639,12 +680,12 @@ export const Header: React.FC = () => {
                 <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
                 {getCartCount() > 0 && (
                   <span className="absolute -top-2 -right-2 bg-amber-400 text-slate-900 font-bold text-[9px] sm:text-[10px] w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border-2 border-white shadow">
-                    {getCartCount()}
+                    {formatNumber(getCartCount())}
                   </span>
                 )}
               </div>
               <span className="hidden sm:inline text-xs font-bold font-['Outfit']">
-                ৳{getCartSubtotal().toLocaleString()}
+                {formatPrice(getCartSubtotal())}
               </span>
             </button>
 
@@ -742,7 +783,7 @@ export const Header: React.FC = () => {
                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
                   )}
-                  <span>{cat.id === 'all' ? t('nav.all_collections') : cat.label}</span>
+                  <span>{cat.id === 'all' ? t('nav.all_collections') : translateCategory(cat.label)}</span>
                 </button>
               );
             })}
@@ -796,7 +837,7 @@ export const Header: React.FC = () => {
                 {t('nav.categories')}
               </span>
               <span className="text-[11px] text-slate-500 font-medium">
-                {categories.length} টি ক্যাটাগরি
+                {isEnglish ? `${categories.length} Categories` : `${formatNumber(categories.length)} টি ক্যাটাগরি`}
               </span>
             </div>
 
@@ -828,7 +869,7 @@ export const Header: React.FC = () => {
                         }}
                       />
                     )}
-                    <span className="truncate">{cat.label}</span>
+                    <span className="truncate">{cat.id === 'all' ? t('nav.all_collections') : translateCategory(cat.label)}</span>
                   </button>
                 );
               })}
@@ -847,10 +888,10 @@ export const Header: React.FC = () => {
             >
               <div className="flex items-center gap-2.5">
                 <User className="w-4 h-4 text-rose-600" />
-                <span>আমার প্রোফাইল ও অর্ডার হিস্টোরি</span>
+                <span>{isEnglish ? 'My Profile & Order History' : 'আমার প্রোফাইল ও অর্ডার হিস্টোরি'}</span>
               </div>
               <span className="text-[10px] text-rose-600 font-bold bg-white px-2 py-0.5 rounded-full border border-rose-200">
-                অর্ডার দেখুন
+                {isEnglish ? 'View Orders' : 'অর্ডার দেখুন'}
               </span>
             </button>
 
@@ -864,14 +905,12 @@ export const Header: React.FC = () => {
             >
               <div className="flex items-center gap-2.5">
                 <Heart className="w-4 h-4 text-rose-600 fill-rose-500" />
-                <span>পছন্দের তালিকা (উইশলিস্ট)</span>
+                <span>{isEnglish ? 'My Wishlist (Saved Items)' : 'পছন্দের তালিকা (উইশলিস্ট)'}</span>
               </div>
               <span className="bg-rose-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
-                {getWishlistCount()} টি
+                {isEnglish ? `${getWishlistCount()} items` : `${formatNumber(getWishlistCount())} টি`}
               </span>
             </button>
-
-
 
             <button
               onClick={() => {
@@ -881,7 +920,7 @@ export const Header: React.FC = () => {
               className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
             >
               <Truck className="w-4 h-4 text-rose-600" />
-              <span>আপনার অর্ডার ট্র্যাক করুন</span>
+              <span>{isEnglish ? 'Track Your Order' : 'আপনার অর্ডার ট্র্যাক করুন'}</span>
             </button>
 
             <button
@@ -894,7 +933,7 @@ export const Header: React.FC = () => {
               <svg className="w-4 h-4 fill-current text-blue-600" viewBox="0 0 24 24">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
               </svg>
-              <span>ফেসবুক পেজ ও অফিশিয়াল লিংক</span>
+              <span>{isEnglish ? 'Official Facebook Page & Links' : 'ফেসবুক পেজ ও অফিশিয়াল লিংক'}</span>
             </button>
 
             <button
@@ -905,20 +944,22 @@ export const Header: React.FC = () => {
               className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
             >
               <MessageCircle className="w-4 h-4 text-rose-600" />
-              <span>সরাসরি মেসেজ পাঠান</span>
+              <span>{isEnglish ? 'Send Direct Message' : 'সরাসরি মেসেজ পাঠান'}</span>
             </button>
           </div>
 
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
             <div>
-              <p className="font-semibold text-rose-700 text-xs">কাস্টমার সাপোর্ট (সরাসরি ফোন):</p>
+              <p className="font-semibold text-rose-700 text-xs">
+                {isEnglish ? 'Customer Support (Direct Call):' : 'কাস্টমার সাপোর্ট (সরাসরি ফোন):'}
+              </p>
               <div className="flex flex-col gap-0.5 mt-0.5">
                 <a href={`tel:${settings.hotline1 || '09617-541717'}`} className="font-bold text-slate-900 hover:text-rose-600 flex items-center gap-1 font-mono text-sm">
                   📞 {settings.hotline1 || '09617-541717'}
                 </a>
                 {settings.supportHours && settings.supportHours.trim() ? (
                   <span className="text-[10px] text-emerald-600 font-semibold">
-                    {settings.supportHours}
+                    {translateSupportHours(settings.supportHours)}
                   </span>
                 ) : null}
               </div>
@@ -931,10 +972,10 @@ export const Header: React.FC = () => {
                 navigate('/admin');
               }}
               className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-300 rounded-lg px-2 py-1 transition cursor-pointer"
-              title="এডমিন লগইন"
+              title={t('nav.admin')}
             >
               <Lock className="w-3 h-3 text-slate-400" />
-              <span>এডমিন</span>
+              <span>{t('nav.admin')}</span>
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
+import { useLanguage } from '../context/LanguageContext';
 import { BANGLADESH_DISTRICTS, getThanasForDistrict } from '../data/bangladeshData';
 import { DeliveryZoneId, PaymentMethodType, CartItem, Order } from '../types';
 import { 
@@ -34,6 +35,16 @@ export const CheckoutModal: React.FC = () => {
     setTrackingOrderId,
     openOrderSuccessModal
   } = useShop();
+
+  const {
+    isEnglish,
+    formatPrice,
+    formatNumber,
+    translateProductName,
+    translateColor,
+    translateSize,
+    translateDistrict,
+  } = useLanguage();
 
   // Active items being checked out
   const checkoutItems: CartItem[] = directCheckoutItem ? [directCheckoutItem] : cart;
@@ -137,24 +148,24 @@ export const CheckoutModal: React.FC = () => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!customerName.trim()) {
-      newErrors.customerName = 'অনুগ্রহ করে আপনার পুরো নাম লিখুন';
+      newErrors.customerName = isEnglish ? 'Please enter your full name' : 'অনুগ্রহ করে আপনার পুরো নাম লিখুন';
     }
     if (!phone.trim()) {
-      newErrors.phone = 'মোবাইল নাম্বার দেওয়া বাধ্যতামূলক';
+      newErrors.phone = isEnglish ? 'Phone number is required' : 'মোবাইল নাম্বার দেওয়া বাধ্যতামূলক';
     } else if (!/^01[3-9]\d{8}$/.test(phone.trim().replace(/-/g, ''))) {
-      newErrors.phone = 'সঠিক ১১ ডিজিটের মোবাইল নাম্বার দিন (যেমন: 017XXXXXXXX)';
+      newErrors.phone = isEnglish ? 'Enter a valid 11-digit phone number (e.g. 017XXXXXXXX)' : 'সঠিক ১১ ডিজিটের মোবাইল নাম্বার দিন (যেমন: 017XXXXXXXX)';
     }
     if (customerEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
-      newErrors.customerEmail = 'সঠিক ইমেইল ঠিকানা দিন (যেমন: name@example.com)';
+      newErrors.customerEmail = isEnglish ? 'Enter a valid email address (e.g. name@example.com)' : 'সঠিক ইমেইল ঠিকানা দিন (যেমন: name@example.com)';
     }
     if (!thana.trim()) {
-      newErrors.thana = 'অনুগ্রহ করে আপনার থানা বা উপজেলা লিখুন';
+      newErrors.thana = isEnglish ? 'Please enter your Thana or Upazila' : 'অনুগ্রহ করে আপনার থানা বা উপজেলা লিখুন';
     }
     if (!address.trim()) {
-      newErrors.address = 'বাসা/হোল্ডিং নম্বর, রোড নম্বর ও বিস্তারিত ঠিকানা লিখুন';
+      newErrors.address = isEnglish ? 'Please enter house/holding, road and full address' : 'বাসা/হোল্ডিং নম্বর, রোড নম্বর ও বিস্তারিত ঠিকানা লিখুন';
     }
     if ((paymentMethod === 'bkash' || paymentMethod === 'nagad') && !trxId.trim()) {
-      newErrors.trxId = 'অনুগ্রহ করে আপনার ট্রানজেকশন আইডি (TrxID) লিখুন';
+      newErrors.trxId = isEnglish ? 'Please enter your Transaction ID (TrxID)' : 'অনুগ্রহ করে আপনার ট্রানজেকশন আইডি (TrxID) লিখুন';
     }
 
     setErrors(newErrors);
@@ -243,7 +254,9 @@ export const CheckoutModal: React.FC = () => {
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-rose-600" />
             <h3 className="text-lg sm:text-xl font-bold text-slate-900 font-['Hind_Siliguri']">
-              {placedOrder ? 'অর্ডার সফলভাবে সম্পন্ন হয়েছে!' : 'অর্ডার কনফার্মেশন ও চেকআউট'}
+              {placedOrder
+                ? (isEnglish ? 'Order Placed Successfully!' : 'অর্ডার সফলভাবে সম্পন্ন হয়েছে!')
+                : (isEnglish ? 'Order Confirmation & Checkout' : 'অর্ডার কনফার্মেশন ও চেকআউট')}
             </h3>
           </div>
           <button
@@ -263,13 +276,15 @@ export const CheckoutModal: React.FC = () => {
 
             <div className="space-y-2">
               <span className="bg-rose-100 text-rose-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                অর্ডার আইডি: #{placedOrder.id}
+                {isEnglish ? 'Order ID:' : 'অর্ডার আইডি:'} #{placedOrder.id}
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-['Hind_Siliguri']">
-                অভিনন্দন, {placedOrder.customerName}!
+                {isEnglish ? `Congratulations, ${placedOrder.customerName}!` : `অভিনন্দন, ${placedOrder.customerName}!`}
               </h2>
               <p className="text-sm text-slate-600 max-w-lg mx-auto">
-                নারীর স্বপ্ন থেকে আপনার অর্ডারটি সফলভাবে গৃহীত হয়েছে। খুব শীঘ্রই আমাদের কাস্টমার প্রতিনিধি আপনার সাথে ফোনে যোগাযোগ করে অর্ডারটি কনফার্ম করবেন।
+                {isEnglish
+                  ? 'Your order from Naarir Shopno has been received. Our representative will call you shortly to confirm.'
+                  : 'নারীর স্বপ্ন থেকে আপনার অর্ডারটি সফলভাবে গৃহীত হয়েছে। খুব শীঘ্রই আমাদের কাস্টমার প্রতিনিধি আপনার সাথে ফোনে যোগাযোগ করে অর্ডারটি কনফার্ম করবেন।'}
               </p>
             </div>
 
@@ -281,62 +296,73 @@ export const CheckoutModal: React.FC = () => {
             {/* Order Summary Receipt Box */}
             <div className="max-w-md mx-auto bg-rose-50/40 rounded-2xl p-4 sm:p-5 border border-rose-100 text-left text-xs space-y-3">
               <div className="flex justify-between items-center pb-2 border-b border-rose-100 font-bold text-slate-800">
-                <span>অর্ডার তথ্য</span>
-                <span>তারিখ: {placedOrder.createdAt}</span>
+                <span>{isEnglish ? 'Order Info' : 'অর্ডার তথ্য'}</span>
+                <span>{isEnglish ? 'Date:' : 'তারিখ:'} {placedOrder.createdAt}</span>
               </div>
               <div className="space-y-1 text-slate-600">
-                <p><strong>নাম:</strong> {placedOrder.customerName}</p>
-                <p><strong>মোবাইল:</strong> {placedOrder.phone}</p>
+                <p><strong>{isEnglish ? 'Name:' : 'নাম:'}</strong> {placedOrder.customerName}</p>
+                <p><strong>{isEnglish ? 'Phone:' : 'মোবাইল:'}</strong> {placedOrder.phone}</p>
                 {placedOrder.customerEmail && (
-                  <p><strong>ইমেইল:</strong> {placedOrder.customerEmail}</p>
+                  <p><strong>{isEnglish ? 'Email:' : 'ইমেইল:'}</strong> {placedOrder.customerEmail}</p>
                 )}
-                <p><strong>ডেলিভারি ঠিকানা:</strong> {placedOrder.address}, থানা: {placedOrder.thana}, জেলা: {placedOrder.district}</p>
-                <p><strong>পেমেন্ট মেথড:</strong> {placedOrder.paymentMethod === 'cod' ? 'ক্যাশ অন ডেলিভারি (COD)' : placedOrder.paymentMethod.toUpperCase()}</p>
+                <p>
+                  <strong>{isEnglish ? 'Delivery Address:' : 'ডেলিভারি ঠিকানা:'}</strong> {placedOrder.address}, {isEnglish ? 'Thana:' : 'থানা:'} {placedOrder.thana}, {isEnglish ? 'District:' : 'জেলা:'} {translateDistrict(placedOrder.district)}
+                </p>
+                <p>
+                  <strong>{isEnglish ? 'Payment Method:' : 'পেমেন্ট মেথড:'}</strong> {placedOrder.paymentMethod === 'cod' ? (isEnglish ? 'Cash on Delivery (COD)' : 'ক্যাশ অন ডেলিভারি (COD)') : placedOrder.paymentMethod.toUpperCase()}
+                </p>
               </div>
 
               {placedOrder.customerEmail ? (
                 <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 p-2.5 rounded-xl text-[11px]">
                   <Mail className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold">অটোমেটেড কনফার্মেশন ইমেইল পাঠানো হয়েছে:</span>
-                    <p className="text-emerald-700 mt-0.5">{placedOrder.customerEmail} ঠিকানায় আপনার সম্পূর্ণ ইনভয়েস ও ট্র্যাকিং লিংক পাঠানো হয়েছে।</p>
+                    <span className="font-bold">
+                      {isEnglish ? 'Automated confirmation email sent:' : 'অটোমেটেড কনফার্মেশন ইমেইল পাঠানো হয়েছে:'}
+                    </span>
+                    <p className="text-emerald-700 mt-0.5">
+                      {isEnglish
+                        ? `Your complete invoice and tracking link were sent to ${placedOrder.customerEmail}.`
+                        : `${placedOrder.customerEmail} ঠিকানায় আপনার সম্পূর্ণ ইনভয়েস ও ট্র্যাকিং লিংক পাঠানো হয়েছে।`}
+                    </p>
                   </div>
                 </div>
               ) : null}
 
               <div className="pt-2 border-t border-rose-100 space-y-2">
-                <p className="text-[11px] font-bold text-slate-700">অর্ডারকৃত পণ্যসমূহ:</p>
+                <p className="text-[11px] font-bold text-slate-700">{isEnglish ? 'Ordered Items:' : 'অর্ডারকৃত পণ্যসমূহ:'}</p>
                 {placedOrder.items.map((item, idx) => {
                   const itemImg = item.selectedImage || (item.product.images && item.product.images[0]) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=200&q=80';
                   const colorHex = item.product.colors?.find(c => c.name === item.selectedColor)?.hex;
                   const displayColor = item.selectedColor || (item.product.colors && item.product.colors[0]?.name) || 'ডিফল্ট';
+                  const itemName = translateProductName(item.product);
 
                   return (
                     <div key={idx} className="flex items-center gap-2.5 p-2 bg-white rounded-xl border border-rose-100 shadow-2xs">
                       <img
                         src={itemImg}
-                        alt={item.product.bengaliName}
+                        alt={itemName}
                         className="w-12 h-14 rounded-lg object-cover border border-rose-100 shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-slate-900 truncate text-xs">{item.product.bengaliName}</p>
+                        <p className="font-bold text-slate-900 truncate text-xs">{itemName}</p>
                         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-rose-50 text-rose-800 px-2 py-0.5 rounded-md border border-rose-200">
                             {colorHex && (
                               <span className="w-2 h-2 rounded-full border border-black/20 shrink-0" style={{ backgroundColor: colorHex }} />
                             )}
-                            <span>রঙ: {displayColor}</span>
+                            <span>{isEnglish ? 'Color:' : 'রঙ:'} {translateColor(displayColor)}</span>
                           </span>
                           <span className="text-[10px] text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-200">
-                            সাইজ: {item.selectedSize}
+                            {isEnglish ? 'Size:' : 'সাইজ:'} {translateSize(item.selectedSize)}
                           </span>
                           <span className="text-[10px] font-semibold text-slate-700">
-                            × {item.quantity} টি
+                            × {formatNumber(item.quantity)} {isEnglish ? 'pcs' : 'টি'}
                           </span>
                         </div>
                       </div>
                       <span className="font-bold shrink-0 font-['Outfit'] text-rose-700 text-xs sm:text-sm">
-                        ৳{(item.product.price * item.quantity).toLocaleString()}
+                        {formatPrice(item.product.price * item.quantity)}
                       </span>
                     </div>
                   );
@@ -344,8 +370,8 @@ export const CheckoutModal: React.FC = () => {
               </div>
 
               <div className="pt-2 border-t border-rose-200 flex justify-between font-bold text-slate-900 text-sm">
-                <span>সর্বমোট পরিশোধযোগ্য:</span>
-                <span className="text-rose-700 font-black font-['Outfit']">৳{placedOrder.total.toLocaleString()}</span>
+                <span>{isEnglish ? 'Total Payable:' : 'সর্বমোট পরিশোধযোগ্য:'}</span>
+                <span className="text-rose-700 font-black font-['Outfit']">{formatPrice(placedOrder.total)}</span>
               </div>
             </div>
 
@@ -364,7 +390,7 @@ export const CheckoutModal: React.FC = () => {
                 className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
               >
                 <Truck className="w-4 h-4" />
-                <span>আপনার অর্ডার ট্র্যাক করুন</span>
+                <span>{isEnglish ? 'Track Your Order' : 'আপনার অর্ডার ট্র্যাক করুন'}</span>
               </button>
 
               <button
@@ -375,14 +401,14 @@ export const CheckoutModal: React.FC = () => {
                 className="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs sm:text-sm px-6 py-3 rounded-xl border border-rose-200 transition flex items-center gap-2 cursor-pointer"
               >
                 <ShoppingBag className="w-4 h-4 text-rose-600" />
-                <span>অর্ডার হিস্টোরি ও প্রোফাইল</span>
+                <span>{isEnglish ? 'Order History & Profile' : 'অর্ডার হিস্টোরি ও প্রোফাইল'}</span>
               </button>
 
               <button
                 onClick={handleClose}
                 className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm px-6 py-3 rounded-xl transition cursor-pointer"
               >
-                আরও কেনাকাটা করুন
+                {isEnglish ? 'Continue Shopping' : 'আরও কেনাকাটা করুন'}
               </button>
             </div>
           </div>
@@ -397,19 +423,19 @@ export const CheckoutModal: React.FC = () => {
                 {/* 1. Customer Information */}
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-3">
-                    <span className="w-5 h-5 rounded-full bg-rose-600 text-white text-xs flex items-center justify-center font-bold">1</span>
-                    <span>কাস্টমার ও ডেলিভারি তথ্য</span>
+                    <span className="w-5 h-5 rounded-full bg-rose-600 text-white text-xs flex items-center justify-center font-bold">{formatNumber(1)}</span>
+                    <span>{isEnglish ? 'Customer & Delivery Information' : 'কাস্টমার ও ডেলিভারি তথ্য'}</span>
                   </h4>
 
                   <div className="space-y-3">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        আপনার পুরো নাম <span className="text-rose-600">*</span>
+                        {isEnglish ? 'Your Full Name' : 'আপনার পুরো নাম'} <span className="text-rose-600">*</span>
                       </label>
                       <input
                         id="input-customer-name"
                         type="text"
-                        placeholder="যেমন: নুসরাত জাহান"
+                        placeholder={isEnglish ? 'e.g. Nusrat Jahan' : 'যেমন: নুসরাত জাহান'}
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         className={`w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border focus:outline-none focus:ring-2 ${
@@ -422,7 +448,7 @@ export const CheckoutModal: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 mb-1">
-                          মোবাইল নাম্বার <span className="text-rose-600">*</span>
+                          {isEnglish ? 'Phone Number' : 'মোবাইল নাম্বার'} <span className="text-rose-600">*</span>
                         </label>
                         <input
                           id="input-customer-phone"
@@ -439,7 +465,7 @@ export const CheckoutModal: React.FC = () => {
 
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 mb-1">
-                          বিকল্প মোবাইল নাম্বার (ঐচ্ছিক)
+                          {isEnglish ? 'Alternative Phone (Optional)' : 'বিকল্প মোবাইল নাম্বার (ঐচ্ছিক)'}
                         </label>
                         <input
                           id="input-customer-alt-phone"
@@ -454,13 +480,13 @@ export const CheckoutModal: React.FC = () => {
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        ইমেইল এড্রেস <span className="text-slate-400 font-normal">(অর্ডার কনফার্মেশন ও ইনভয়েস ইমেইলে পেতে)</span>
+                        {isEnglish ? 'Email Address' : 'ইমেইল এড্রেস'} <span className="text-slate-400 font-normal">({isEnglish ? 'Receive order confirmation & invoice by email' : 'অর্ডার কনফার্মেশন ও ইনভয়েস ইমেইলে পেতে'})</span>
                       </label>
                       <div className="relative">
                         <input
                           id="input-customer-email"
                           type="email"
-                          placeholder="আপনার ইমেইল দিন (যেমন: customer@example.com)"
+                          placeholder={isEnglish ? 'Enter your email (e.g. customer@example.com)' : 'আপনার ইমেইল দিন (যেমন: customer@example.com)'}
                           value={customerEmail}
                           onChange={(e) => setCustomerEmail(e.target.value)}
                           className={`w-full text-xs sm:text-sm pl-9 pr-3.5 py-2.5 rounded-xl border focus:outline-none focus:ring-2 ${
@@ -475,7 +501,7 @@ export const CheckoutModal: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 mb-1">
-                          জেলা <span className="text-rose-600">*</span>
+                          {isEnglish ? 'District' : 'জেলা'} <span className="text-rose-600">*</span>
                         </label>
                         <select
                           id="select-district"
@@ -496,7 +522,7 @@ export const CheckoutModal: React.FC = () => {
                           className="w-full text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:ring-rose-500 bg-slate-50/50 focus:outline-none focus:ring-2 font-medium text-slate-800"
                         >
                           {BANGLADESH_DISTRICTS.map((d) => (
-                            <option key={d} value={d}>{d}</option>
+                            <option key={d} value={d}>{translateDistrict(d)}</option>
                           ))}
                         </select>
                       </div>
@@ -504,7 +530,7 @@ export const CheckoutModal: React.FC = () => {
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <label className="block text-xs font-semibold text-slate-700">
-                            থানা / উপজেলা <span className="text-rose-600">*</span>
+                            {isEnglish ? 'Thana / Upazila' : 'থানা / উপজেলা'} <span className="text-rose-600">*</span>
                           </label>
                           <button
                             type="button"
@@ -514,7 +540,7 @@ export const CheckoutModal: React.FC = () => {
                             }}
                             className="text-[11px] text-rose-600 hover:text-rose-800 font-medium underline"
                           >
-                            {isCustomThana ? '📋 তালিকা দেখুন' : '✏️ নিজে লিখুন'}
+                            {isCustomThana ? (isEnglish ? '📋 Select List' : '📋 তালিকা দেখুন') : (isEnglish ? '✏️ Type Manually' : '✏️ নিজে লিখুন')}
                           </button>
                         </div>
 
@@ -540,17 +566,17 @@ export const CheckoutModal: React.FC = () => {
                               errors.thana ? 'border-red-400 focus:ring-red-400 bg-red-50/20' : 'border-slate-200 focus:ring-rose-500 bg-slate-50/50'
                             }`}
                           >
-                            <option value="">-- থানা বা উপজেলা সিলেক্ট করুন --</option>
+                            <option value="">{isEnglish ? '-- Select Thana or Upazila --' : '-- থানা বা উপজেলা সিলেক্ট করুন --'}</option>
                             {getThanasForDistrict(district).map((t) => (
                               <option key={t} value={t}>{t}</option>
                             ))}
-                            <option value="__custom__">➕ তালিকায় না পেলে নিজে লিখুন...</option>
+                            <option value="__custom__">{isEnglish ? '➕ Type manually if not listed...' : '➕ তালিকায় না পেলে নিজে লিখুন...'}</option>
                           </select>
                         ) : (
                           <input
                             id="input-thana"
                             type="text"
-                            placeholder="আপনার থানা বা উপজেলার নাম লিখুন..."
+                            placeholder={isEnglish ? 'Enter your Thana or Upazila...' : 'আপনার থানা বা উপজেলার নাম লিখুন...'}
                             value={thana}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -571,7 +597,7 @@ export const CheckoutModal: React.FC = () => {
 
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 mb-1">
-                          ডেলিভারি এলাকা <span className="text-rose-600">*</span>
+                          {isEnglish ? 'Delivery Zone' : 'ডেলিভারি এলাকা'} <span className="text-rose-600">*</span>
                         </label>
                         <select
                           id="select-zone"
@@ -579,9 +605,15 @@ export const CheckoutModal: React.FC = () => {
                           onChange={(e) => setDeliveryZone(e.target.value as DeliveryZoneId)}
                           className="w-full text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:ring-rose-500 bg-slate-50/50 focus:outline-none focus:ring-2"
                         >
-                          <option value="inside_dhaka">ঢাকা সিটি (৳{settings.deliveryCharges.insideDhaka})</option>
-                          <option value="sub_dhaka">ঢাকা উপশহর (সাভার/গাজীপুর) (৳{settings.deliveryCharges.subDhaka})</option>
-                          <option value="outside_dhaka">ঢাকার বাইরে (৳{settings.deliveryCharges.outsideDhaka})</option>
+                          <option value="inside_dhaka">
+                            {isEnglish ? `Dhaka City (${formatPrice(settings.deliveryCharges.insideDhaka)})` : `ঢাকা সিটি (${formatPrice(settings.deliveryCharges.insideDhaka)})`}
+                          </option>
+                          <option value="sub_dhaka">
+                            {isEnglish ? `Sub-Dhaka (Savar/Gazipur) (${formatPrice(settings.deliveryCharges.subDhaka)})` : `ঢাকা উপশহর (সাভার/গাজীপুর) (${formatPrice(settings.deliveryCharges.subDhaka)})`}
+                          </option>
+                          <option value="outside_dhaka">
+                            {isEnglish ? `Outside Dhaka (${formatPrice(settings.deliveryCharges.outsideDhaka)})` : `ঢাকার বাইরে (${formatPrice(settings.deliveryCharges.outsideDhaka)})`}
+                          </option>
                         </select>
                       </div>
                     </div>
@@ -589,13 +621,13 @@ export const CheckoutModal: React.FC = () => {
                     <div>
                       <div className="mb-1">
                         <label className="text-xs font-semibold text-slate-700">
-                          পূর্ণাঙ্গ ঠিকানা (বাসা/রোড/এলাকা) <span className="text-rose-600">*</span>
+                          {isEnglish ? 'Full Delivery Address (House/Road/Area)' : 'পূর্ণাঙ্গ ঠিকানা (বাসা/রোড/এলাকা)'} <span className="text-rose-600">*</span>
                         </label>
                       </div>
                       <textarea
                         id="textarea-address"
                         rows={2}
-                        placeholder="যেমন: বাড়ি নং ১২, রোড নং ৪, সেক্টর নং ৩, উত্তরা, ঢাকা"
+                        placeholder={isEnglish ? 'e.g. House 12, Road 4, Sector 3, Uttara, Dhaka' : 'যেমন: বাড়ি নং ১২, রোড নং ৪, সেক্টর নং ৩, উত্তরা, ঢাকা'}
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         className={`w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border focus:outline-none focus:ring-2 ${
@@ -608,13 +640,13 @@ export const CheckoutModal: React.FC = () => {
                     <div>
                       <div className="mb-1">
                         <label className="text-xs font-semibold text-slate-700">
-                          বিশেষ নির্দেশনা / নোট (ঐচ্ছিক)
+                          {isEnglish ? 'Special Instructions / Note (Optional)' : 'বিশেষ নির্দেশনা / নোট (ঐচ্ছিক)'}
                         </label>
                       </div>
                       <input
                         id="input-order-note"
                         type="text"
-                        placeholder="যেমন: বিকেলে ডেলিভারি করবেন বা নির্দিষ্ট কালার"
+                        placeholder={isEnglish ? 'e.g. Please deliver in the afternoon or preferred color' : 'যেমন: বিকেলে ডেলিভারি করবেন বা নির্দিষ্ট কালার'}
                         value={orderNote}
                         onChange={(e) => setOrderNote(e.target.value)}
                         className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 focus:ring-rose-500 focus:outline-none focus:ring-2"
@@ -626,8 +658,8 @@ export const CheckoutModal: React.FC = () => {
                 {/* 2. Payment Method */}
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-3">
-                    <span className="w-5 h-5 rounded-full bg-rose-600 text-white text-xs flex items-center justify-center font-bold">2</span>
-                    <span>পেমেন্ট পদ্ধতি নির্বাচন করুন</span>
+                    <span className="w-5 h-5 rounded-full bg-rose-600 text-white text-xs flex items-center justify-center font-bold">{formatNumber(2)}</span>
+                    <span>{isEnglish ? 'Select Payment Method' : 'পেমেন্ট পদ্ধতি নির্বাচন করুন'}</span>
                   </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -641,8 +673,8 @@ export const CheckoutModal: React.FC = () => {
                       }`}
                     >
                       <div className="text-base mb-1">💵</div>
-                      <p className="text-xs">ক্যাশ অন ডেলিভারি</p>
-                      <span className="text-[10px] text-slate-500 font-normal">হাতে পেয়ে টাকা</span>
+                      <p className="text-xs">{isEnglish ? 'Cash on Delivery' : 'ক্যাশ অন ডেলিভারি'}</p>
+                      <span className="text-[10px] text-slate-500 font-normal">{isEnglish ? 'Pay on receipt' : 'হাতে পেয়ে টাকা'}</span>
                     </div>
 
                     {/* bKash */}
@@ -655,8 +687,8 @@ export const CheckoutModal: React.FC = () => {
                       }`}
                     >
                       <div className="text-base mb-1">📱</div>
-                      <p className="text-xs text-pink-700 font-bold">বিকাশ (bKash)</p>
-                      <span className="text-[10px] text-slate-500 font-normal">মার্চেন্ট পেমেন্ট</span>
+                      <p className="text-xs text-pink-700 font-bold">{isEnglish ? 'bKash' : 'বিকাশ (bKash)'}</p>
+                      <span className="text-[10px] text-slate-500 font-normal">{isEnglish ? 'Merchant Payment' : 'মার্চেন্ট পেমেন্ট'}</span>
                     </div>
 
                     {/* Nagad */}
@@ -669,8 +701,8 @@ export const CheckoutModal: React.FC = () => {
                       }`}
                     >
                       <div className="text-base mb-1">💳</div>
-                      <p className="text-xs text-orange-700 font-bold">নগদ (Nagad)</p>
-                      <span className="text-[10px] text-slate-500 font-normal">সেন্ড মানি</span>
+                      <p className="text-xs text-orange-700 font-bold">{isEnglish ? 'Nagad' : 'নগদ (Nagad)'}</p>
+                      <span className="text-[10px] text-slate-500 font-normal">{isEnglish ? 'Send Money' : 'সেন্ড মানি'}</span>
                     </div>
                   </div>
 
@@ -680,8 +712,8 @@ export const CheckoutModal: React.FC = () => {
                       <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-rose-200">
                         <div>
                           <span className="text-[11px] text-slate-500">
-                            {paymentMethod === 'bkash' && 'বিকাশ নম্বর:'}
-                            {paymentMethod === 'nagad' && 'নগদ নম্বর:'}
+                            {paymentMethod === 'bkash' && (isEnglish ? 'bKash Number:' : 'বিকাশ নম্বর:')}
+                            {paymentMethod === 'nagad' && (isEnglish ? 'Nagad Number:' : 'নগদ নম্বর:')}
                           </span>
                           <p className="font-bold text-rose-700 text-sm">
                             {paymentMethod === 'bkash' && settings.bkashMerchantNumber}
@@ -699,18 +731,18 @@ export const CheckoutModal: React.FC = () => {
                           className="bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition"
                         >
                           {copiedText ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                          <span>{copiedText ? 'কপি হয়েছে' : 'কপি করুন'}</span>
+                          <span>{copiedText ? (isEnglish ? 'Copied' : 'কপি হয়েছে') : (isEnglish ? 'Copy' : 'কপি করুন')}</span>
                         </button>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                         <div>
                           <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                            আপনার প্রেরক নম্বর:
+                            {isEnglish ? 'Your Sender Number:' : 'আপনার প্রেরক নম্বর:'}
                           </label>
                           <input
                             type="tel"
-                            placeholder="যে নম্বর থেকে টাকা পাঠিয়েছেন"
+                            placeholder={isEnglish ? 'Number you sent payment from' : 'যে নম্বর থেকে টাকা পাঠিয়েছেন'}
                             value={senderAccount}
                             onChange={(e) => setSenderAccount(e.target.value)}
                             className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white"
@@ -718,11 +750,11 @@ export const CheckoutModal: React.FC = () => {
                         </div>
                         <div>
                           <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                            ট্রানজেকশন আইডি (TrxID) <span className="text-rose-600">*</span>:
+                            {isEnglish ? 'Transaction ID (TrxID)' : 'ট্রানজেকশন আইডি (TrxID)'} <span className="text-rose-600">*</span>:
                           </label>
                           <input
                             type="text"
-                            placeholder="যেমন: BKH92K81M4"
+                            placeholder={isEnglish ? 'e.g. BKH92K81M4' : 'যেমন: BKH92K81M4'}
                             value={trxId}
                             onChange={(e) => setTrxId(e.target.value)}
                             className={`w-full text-xs px-3 py-2 rounded-lg border bg-white ${
@@ -742,7 +774,11 @@ export const CheckoutModal: React.FC = () => {
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-3">
                     <ShoppingBag className="w-4 h-4 text-rose-600" />
-                    <span>অর্ডারের সারসংক্ষেপ ({checkoutItems.length} টি আইটেম)</span>
+                    <span>
+                      {isEnglish
+                        ? `Order Summary (${formatNumber(checkoutItems.length)} items)`
+                        : `অর্ডারের সারসংক্ষেপ (${formatNumber(checkoutItems.length)} টি আইটেম)`}
+                    </span>
                   </h4>
 
                   {/* Items List */}
@@ -750,32 +786,33 @@ export const CheckoutModal: React.FC = () => {
                     {checkoutItems.map((item, idx) => {
                       const itemImg = item.selectedImage || (item.product.images && item.product.images.length > 0 && item.product.images[0]) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80';
                       const colorHex = item.product.colors?.find(c => c.name === item.selectedColor)?.hex;
+                      const itemName = translateProductName(item.product);
 
                       return (
                         <div key={idx} className="flex gap-2.5 p-2 bg-white rounded-xl border border-rose-100 text-xs shadow-2xs">
                           <img
                             src={itemImg}
-                            alt={item.product.bengaliName}
+                            alt={itemName}
                             className="w-12 h-14 object-cover rounded-lg shrink-0 border border-rose-100"
                             onError={(e) => {
                               e.currentTarget.src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80';
                             }}
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-slate-800 truncate">{item.product.bengaliName}</p>
+                            <p className="font-bold text-slate-800 truncate">{itemName}</p>
                             <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5 flex-wrap">
-                              <span>সাইজ: <strong className="text-slate-700">{item.selectedSize}</strong></span>
+                              <span>{isEnglish ? 'Size:' : 'সাইজ:'} <strong className="text-slate-700">{translateSize(item.selectedSize)}</strong></span>
                               {item.selectedColor && (
                                 <span className="inline-flex items-center gap-1">
                                   {colorHex && (
                                     <span className="w-2 h-2 rounded-full border border-black/20 shrink-0" style={{ backgroundColor: colorHex }} />
                                   )}
-                                  <span>রঙ: <strong className="text-slate-700">{item.selectedColor}</strong></span>
+                                  <span>{isEnglish ? 'Color:' : 'রঙ:'} <strong className="text-slate-700">{translateColor(item.selectedColor)}</strong></span>
                                 </span>
                               )}
-                              <span>| পরিমাণ: {item.quantity}</span>
+                              <span>| {isEnglish ? 'Qty:' : 'পরিমাণ:'} {formatNumber(item.quantity)}</span>
                             </div>
-                            <p className="font-bold text-rose-700 font-['Outfit'] mt-0.5">৳{(item.product.price * item.quantity).toLocaleString()}</p>
+                            <p className="font-bold text-rose-700 font-['Outfit'] mt-0.5">{formatPrice(item.product.price * item.quantity)}</p>
                           </div>
                         </div>
                       );
@@ -785,23 +822,23 @@ export const CheckoutModal: React.FC = () => {
                   {/* Calculation Box */}
                   <div className="mt-4 p-3 bg-white rounded-2xl border border-rose-100 space-y-2 text-xs">
                     <div className="flex justify-between text-slate-600">
-                      <span>পণ্যের সাবটোটাল:</span>
-                      <span className="font-bold text-slate-900 font-['Outfit']">৳{subtotal.toLocaleString()}</span>
+                      <span>{isEnglish ? 'Items Subtotal:' : 'পণ্যের সাবটোটাল:'}</span>
+                      <span className="font-bold text-slate-900 font-['Outfit']">{formatPrice(subtotal)}</span>
                     </div>
 
                     <div className="flex justify-between text-slate-600">
-                      <span>ডেলিভারি চার্জ:</span>
+                      <span>{isEnglish ? 'Delivery Charge:' : 'ডেলিভারি চার্জ:'}</span>
                       {deliveryFee === 0 ? (
-                        <span className="font-bold text-emerald-600">ফ্রি ডেলিভারি 🎉</span>
+                        <span className="font-bold text-emerald-600">{isEnglish ? 'Free Delivery 🎉' : 'ফ্রি ডেলিভারি 🎉'}</span>
                       ) : (
-                        <span className="font-bold text-slate-900 font-['Outfit']">৳{deliveryFee}</span>
+                        <span className="font-bold text-slate-900 font-['Outfit']">{formatPrice(deliveryFee)}</span>
                       )}
                     </div>
 
                     <div className="pt-2 border-t border-rose-100 flex justify-between items-baseline font-bold text-slate-900 text-sm">
-                      <span>সর্বমোট মূল্য:</span>
+                      <span>{isEnglish ? 'Grand Total:' : 'সর্বমোট মূল্য:'}</span>
                       <span className="text-xl font-black text-rose-700 font-['Outfit']">
-                        ৳{grandTotal.toLocaleString()}
+                        {formatPrice(grandTotal)}
                       </span>
                     </div>
                   </div>
@@ -813,15 +850,25 @@ export const CheckoutModal: React.FC = () => {
                         <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
                         <span>
                           {totalItemCount >= freeMinItems 
-                            ? `🎉 অভিনন্দন! ৩টি বা ততোধিক (${totalItemCount}টি) পোশাক অর্ডারে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি!`
-                            : `🎉 অভিনন্দন! ৩,০০০+ টাকার (৳${subtotal.toLocaleString()}) অর্ডারে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি!`}
+                            ? (isEnglish
+                                ? `🎉 Congrats! Free delivery unlocked for ${formatNumber(totalItemCount)} items!`
+                                : `🎉 অভিনন্দন! ৩টি বা ততোধিক (${formatNumber(totalItemCount)}টি) পোশাক অর্ডারে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি!`)
+                            : (isEnglish
+                                ? `🎉 Congrats! Free delivery unlocked on orders over ${formatPrice(freeThreshold)} (${formatPrice(subtotal)})!`
+                                : `🎉 অভিনন্দন! ৩,০০০+ টাকার (${formatPrice(subtotal)}) অর্ডারে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি!`)}
                         </span>
                       </div>
                     ) : (
                       <div className="p-2.5 bg-pink-50/70 rounded-xl border border-pink-200 text-xs text-rose-800 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                        <span className="font-medium">💡 যেকোনো ৩টি পোশাকে বা ৩,০০০+ টাকার অর্ডারে ডেলিভারি ফ্রি!</span>
+                        <span className="font-medium">
+                          {isEnglish
+                            ? `💡 Free delivery on ${formatNumber(freeMinItems)} dresses or ${formatPrice(freeThreshold)}+ orders!`
+                            : '💡 যেকোনো ৩টি পোশাকে বা ৩,০০০+ টাকার অর্ডারে ডেলিভারি ফ্রি!'}
+                        </span>
                         <span className="font-bold text-[11px] text-rose-700 bg-white px-2 py-0.5 rounded-md border border-rose-200 shadow-2xs self-start sm:self-auto">
-                          আরও {Math.max(1, freeMinItems - totalItemCount)}টি পোশাক যোগ করুন
+                          {isEnglish
+                            ? `Add ${formatNumber(Math.max(1, freeMinItems - totalItemCount))} more`
+                            : `আরও ${formatNumber(Math.max(1, freeMinItems - totalItemCount))}টি পোশাক যোগ করুন`}
                         </span>
                       </div>
                     )}
@@ -831,7 +878,9 @@ export const CheckoutModal: React.FC = () => {
                   <div className="mt-3 p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-800 flex items-start gap-2">
                     <span className="text-amber-600 font-bold shrink-0">⚠️</span>
                     <span>
-                      ক্যাশ অন ডেলিভারিতে কোনো অগ্রিম টাকা নেওয়া হয় না। পার্সেল ডেলিভারি ম্যানের সামনে চেক করে রিসিভ করবেন।
+                      {isEnglish
+                        ? 'No advance payment is required for Cash on Delivery. Check your parcel in front of the delivery agent before paying.'
+                        : 'ক্যাশ অন ডেলিভারিতে কোনো অগ্রিম টাকা নেওয়া হয় না। পার্সেল ডেলিভারি ম্যানের সামনে চেক করে রিসিভ করবেন।'}
                     </span>
                   </div>
                 </div>
@@ -844,10 +893,16 @@ export const CheckoutModal: React.FC = () => {
                     className="w-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-bold text-sm py-3.5 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 active:scale-95"
                   >
                     <CheckCircle2 className="w-5 h-5" />
-                    <span>অর্ডার কনফার্ম করুন (৳{grandTotal.toLocaleString()})</span>
+                    <span>
+                      {isEnglish
+                        ? `Confirm Order (${formatPrice(grandTotal)})`
+                        : `অর্ডার কনফার্ম করুন (${formatPrice(grandTotal)})`}
+                    </span>
                   </button>
                   <p className="text-[10px] text-slate-400 text-center mt-2">
-                    অর্ডার কনফার্ম করার মাধ্যমে আপনি আমাদের শর্তাবলীতে সম্মতি জানাচ্ছেন।
+                    {isEnglish
+                      ? 'By confirming your order, you agree to our terms and conditions.'
+                      : 'অর্ডার কনফার্ম করার মাধ্যমে আপনি আমাদের শর্তাবলীতে সম্মতি জানাচ্ছেন।'}
                   </p>
                 </div>
               </div>

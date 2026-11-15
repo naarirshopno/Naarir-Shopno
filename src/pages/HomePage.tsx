@@ -31,7 +31,7 @@ export const HomePage: React.FC = () => {
     settings 
   } = useShop();
 
-  const { t, formatNumber } = useLanguage();
+  const { t, formatNumber, formatPrice, isEnglish } = useLanguage();
 
   // Filter & Sort Logic
   const filteredProducts = useMemo(() => {
@@ -199,23 +199,27 @@ export const HomePage: React.FC = () => {
             {products.length === 0 ? (
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-600 text-xs font-semibold">
-                  <span>🌸 নারীর স্বপ্ন এক্সক্লুসিভ কালেকশন</span>
+                  <span>{isEnglish ? '🌸 Naarir Shopno Exclusive Collection' : '🌸 নারীর স্বপ্ন এক্সক্লুসিভ কালেকশন'}</span>
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 font-['Hind_Siliguri']">
-                  নতুন কালেকশন শীঘ্রই আসছে!
+                  {isEnglish ? 'New Collection Coming Soon!' : 'নতুন কালেকশন শীঘ্রই আসছে!'}
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-sm mx-auto">
-                  আমাদের প্রিমিয়াম ডিজাইনার পোশাকগুলোর নতুন কালেকশন খুব শীঘ্রই যুক্ত করা হচ্ছে। আকর্ষণীয় সব অফার ও আপডেটের জন্য আমাদের সাথে থাকুন।
+                  {isEnglish
+                    ? 'Our premium designer collections are being added very soon. Stay tuned for exclusive offers and updates.'
+                    : 'আমাদের প্রিমিয়াম ডিজাইনার পোশাকগুলোর নতুন কালেকশন খুব শীঘ্রই যুক্ত করা হচ্ছে। আকর্ষণীয় সব অফার ও আপডেটের জন্য আমাদের সাথে থাকুন।'}
                 </p>
               </div>
             ) : (
               <div className="space-y-2">
                 <div className="space-y-1">
                   <h3 className="text-lg font-bold text-slate-900 font-['Hind_Siliguri']">
-                    কোনো পোশাক খুঁজে পাওয়া যায়নি
+                    {isEnglish ? 'No Dresses Found' : 'কোনো পোশাক খুঁজে পাওয়া যায়নি'}
                   </h3>
                   <p className="text-xs text-slate-500">
-                    আপনার দেওয়া ফিল্টার বা সার্চ কিওয়ার্ডের সাথে মেলে এমন কোনো পণ্য পাওয়া যায়নি।
+                    {isEnglish
+                      ? 'No products matched your selected filters or search keywords.'
+                      : 'আপনার দেওয়া ফিল্টার বা সার্চ কিওয়ার্ডের সাথে মেলে এমন কোনো পণ্য পাওয়া যায়নি।'}
                   </p>
                 </div>
                 <button
@@ -223,7 +227,7 @@ export const HomePage: React.FC = () => {
                   className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow transition inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>ফিল্টার রিসেট করুন</span>
+                  <span>{isEnglish ? 'Reset Filters' : 'ফিল্টার রিসেট করুন'}</span>
                 </button>
               </div>
             )}
@@ -240,7 +244,11 @@ export const HomePage: React.FC = () => {
           <div className="flex items-center gap-2 font-medium">
             <Truck className="w-4 h-4 text-rose-600 shrink-0" />
             <span>
-              ঢাকা সিটিতে ডেলিভারি চার্জ মাত্র <strong>৳{settings.deliveryCharges.insideDhaka}</strong>, সারাদেশে <strong>৳{settings.deliveryCharges.outsideDhaka}</strong>
+              {isEnglish ? (
+                <>Delivery charge inside Dhaka <strong>{formatPrice(settings.deliveryCharges.insideDhaka)}</strong>, nationwide <strong>{formatPrice(settings.deliveryCharges.outsideDhaka)}</strong></>
+              ) : (
+                <>ঢাকা সিটিতে ডেলিভারি চার্জ মাত্র <strong>{formatPrice(settings.deliveryCharges.insideDhaka)}</strong>, সারাদেশে <strong>{formatPrice(settings.deliveryCharges.outsideDhaka)}</strong></>
+              )}
             </span>
           </div>
 
@@ -249,7 +257,7 @@ export const HomePage: React.FC = () => {
               to="/delivery-info"
               className="text-rose-700 hover:text-rose-800 font-bold underline flex items-center gap-0.5 text-xs cursor-pointer"
             >
-              <span>ডেলিভারি পলিসি ও চার্জ বিবরণী</span>
+              <span>{isEnglish ? 'Delivery Policy & Charges' : 'ডেলিভারি পলিসি ও চার্জ বিবরণী'}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
             <span className="text-slate-300">|</span>
@@ -257,7 +265,7 @@ export const HomePage: React.FC = () => {
               to="/track"
               className="text-slate-700 hover:text-rose-600 font-bold flex items-center gap-1 text-xs"
             >
-              <span>পার্সেল ট্র্যাক করুন</span>
+              <span>{isEnglish ? 'Track Parcel' : 'পার্সেল ট্র্যাক করুন'}</span>
             </Link>
           </div>
         </div>
