@@ -72,7 +72,7 @@ export const HeroBanner: React.FC = () => {
               <h4 className="text-xs sm:text-sm font-bold text-slate-800">
                 {isEnglish ? 'Fast Nationwide Delivery' : 'সারাদেশে দ্রুত ডেলিভারি'}
               </h4>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 {isEnglish ? '24-48 hrs in Dhaka' : 'ঢাকার ভেতরে ২৪-৪৮ ঘণ্টা'}
               </p>
             </div>
@@ -87,7 +87,7 @@ export const HeroBanner: React.FC = () => {
               <h4 className="text-xs sm:text-sm font-bold text-slate-800">
                 {isEnglish ? '100% Quality Guarantee' : '১০০% কোয়ালিটি গ্যারান্টি'}
               </h4>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 {isEnglish ? 'Pure fabric & color fast' : 'কালার ও ফেব্রিক শতভাগ খাঁটি'}
               </p>
             </div>
@@ -102,7 +102,7 @@ export const HeroBanner: React.FC = () => {
               <h4 className="text-xs sm:text-sm font-bold text-slate-800">
                 {isEnglish ? 'Easy Return & Exchange' : 'সহজ রিটার্ন ও এক্সচেঞ্জ'}
               </h4>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 {isEnglish ? '3-day size replacement' : '৩ দিনের মধ্যে পরিবর্তনের সুবিধা'}
               </p>
             </div>
@@ -177,7 +177,7 @@ export const HeroBanner: React.FC = () => {
                       Official
                     </span>
                   </div>
-                  <p className="text-[9px] sm:text-[10px] text-pink-200 font-medium leading-none tracking-widest uppercase mt-0.5">
+                  <p className="text-[10px] sm:text-xs text-pink-200 font-medium leading-none tracking-widest uppercase mt-0.5">
                     {isEnglish ? "Dress Your Dreams • Women's Boutique" : 'Dress Your Dreams • উইমেন্স বুটিক'}
                   </p>
                 </div>
@@ -186,7 +186,7 @@ export const HeroBanner: React.FC = () => {
 
             {/* Top Right Hotline Watermark */}
             <div className="absolute top-3 right-3 sm:top-5 sm:right-5 z-20 pointer-events-none select-none hidden sm:block">
-              <div className="bg-black/75 border border-white/20 px-3.5 py-1 rounded-full text-white text-[11px] font-bold flex items-center gap-1.5 shadow">
+              <div className="bg-black/75 border border-white/20 px-3.5 py-1 rounded-full text-white text-xs font-bold flex items-center gap-1.5 shadow">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-xs"></span>
                 <span>
                   {isEnglish ? `Direct Support: ${settings.hotline1 || '09617-541717'}` : `সরাসরি ফোন সাপোর্ট: ${settings.hotline1 || '09617-541717'}`}
@@ -201,7 +201,7 @@ export const HeroBanner: React.FC = () => {
                   <Sparkles className="w-4 h-4 text-amber-300" />
                   <span>{isEnglish ? 'Exclusive Live Collection 2026' : 'এক্সক্লুসিভ লাইভ কালেকশন ২০২৬'}</span>
                 </div>
-                <p className="text-[11px] sm:text-xs text-slate-300 hidden sm:block">
+                <p className="text-xs sm:text-sm text-slate-200 hidden sm:block">
                   {isEnglish ? 'Best collection of premium three-pieces, jamdani sarees & designer kurtis' : 'প্রিমিয়াম জর্জেট থ্রি-পিস, জামদানি শাড়ি ও ডিজাইনার কুর্তির সেরা সংগ্রহ'}
                 </p>
               </div>

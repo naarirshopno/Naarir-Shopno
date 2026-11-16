@@ -264,18 +264,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
         <div>
           {/* Category & Rating */}
           <div className="flex items-center justify-between gap-1 mb-1">
-            <span className="text-[11px] font-semibold text-rose-600 uppercase tracking-wider truncate">
+            <span className="text-xs font-semibold text-rose-600 uppercase tracking-wider truncate">
               {displayCategory}
             </span>
-            <div className="flex items-center gap-1 text-[11px] text-amber-500 font-semibold shrink-0">
-              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+            <div className="flex items-center gap-1 text-xs text-amber-500 font-semibold shrink-0">
+              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
               <span>{formatNumber(product.rating)}</span>
             </div>
           </div>
 
           {/* Title (Bengali / English based on language preference) */}
           <h3 
-            className="text-xs sm:text-sm font-bold text-slate-800 line-clamp-2 hover:text-rose-600 transition-colors font-['Hind_Siliguri'] leading-snug cursor-pointer"
+            className="text-sm sm:text-base font-bold text-slate-800 line-clamp-2 hover:text-rose-600 transition-colors font-['Hind_Siliguri'] leading-snug cursor-pointer"
             title={isEnglish ? (product.name || product.bengaliName) : product.bengaliName}
           >
             {isEnglish ? (product.name || product.bengaliName) : product.bengaliName}
@@ -299,7 +299,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
           {/* Stock Count Badge */}
           {product.stockCount !== undefined && (
             <span 
-              className={`text-[10px] font-bold px-2 py-0.5 rounded-md inline-flex items-center gap-1 shrink-0 ${
+              className={`text-[11px] font-bold px-2 py-0.5 rounded-md inline-flex items-center gap-1 shrink-0 ${
                 isOutOfStock
                   ? 'text-rose-700 bg-rose-50 border border-rose-200'
                   : product.stockCount < 5

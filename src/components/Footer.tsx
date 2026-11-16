@@ -24,7 +24,7 @@ export const Footer: React.FC = () => {
   const { t, isEnglish, translateSupportHours, translateOfficeAddress } = useLanguage();
 
   return (
-    <footer className="relative bg-neutral-950 text-slate-200 pt-14 pb-48 sm:pb-14 border-t border-rose-950/40 overflow-hidden">
+    <footer className="relative bg-neutral-950 text-slate-200 pt-8 pb-20 sm:pt-10 sm:pb-8 border-t border-rose-950/40 overflow-hidden">
       {/* 30% JolChap (Watermark) Background Image Layer */}
       <div 
         className="absolute inset-0 pointer-events-none bg-cover bg-center bg-no-repeat opacity-30"
@@ -38,7 +38,7 @@ export const Footer: React.FC = () => {
 
       <div className="relative z-10">
       {/* Main Footer Links & Info */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8">
           
           {/* Brand Col */}
@@ -55,14 +55,14 @@ export const Footer: React.FC = () => {
                 />
               </div>
               <div>
-                <h3 className="text-lg font-black text-white font-['Hind_Siliguri']">{t('brand.name')}</h3>
+                <h3 className="text-xl font-black text-white font-['Hind_Siliguri']">{t('brand.name')}</h3>
                 <p className="text-xs text-rose-400 font-medium">
                   {t('brand.slogan')} • {t('brand.tagline')}
                 </p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-sm text-slate-300 leading-relaxed">
               {t('footer.about_desc')}
             </p>
 
@@ -115,10 +115,10 @@ export const Footer: React.FC = () => {
 
           {/* Quick Links */}
           <div className="lg:col-span-2 space-y-3">
-            <h4 className="text-white font-bold text-sm font-['Hind_Siliguri']">
+            <h4 className="text-white font-bold text-base font-['Hind_Siliguri']">
               {isEnglish ? 'Quick Links' : 'জরুরি লিংক'}
             </h4>
-            <ul className="space-y-2 text-xs text-slate-400">
+            <ul className="space-y-2 text-sm text-slate-300">
               <li>
                 <Link to="/profile" className="hover:text-rose-400 font-semibold text-rose-300 transition text-left block">
                   {isEnglish ? 'My Profile & Orders' : 'আমার প্রোফাইল ও অর্ডার হিস্টোরি'}
@@ -160,31 +160,31 @@ export const Footer: React.FC = () => {
 
           {/* Customer Care */}
           <div className="lg:col-span-3 space-y-3">
-            <h4 className="text-white font-bold text-sm font-['Hind_Siliguri']">
+            <h4 className="text-white font-bold text-base font-['Hind_Siliguri']">
               {isEnglish ? 'Customer Support' : 'কাস্টমার সাপোর্ট'}
             </h4>
-            <div className="space-y-2.5 text-xs text-slate-400">
+            <div className="space-y-2.5 text-sm text-slate-300">
               <div className="flex items-start gap-2">
                 <Phone className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-slate-300 font-bold">
+                  <p className="text-slate-200 font-bold">
                     {isEnglish ? 'Direct Phone Support:' : 'সরাসরি ফোন সাপোর্ট:'}
                   </p>
                   <a
                     href={`tel:${(settings.hotline1 || '09617-541717').replace(/[^0-9]/g, '')}`}
-                    className="font-mono text-white text-sm font-bold hover:text-rose-400 block transition mt-0.5"
+                    className="font-mono text-white text-base font-bold hover:text-rose-400 block transition mt-0.5"
                   >
                     📞 {settings.hotline1 || '09617-541717'}
                   </a>
                   {settings.hotline2 && settings.hotline2 !== settings.hotline1 && (
                     <a
                       href={`tel:${settings.hotline2.replace(/[^0-9]/g, '')}`}
-                      className="font-mono text-slate-300 text-xs hover:text-rose-400 block transition mt-0.5"
+                      className="font-mono text-slate-300 text-sm hover:text-rose-400 block transition mt-0.5"
                     >
                       {isEnglish ? `Alt: ${settings.hotline2}` : `বিকল্প: ${settings.hotline2}`}
                     </a>
                   )}
-                  <p className="text-emerald-400 text-[11px] font-semibold mt-1">
+                  <p className="text-emerald-400 text-xs font-semibold mt-1">
                     {translateSupportHours(settings.supportHours)}
                   </p>
                 </div>
@@ -207,7 +207,7 @@ export const Footer: React.FC = () => {
                     }
                     target="_blank"
                     rel="noreferrer"
-                    className="font-mono text-emerald-400 hover:text-emerald-300 text-xs flex items-center gap-1 underline"
+                    className="font-mono text-emerald-400 hover:text-emerald-300 text-sm flex items-center gap-1 underline"
                   >
                     <span>{settings.whatsappNumber || settings.hotline1 || '01911-541717'}</span>
                   </a>
@@ -234,22 +234,22 @@ export const Footer: React.FC = () => {
 
           {/* Payment & Security */}
           <div className="lg:col-span-3 space-y-3">
-            <h4 className="text-white font-bold text-sm font-['Hind_Siliguri']">
+            <h4 className="text-white font-bold text-base font-['Hind_Siliguri']">
               {isEnglish ? 'Payment Methods' : 'পেমেন্ট মেথডসমূহ'}
             </h4>
-            <p className="text-xs text-slate-400">
+            <p className="text-sm text-slate-300">
               {isEnglish
                 ? 'We accept Cash on Delivery along with safe bKash and Nagad payments.'
                 : 'আমরা ক্যাশ অন ডেলিভারির পাশাপাশি বিকাশ ও নগদের মাধ্যমে নিরাপদ পেমেন্ট গ্রহণ করি।'}
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
-              <div className="px-3 py-1.5 rounded-lg bg-black/60 border border-white/15 text-[11px] font-bold text-white flex items-center gap-1 shadow-xs">
+              <div className="px-3 py-1.5 rounded-lg bg-black/60 border border-white/15 text-xs font-bold text-white flex items-center gap-1 shadow-xs">
                 <span>💵 {isEnglish ? 'Cash on Delivery' : 'ক্যাশ অন ডেলিভারি'}</span>
               </div>
-              <div className="px-3 py-1.5 rounded-lg bg-pink-950/80 border border-pink-700/60 text-[11px] font-bold text-pink-300 flex items-center gap-1 shadow-xs">
+              <div className="px-3 py-1.5 rounded-lg bg-pink-950/80 border border-pink-700/60 text-xs font-bold text-pink-300 flex items-center gap-1 shadow-xs">
                 <span>📱 {isEnglish ? 'bKash' : 'বিকাশ (bKash)'}</span>
               </div>
-              <div className="px-3 py-1.5 rounded-lg bg-orange-950/80 border border-orange-700/60 text-[11px] font-bold text-orange-300 flex items-center gap-1 shadow-xs">
+              <div className="px-3 py-1.5 rounded-lg bg-orange-950/80 border border-orange-700/60 text-xs font-bold text-orange-300 flex items-center gap-1 shadow-xs">
                 <span>💳 {isEnglish ? 'Nagad' : 'নগদ (Nagad)'}</span>
               </div>
             </div>
@@ -259,18 +259,15 @@ export const Footer: React.FC = () => {
       </div>
 
       {/* Bottom Copyright & Admin Direct Entry */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-300">
         <p>© {new Date().getFullYear()} {t('footer.rights')}</p>
 
-        <p className="flex items-center gap-1 text-[11px]">
+        <p className="flex items-center gap-1 text-xs">
           Made with <Heart className="w-3.5 h-3.5 text-rose-500 fill-current" /> for Bengali Women Fashion
         </p>
       </div>
 
       </div>
-
-      {/* Dedicated mobile safe buffer to guarantee no overlap with bottom action bar or music pill */}
-      <div className="h-16 sm:hidden pointer-events-none" aria-hidden="true" />
     </footer>
   );
 };

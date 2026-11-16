@@ -535,14 +535,14 @@ export const Header: React.FC = () => {
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <h1 className="text-sm sm:text-2xl font-bold tracking-tight text-rose-700 font-['Hind_Siliguri'] leading-none sm:leading-tight whitespace-nowrap">
+                <h1 className="text-[15px] sm:text-2xl font-bold tracking-tight text-rose-700 font-['Hind_Siliguri'] leading-none sm:leading-tight whitespace-nowrap">
                   {t('brand.name')}
                 </h1>
-                <span className="hidden xl:inline-block text-rose-600/90 text-[11px] font-semibold tracking-wide uppercase whitespace-nowrap">
+                <span className="hidden xl:inline-block text-rose-600/90 text-xs font-semibold tracking-wide uppercase whitespace-nowrap">
                   {t('brand.tagline')}
                 </span>
               </div>
-              <p className="text-[8px] sm:text-xs text-rose-500 italic font-medium leading-tight whitespace-nowrap">
+              <p className="text-[9.5px] sm:text-xs text-rose-500 italic font-medium leading-tight whitespace-nowrap">
                 {t('brand.slogan')}
               </p>
             </div>
