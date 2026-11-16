@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Sparkles, Volume2 } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 const INTRO_VIDEO_SRC = '/assets/aistudio/AI_Tools_66ed6d4f.mp4';
@@ -16,7 +16,6 @@ export const IntroVideoOverlay: React.FC<IntroVideoOverlayProps> = ({ onComplete
   const safetyTimerRef = useRef<number | null>(null);
 
   const [isClosing, setIsClosing] = useState(false);
-  const [needsAudioTap, setNeedsAudioTap] = useState(false);
   const [isBuffering, setIsBuffering] = useState(true);
   const [progress, setProgress] = useState(0);
 
@@ -34,7 +33,7 @@ export const IntroVideoOverlay: React.FC<IntroVideoOverlayProps> = ({ onComplete
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    // Generous safety cap only in case the media stream completely stalls on offline/broken networks
+    // Generous safety cap only in case media stalls completely on broken networks
     safetyTimerRef.current = window.setTimeout(() => {
       if (!isCancelled) {
         finishIntro();
@@ -43,29 +42,37 @@ export const IntroVideoOverlay: React.FC<IntroVideoOverlayProps> = ({ onComplete
 
     const videoEl = videoRef.current;
 
+    const tryAutoUnmuteOnGesture = () => {
+      if (!videoEl || isCancelled) return;
+      if (videoEl.muted) {
+        videoEl.muted = false;
+        videoEl.defaultMuted = false;
+        videoEl.volume = 1;
+        videoEl.play().catch(() => {});
+      }
+    };
+
     const startPlayback = async () => {
       if (!videoEl || isCancelled) return;
       try {
+        videoEl.defaultMuted = false;
         videoEl.muted = false;
         videoEl.volume = 1;
         await videoEl.play();
-        if (!isCancelled) {
-          setNeedsAudioTap(false);
-        }
       } catch (err) {
         if (isCancelled) return;
         const errName = err instanceof DOMException ? err.name : '';
         if (errName === 'AbortError') return;
 
-        // Browser autoplay policy blocked unmuted audio prior to user gesture:
-        // start playback muted immediately so video visibly plays and never skips ahead to HomePage,
-        // while allowing one-tap unmute anywhere on screen.
+        // If browser autoplay policy rejects unmuted cold-load playback, keep video playing smoothly
+        // without blocking or showing any tap prompt, and silently unlock audio if any interaction occurs.
         try {
           videoEl.muted = true;
-          setNeedsAudioTap(true);
           await videoEl.play();
+          window.addEventListener('pointerdown', tryAutoUnmuteOnGesture, { once: true, passive: true });
+          window.addEventListener('touchstart', tryAutoUnmuteOnGesture, { once: true, passive: true });
+          window.addEventListener('keydown', tryAutoUnmuteOnGesture, { once: true, passive: true });
         } catch {
-          // If even muted playback fails (e.g., strict battery-saver mode), hold brief brand moment then enter store
           window.setTimeout(() => {
             if (!isCancelled) finishIntro();
           }, 3000);
@@ -78,25 +85,16 @@ export const IntroVideoOverlay: React.FC<IntroVideoOverlayProps> = ({ onComplete
     return () => {
       isCancelled = true;
       document.body.style.overflow = prevOverflow;
+      window.removeEventListener('pointerdown', tryAutoUnmuteOnGesture);
+      window.removeEventListener('touchstart', tryAutoUnmuteOnGesture);
+      window.removeEventListener('keydown', tryAutoUnmuteOnGesture);
       if (safetyTimerRef.current !== null) window.clearTimeout(safetyTimerRef.current);
       if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
     };
   }, [finishIntro]);
 
-  const handleEnableSound = () => {
-    const videoEl = videoRef.current;
-    if (!videoEl) return;
-    videoEl.muted = false;
-    videoEl.volume = 1;
-    setNeedsAudioTap(false);
-    if (videoEl.paused) {
-      videoEl.play().catch(() => {});
-    }
-  };
-
   const handlePlaying = () => {
     setIsBuffering(false);
-    // Reset safety timer relative to when playback actually begins
     if (safetyTimerRef.current !== null) {
       window.clearTimeout(safetyTimerRef.current);
     }
@@ -128,8 +126,6 @@ export const IntroVideoOverlay: React.FC<IntroVideoOverlayProps> = ({ onComplete
       role="dialog"
       aria-modal="true"
       aria-label={isEnglish ? 'Naarir Shopno Welcome Intro' : 'নারীর স্বপ্ন স্বাগতম ভিডিও'}
-      onClick={needsAudioTap ? handleEnableSound : undefined}
-      onTouchStart={needsAudioTap ? handleEnableSound : undefined}
       className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-br from-[#fdf2f5] via-[#fae6ec] to-[#f5d9e2] px-4 py-6 transition-opacity duration-500 ${
         isClosing ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
@@ -140,26 +136,12 @@ export const IntroVideoOverlay: React.FC<IntroVideoOverlayProps> = ({ onComplete
         aria-hidden="true"
       />
 
-      {/* Top Welcome Pill & Unmute Hint (No Skip Intro button) */}
-      <div className="relative z-10 w-full max-w-4xl flex items-center justify-center sm:justify-between gap-3 mb-4">
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/90 border border-rose-200 shadow-xs text-rose-700 text-xs font-bold">
+      {/* Top Welcome Pill (Clean, zero interactive buttons) */}
+      <div className="relative z-10 w-full max-w-4xl flex items-center justify-center mb-4">
+        <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/90 border border-rose-200 shadow-xs text-rose-700 text-xs font-bold">
           <Sparkles className="w-3.5 h-3.5 text-rose-500" />
           <span>{isEnglish ? 'Welcome to Naarir Shopno' : 'নারীর স্বপ্নে স্বাগতম'}</span>
         </div>
-
-        {needsAudioTap && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEnableSound();
-            }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md animate-pulse cursor-pointer"
-          >
-            <Volume2 className="w-3.5 h-3.5" />
-            <span>{isEnglish ? 'Tap for Sound' : 'সাউন্ড চালু করুন'}</span>
-          </button>
-        )}
       </div>
 
       {/* Centered Responsive Intro Video Frame */}
@@ -177,6 +159,7 @@ export const IntroVideoOverlay: React.FC<IntroVideoOverlayProps> = ({ onComplete
         <video
           ref={videoRef}
           src={INTRO_VIDEO_SRC}
+          autoPlay
           playsInline
           preload="auto"
           onPlaying={handlePlaying}
