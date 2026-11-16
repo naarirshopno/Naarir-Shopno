@@ -5,6 +5,7 @@ import { CategoryType } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/initialData';
 import { useLanguage } from '../context/LanguageContext';
 import { PWAInstallButton } from './PWAInstallButton';
+import { matchesCategorySearch, matchesProductSearch } from '../utils/bilingualSearch';
 import { 
   Phone, 
   Search, 
@@ -231,37 +232,15 @@ export const Header: React.FC = () => {
 
   const matchedCategories = useMemo(() => {
     if (!trimmedQuery) return [];
-    return categories.filter(c => 
-      c.id !== 'all' && (
-        c.label.toLowerCase().includes(trimmedQuery) ||
-        translateCategory(c.label).toLowerCase().includes(trimmedQuery) ||
-        c.id.toLowerCase().includes(trimmedQuery)
-      )
+    return categories.filter(
+      (c) => c.id !== 'all' && matchesCategorySearch(c, translateCategory(c.label), trimmedQuery)
     );
   }, [categories, trimmedQuery, translateCategory]);
 
   const matchedProducts = useMemo(() => {
     if (!trimmedQuery) return [];
-    return products.filter(p => {
-      const name = (p.name || '').toLowerCase();
-      const bengaliName = (p.bengaliName || '').toLowerCase();
-      const cat = (p.category || '').toLowerCase();
-      const catBn = (p.categoryBengali || '').toLowerCase();
-      const catTranslated = translateCategory(p.categoryBengali || p.category).toLowerCase();
-      const fabric = (p.fabric || '').toLowerCase();
-      const desc = (p.description || '').toLowerCase();
-
-      return (
-        name.includes(trimmedQuery) ||
-        bengaliName.includes(trimmedQuery) ||
-        cat.includes(trimmedQuery) ||
-        catBn.includes(trimmedQuery) ||
-        catTranslated.includes(trimmedQuery) ||
-        fabric.includes(trimmedQuery) ||
-        desc.includes(trimmedQuery)
-      );
-    });
-  }, [products, trimmedQuery, translateCategory]);
+    return products.filter((p) => matchesProductSearch(p, trimmedQuery));
+  }, [products, trimmedQuery]);
 
   const popularSearches = isEnglish
     ? [
@@ -486,7 +465,7 @@ export const Header: React.FC = () => {
                   closeDropdown();
                   if (location.pathname !== '/') navigate('/');
                   setTimeout(() => {
-                    const catalogEl = document.getElementById('product-catalog-section');
+                    const catalogEl = document.getElementById('products-section') || document.getElementById('product-catalog-section');
                     if (catalogEl) {
                       catalogEl.scrollIntoView({ behavior: 'smooth' });
                     }
@@ -509,10 +488,10 @@ export const Header: React.FC = () => {
   );
 
   return (
-    <header className="w-full overflow-x-clip bg-white/95 border-b border-rose-100 shadow-xs transition-colors">
+    <header className="relative z-30 w-full overflow-x-clip bg-white/95 border-b border-rose-100 shadow-xs transition-colors">
       {/* Main Bar */}
       <div className="relative border-b border-rose-100/70 px-2 sm:px-4 py-1.5 w-full">
-        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 py-2 sm:py-3.5 w-full visit-white-border-box rounded-2xl shadow-xs overflow-hidden">
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 py-2 sm:py-3.5 w-full visit-white-border-box rounded-2xl shadow-xs overflow-visible">
           <div className="flex items-center justify-between gap-1 sm:gap-4 w-full min-w-0">
           {/* Brand Logo & Name */}
           <Link 

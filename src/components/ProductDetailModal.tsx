@@ -255,17 +255,6 @@ export const ProductDetailModal: React.FC = () => {
                 </div>
               )}
 
-              {/* Magnifier Lens Guide when zooming */}
-              {isZooming && (
-                <div 
-                  className="absolute pointer-events-none w-28 h-28 rounded-full border-2 border-white/90 shadow-[0_0_20px_rgba(0,0,0,0.35)] -translate-x-1/2 -translate-y-1/2 ring-2 ring-rose-500/50 bg-white/5"
-                  style={{
-                    left: `${zoomPos.x}%`,
-                    top: `${zoomPos.y}%`,
-                  }}
-                />
-              )}
-
               {/* Hover to Zoom Instruction Hint (hidden when zooming) */}
               <div 
                 className={`absolute bottom-3 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur-xs text-white text-[11px] font-medium px-3 py-1.5 rounded-full shadow-lg transition-all duration-300 pointer-events-none flex items-center gap-1.5 whitespace-nowrap border border-white/20 ${

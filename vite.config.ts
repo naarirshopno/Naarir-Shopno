@@ -190,8 +190,30 @@ export default defineConfig(() => {
           });
 
           server.middlewares.use('/api/email/send', async (req, res) => {
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+
+            if (req.method === 'OPTIONS') {
+              res.writeHead(200);
+              res.end();
+              return;
+            }
+
+            if (req.method === 'GET') {
+              res.writeHead(200);
+              res.end(JSON.stringify({
+                success: true,
+                status: 'online',
+                message: 'ইমেইল ডিসপ্যাচ এন্ডপয়েন্ট সক্রিয় রয়েছে। POST রিকোয়েস্ট পাঠান।',
+                time: new Date().toISOString(),
+              }));
+              return;
+            }
+
             if (req.method !== 'POST') {
-              res.writeHead(405, { 'Content-Type': 'application/json' });
+              res.writeHead(405);
               res.end(JSON.stringify({ success: false, error: 'Method not allowed' }));
               return;
             }

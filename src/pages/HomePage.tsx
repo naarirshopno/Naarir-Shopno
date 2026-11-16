@@ -9,6 +9,7 @@ import { ProductToolbar } from '../components/ProductToolbar';
 import { ProductCard } from '../components/ProductCard';
 import { RecentlyViewedSection } from '../components/RecentlyViewedSection';
 import { useLanguage } from '../context/LanguageContext';
+import { matchesProductSearch } from '../utils/bilingualSearch';
 import { 
   RotateCcw, 
   SearchX, 
@@ -55,17 +56,9 @@ export const HomePage: React.FC = () => {
       });
     }
 
-    // Search query filter
+    // Bilingual & Banglish phonetic search query filter
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.bengaliName.toLowerCase().includes(q) ||
-          p.categoryBengali.toLowerCase().includes(q) ||
-          p.fabric.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q)
-      );
+      result = result.filter((p) => matchesProductSearch(p, searchQuery));
     }
 
     // Price range filter

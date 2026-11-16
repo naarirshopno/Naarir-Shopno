@@ -442,7 +442,7 @@ export const ProductDetailPage: React.FC = () => {
             className={`relative w-full aspect-[3/4] max-w-xl sm:rounded-2xl rounded-t-3xl sm:rounded-3xl overflow-hidden bg-rose-50/30 sm:shadow-sm sm:border border-rose-100 select-none group/zoom ${
               scale > 1.05
                 ? 'cursor-grab active:cursor-grabbing'
-                : 'cursor-crosshair'
+                : 'cursor-zoom-in'
             }`}
             title={isEnglish ? 'Move cursor to inspect fabric weave and craft details' : 'মাউস নাড়িয়ে কাপড়ের নিখুঁত বুনন ও ফেব্রিক ডিটেইলস জুম করুন'}
           >
@@ -548,17 +548,6 @@ export const ProductDetailPage: React.FC = () => {
               <div className="absolute top-14 right-3 z-20 bg-slate-900/95 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-lg border border-white/20 animate-fadeIn">
                 {shareToast}
               </div>
-            )}
-
-            {/* Magnifier Lens Guide when Hover Zooming */}
-            {isHoverZooming && (
-              <div 
-                className="absolute pointer-events-none w-28 h-28 rounded-full border-2 border-white/95 shadow-[0_0_25px_rgba(0,0,0,0.35)] -translate-x-1/2 -translate-y-1/2 ring-2 ring-rose-500/60 bg-white/10 z-20 backdrop-contrast-125"
-                style={{
-                  left: `${hoverPos.x}%`,
-                  top: `${hoverPos.y}%`,
-                }}
-              />
             )}
 
             {/* Hover Zoom Active Banner */}

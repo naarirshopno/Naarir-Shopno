@@ -1,4 +1,5 @@
 import express from 'express';
+import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import nodemailer from 'nodemailer';
@@ -444,12 +445,12 @@ app.post('/api/supplier/extract-product', async (req, res) => {
       // 1. REAL URL EXTRACTION via Server Scraper
       const scrapeRes = await scrapeProductPage(cleanInput);
 
-      if (scrapeRes.success && (scrapeRes.title || scrapeRes.images.length > 0)) {
+      if (scrapeRes.success && (scrapeRes.title || (scrapeRes.images && scrapeRes.images.length > 0))) {
         extractedTitle = scrapeRes.title || '';
-        extractedImages = scrapeRes.images;
-        extractedPrice = scrapeRes.price;
-        extractedDescription = scrapeRes.description;
-        extractedSku = scrapeRes.sku;
+        extractedImages = scrapeRes.images || [];
+        extractedPrice = scrapeRes.price ?? null;
+        extractedDescription = scrapeRes.description || '';
+        extractedSku = scrapeRes.sku || '';
         sourceNotice = 'লাইভ ওয়েবসাইট থেকে মেটাডাটা ও ছবি সফলভাবে এক্সট্র্যাক্ট করা হয়েছে!';
       } else {
         // Fallback: parse URL slug for title
@@ -586,12 +587,41 @@ app.post('/api/supplier/forward-order', async (req, res) => {
 const isProd = process.env.NODE_ENV === 'production';
 
 async function startServer() {
+  const httpServer = http.createServer(app);
+
   if (!isProd) {
     const { createServer } = await import('vite');
+    const isHostedPreview = Boolean(process.env.K_SERVICE || process.env.DISABLE_HMR === 'true');
     const vite = await createServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: isHostedPreview ? false : { server: httpServer },
+        ws: isHostedPreview ? false : { server: httpServer },
+        watch: isHostedPreview ? null : undefined,
+      },
       appType: 'spa',
     });
+
+    // In hosted Cloud Run / AI Studio preview, HMR WebSockets are disabled; keep Vite ESM client helpers
+    // active while skipping the top-level HMR WebSocket connection so browsers never throw WS errors.
+    if (isHostedPreview) {
+      app.get('/@vite/client', async (_req, res, next) => {
+        try {
+          const result = await vite.transformRequest('/@vite/client');
+          if (!result) return next();
+          const code = result.code.replace(
+            /const transport = normalizeModuleRunnerTransport\(\(\(\) => \{[\s\S]*?\}\)\(\)\);/,
+            'const transport = normalizeModuleRunnerTransport({ async connect() {}, async disconnect() {}, send() {} });'
+          );
+          res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.end(code);
+        } catch {
+          next();
+        }
+      });
+    }
+
     // Ensure browsers do not cache the root HTML in dev
     app.use((req, res, next) => {
       if (req.url === '/' || !req.url.includes('.')) {
@@ -606,13 +636,16 @@ async function startServer() {
     const distPath = path.resolve(__dirname, 'dist');
     app.use(express.static(distPath, {
       setHeaders: (res, filePath) => {
-        if (filePath.endsWith('.html')) {
+        if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
           res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
           res.setHeader('Pragma', 'no-cache');
           res.setHeader('Expires', '0');
         }
       },
     }));
+    app.use('/api/*', (_req, res) => {
+      res.status(404).json({ success: false, error: 'API endpoint not found' });
+    });
     app.get('*', (req, res) => {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
@@ -621,7 +654,7 @@ async function startServer() {
     });
   }
 
-  app.listen(Number(PORT), '0.0.0.0', () => {
+  httpServer.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`Server started in ${isProd ? 'production' : 'development'} mode on http://0.0.0.0:${PORT}`);
   });
 }
