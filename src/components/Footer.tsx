@@ -6,9 +6,6 @@ import {
   Phone, 
   MapPin, 
   Mail, 
-  Truck, 
-  ShieldCheck, 
-  RotateCcw, 
   Heart, 
   ExternalLink,
   MessageCircle,
@@ -40,67 +37,6 @@ export const Footer: React.FC = () => {
       <div className="absolute inset-0 bg-neutral-950/40 pointer-events-none" aria-hidden="true" />
 
       <div className="relative z-10">
-        {/* Feature highlights bar */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 border-b border-white/10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-black/60 border border-white/10">
-            <div className="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center shrink-0">
-              <Truck className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="font-bold text-white text-sm">
-                {isEnglish ? 'Fast Nationwide Home Delivery' : 'সারাদেশে দ্রুত হোম ডেলিভারি'}
-              </h4>
-              <p className="text-xs text-slate-300">
-                {isEnglish ? '24-48 hours in Dhaka City, 2-3 days nationwide' : 'ঢাকা সিটিতে ২৪-৪৮ ঘণ্টা, সারাদেশে ২-৩ দিন'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-black/60 border border-white/10">
-            <div className="w-12 h-12 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="font-bold text-white text-sm">
-                {isEnglish ? 'Cash on Delivery (COD)' : 'ক্যাশ অন ডেলিভারি (COD)'}
-              </h4>
-              <p className="text-xs text-slate-300">
-                {isEnglish ? 'Pay on delivery after checking your order' : 'পণ্য দেখে ও চেক করে পরিশোধের সুযোগ'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-black/60 border border-white/10">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
-              <RotateCcw className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="font-bold text-white text-sm">
-                {isEnglish ? 'Easy Return & Exchange' : 'সহজ রিটার্ন ও এক্সচেঞ্জ'}
-              </h4>
-              <p className="text-xs text-slate-300">
-                {isEnglish ? '3-day size replacement guarantee' : '৩ দিনের মধ্যে সাইজ পরিবর্তনের নিশ্চয়তা'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-black/60 border border-white/10">
-            <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0">
-              <Phone className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="font-bold text-white text-sm">
-                {isEnglish ? 'Direct Phone Support' : 'সরাসরি ফোন সাপোর্ট'}
-              </h4>
-              <p className="text-xs text-slate-300">
-                {translateSupportHours(settings.supportHours)}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Footer Links & Info */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8">

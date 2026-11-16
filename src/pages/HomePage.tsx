@@ -9,10 +9,7 @@ import { ProductToolbar } from '../components/ProductToolbar';
 import { ProductCard } from '../components/ProductCard';
 import { RecentlyViewedSection } from '../components/RecentlyViewedSection';
 import { useLanguage } from '../context/LanguageContext';
-import { Link } from 'react-router-dom';
 import { 
-  Truck, 
-  ChevronRight, 
   RotateCcw, 
   SearchX, 
   Loader2, 
@@ -31,7 +28,7 @@ export const HomePage: React.FC = () => {
     settings 
   } = useShop();
 
-  const { t, formatNumber, formatPrice, isEnglish } = useLanguage();
+  const { t, formatNumber, isEnglish } = useLanguage();
 
   // Filter & Sort Logic
   const filteredProducts = useMemo(() => {
@@ -102,8 +99,8 @@ export const HomePage: React.FC = () => {
     return result;
   }, [products, activeCategory, searchQuery, sortBy, priceRange, settings.categories]);
 
-  // Load More Pagination (8 per page)
-  const PRODUCTS_PER_PAGE = 8;
+  // Load More Pagination (20 per page)
+  const PRODUCTS_PER_PAGE = 20;
   const [visibleCount, setVisibleCount] = useState<number>(PRODUCTS_PER_PAGE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
@@ -237,39 +234,6 @@ export const HomePage: React.FC = () => {
         {/* Recently Viewed Products Section */}
         <RecentlyViewedSection />
       </main>
-
-      {/* 4. Quick Delivery & Trust Notification Strip */}
-      <section className="max-w-7xl mx-auto visit-white-border-box rounded-2xl py-3.5 px-4 sm:px-6 my-4 shadow-xs">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs text-slate-700">
-          <div className="flex items-center gap-2 font-medium">
-            <Truck className="w-4 h-4 text-rose-600 shrink-0" />
-            <span>
-              {isEnglish ? (
-                <>Delivery charge inside Dhaka <strong>{formatPrice(settings.deliveryCharges.insideDhaka)}</strong>, nationwide <strong>{formatPrice(settings.deliveryCharges.outsideDhaka)}</strong></>
-              ) : (
-                <>ঢাকা সিটিতে ডেলিভারি চার্জ মাত্র <strong>{formatPrice(settings.deliveryCharges.insideDhaka)}</strong>, সারাদেশে <strong>{formatPrice(settings.deliveryCharges.outsideDhaka)}</strong></>
-              )}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              to="/delivery-info"
-              className="text-rose-700 hover:text-rose-800 font-bold underline flex items-center gap-0.5 text-xs cursor-pointer"
-            >
-              <span>{isEnglish ? 'Delivery Policy & Charges' : 'ডেলিভারি পলিসি ও চার্জ বিবরণী'}</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-            <span className="text-slate-300">|</span>
-            <Link
-              to="/track"
-              className="text-slate-700 hover:text-rose-600 font-bold flex items-center gap-1 text-xs"
-            >
-              <span>{isEnglish ? 'Track Parcel' : 'পার্সেল ট্র্যাক করুন'}</span>
-            </Link>
-          </div>
-        </div>
-      </section>
 
       {/* 5. Category Filter Showcase Bar (Moved to main's place) */}
       <CategoryShowcase />

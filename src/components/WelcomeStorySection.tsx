@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Sparkles, CheckCircle2 } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 export const WelcomeStorySection: React.FC = () => {
   const { isEnglish } = useLanguage();
@@ -31,55 +31,6 @@ export const WelcomeStorySection: React.FC = () => {
               ? 'We are here to bring that dream to life. Every garment blends sophistication, finest fabrics, and exclusive craftsmanship.'
               : 'আপনার সেই স্বপ্নকে বাস্তবে রূপ দিতেই আমাদের এই পথচলা। আভিজাত্য, সেরা ফেব্রিক এবং অনন্য ডিজাইনের সমন্বয়ে তৈরি আমাদের প্রতিটি পোশাক।'}
           </p>
-
-          {/* Feature Highlights Grid - 2 Divs Left and Right (50% each) */}
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-4 pt-2 text-left">
-            {/* 1st Div (Left, 50%): Contains 1st & 2nd texts */}
-            <div className="visit-white-border-box p-3 sm:p-5 rounded-2xl shadow-2xs hover:shadow-xs transition space-y-2.5 sm:space-y-3.5">
-              <div>
-                <div className="flex items-center gap-1.5 sm:gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-0.5 sm:mb-1 font-['Hind_Siliguri']">
-                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-600" />
-                  <span>{isEnglish ? 'Trendy & Premium Quality' : 'ট্রেন্ডি ও প্রিমিয়াম কোয়ালিটি'}</span>
-                </div>
-                <p className="text-[10px] sm:text-xs text-slate-500 pl-5 sm:pl-6 leading-relaxed">
-                  {isEnglish ? 'Exclusive collections & heritage sarees' : 'এক্সক্লুসিভ কালেকশন ও ঐতিহ্যবাহী শাড়ির সেরা মেলা'}
-                </p>
-              </div>
-
-              <div className="border-t border-rose-100/70 pt-2.5 sm:pt-3">
-                <div className="flex items-center gap-1.5 sm:gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-0.5 sm:mb-1 font-['Hind_Siliguri']">
-                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-600" />
-                  <span>{isEnglish ? 'Casual & Festive Styles' : 'ক্যাজুয়াল ও গর্জিয়াস কালেকশন'}</span>
-                </div>
-                <p className="text-[10px] sm:text-xs text-slate-500 pl-5 sm:pl-6 leading-relaxed">
-                  {isEnglish ? 'Daily comfort & festive glamour' : 'প্রতিদিনের স্বাচ্ছন্দ্য ও উৎসবের জাঁকজমকপূর্ণ আয়োজন'}
-                </p>
-              </div>
-            </div>
-
-            {/* 2nd Div (Right, 50%): Contains 3rd & 4th texts */}
-            <div className="visit-white-border-box p-3 sm:p-5 rounded-2xl shadow-2xs hover:shadow-xs transition space-y-2.5 sm:space-y-3.5">
-              <div>
-                <div className="flex items-center gap-1.5 sm:gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-0.5 sm:mb-1 font-['Hind_Siliguri']">
-                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-600" />
-                  <span>{isEnglish ? 'Budget-Friendly Best Fabrics' : 'বাজেটবান্ধব সেরা ফেব্রিকস'}</span>
-                </div>
-                <p className="text-[10px] sm:text-xs text-slate-500 pl-5 sm:pl-6 leading-relaxed">
-                  {isEnglish ? 'Pure cotton, georgette, silk & Dubai cherry' : 'অতুলনীয় মানের পিওর সুতি, জর্জেট, সিল্ক ও দুবাই চেরি'}
-                </p>
-              </div>
-
-              <div className="border-t border-rose-100/70 pt-2.5 sm:pt-3">
-                <div className="flex items-center gap-1.5 sm:gap-2 text-rose-600 font-bold text-xs sm:text-sm mb-0.5 sm:mb-1 font-['Hind_Siliguri']">
-                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-600" />
-                  <span>{isEnglish ? 'Cash on Delivery' : 'ক্যাশ অন ডেলিভারি'}</span>
-                </div>
-                <p className="text-[10px] sm:text-xs text-slate-500 pl-5 sm:pl-6 leading-relaxed">
-                  {isEnglish ? 'Inspect item at home before payment' : 'সারাদেশে ঘরে বসে পণ্য দেখে মূল্য পরিশোধের সুবিধা'}
-                </p>
-              </div>
-            </div>
-          </div>
 
           <p className="text-xs text-rose-600 font-semibold italic pt-1">
             🌸 {isEnglish ? 'May "Naarir Shopno" accompany you on your fashion journey. 🌸' : "আপনার পথচলায় 'নারীর স্বপ্ন' থাকুক আপনার সাথে। 🌸"}
