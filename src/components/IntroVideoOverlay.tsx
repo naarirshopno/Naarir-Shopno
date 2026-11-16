@@ -5,74 +5,83 @@ import { useLanguage } from '../context/LanguageContext';
 const INTRO_VIDEO_SRC = '/assets/aistudio/AI_Tools_66ed6d4f.mp4';
 
 interface IntroVideoOverlayProps {
-  disabled?: boolean;
+  onComplete: () => void;
 }
 
-export const IntroVideoOverlay: React.FC<IntroVideoOverlayProps> = ({ disabled = false }) => {
+export const IntroVideoOverlay: React.FC<IntroVideoOverlayProps> = ({ onComplete }) => {
   const { isEnglish } = useLanguage();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const dismissedRef = useRef(false);
   const closeTimerRef = useRef<number | null>(null);
+  const safetyTimerRef = useRef<number | null>(null);
 
-  // Plays on every page load / reload (React mount), while staying hidden during in-app navigation
-  const [shouldRender, setShouldRender] = useState<boolean>(() => !disabled);
   const [isClosing, setIsClosing] = useState(false);
   const [needsAudioTap, setNeedsAudioTap] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(true);
   const [progress, setProgress] = useState(0);
 
-  const dismissIntro = useCallback(() => {
+  const finishIntro = useCallback(() => {
     if (dismissedRef.current) return;
     dismissedRef.current = true;
     setIsClosing(true);
     closeTimerRef.current = window.setTimeout(() => {
-      setShouldRender(false);
+      onComplete();
     }, 450);
-  }, []);
+  }, [onComplete]);
 
   useEffect(() => {
-    if (disabled) {
-      setShouldRender(false);
-      return;
-    }
-    if (!shouldRender) return;
-
+    let isCancelled = false;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    const fallbackTimer = window.setTimeout(() => {
-      dismissIntro();
-    }, 8500);
+    // Generous safety cap only in case the media stream completely stalls on offline/broken networks
+    safetyTimerRef.current = window.setTimeout(() => {
+      if (!isCancelled) {
+        finishIntro();
+      }
+    }, 20000);
 
-    let playFallbackTimer: number | null = null;
     const videoEl = videoRef.current;
 
-    if (videoEl) {
-      // Try unmuted playback immediately as requested
-      videoEl.muted = false;
-      videoEl.volume = 1;
-      const playPromise = videoEl.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(() => {
-          // Browser autoplay policy blocked unmuted autoplay before user gesture:
-          // start muted playback so video still animates, and unmute on first tap/click
+    const startPlayback = async () => {
+      if (!videoEl || isCancelled) return;
+      try {
+        videoEl.muted = false;
+        videoEl.volume = 1;
+        await videoEl.play();
+        if (!isCancelled) {
+          setNeedsAudioTap(false);
+        }
+      } catch (err) {
+        if (isCancelled) return;
+        const errName = err instanceof DOMException ? err.name : '';
+        if (errName === 'AbortError') return;
+
+        // Browser autoplay policy blocked unmuted audio prior to user gesture:
+        // start playback muted immediately so video visibly plays and never skips ahead to HomePage,
+        // while allowing one-tap unmute anywhere on screen.
+        try {
           videoEl.muted = true;
           setNeedsAudioTap(true);
-          videoEl.play().catch(() => {
-            playFallbackTimer = window.setTimeout(dismissIntro, 2500);
-          });
-        });
+          await videoEl.play();
+        } catch {
+          // If even muted playback fails (e.g., strict battery-saver mode), hold brief brand moment then enter store
+          window.setTimeout(() => {
+            if (!isCancelled) finishIntro();
+          }, 3000);
+        }
       }
-    }
+    };
+
+    startPlayback();
 
     return () => {
+      isCancelled = true;
       document.body.style.overflow = prevOverflow;
-      window.clearTimeout(fallbackTimer);
-      if (playFallbackTimer !== null) window.clearTimeout(playFallbackTimer);
+      if (safetyTimerRef.current !== null) window.clearTimeout(safetyTimerRef.current);
       if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
     };
-  }, [disabled, shouldRender, dismissIntro]);
-
-  if (!shouldRender || disabled) return null;
+  }, [finishIntro]);
 
   const handleEnableSound = () => {
     const videoEl = videoRef.current;
@@ -85,11 +94,33 @@ export const IntroVideoOverlay: React.FC<IntroVideoOverlayProps> = ({ disabled =
     }
   };
 
+  const handlePlaying = () => {
+    setIsBuffering(false);
+    // Reset safety timer relative to when playback actually begins
+    if (safetyTimerRef.current !== null) {
+      window.clearTimeout(safetyTimerRef.current);
+    }
+    const videoEl = videoRef.current;
+    const expectedMs =
+      videoEl && videoEl.duration && Number.isFinite(videoEl.duration)
+        ? Math.ceil(videoEl.duration * 1000) + 3000
+        : 12000;
+    safetyTimerRef.current = window.setTimeout(() => {
+      finishIntro();
+    }, expectedMs);
+  };
+
   const handleTimeUpdate = () => {
     const videoEl = videoRef.current;
     if (!videoEl || !videoEl.duration || !Number.isFinite(videoEl.duration)) return;
     const pct = Math.min(100, Math.max(0, (videoEl.currentTime / videoEl.duration) * 100));
     setProgress(pct);
+  };
+
+  const handleVideoError = () => {
+    window.setTimeout(() => {
+      finishIntro();
+    }, 1500);
   };
 
   return (
@@ -98,7 +129,8 @@ export const IntroVideoOverlay: React.FC<IntroVideoOverlayProps> = ({ disabled =
       aria-modal="true"
       aria-label={isEnglish ? 'Naarir Shopno Welcome Intro' : 'নারীর স্বপ্ন স্বাগতম ভিডিও'}
       onClick={needsAudioTap ? handleEnableSound : undefined}
-      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-[#fdf2f5] via-[#fae6ec] to-[#f5d9e2] px-4 py-6 transition-opacity duration-500 ${
+      onTouchStart={needsAudioTap ? handleEnableSound : undefined}
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-br from-[#fdf2f5] via-[#fae6ec] to-[#f5d9e2] px-4 py-6 transition-opacity duration-500 ${
         isClosing ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
@@ -108,7 +140,7 @@ export const IntroVideoOverlay: React.FC<IntroVideoOverlayProps> = ({ disabled =
         aria-hidden="true"
       />
 
-      {/* Top Welcome Pill (No Skip Intro button) */}
+      {/* Top Welcome Pill & Unmute Hint (No Skip Intro button) */}
       <div className="relative z-10 w-full max-w-4xl flex items-center justify-center sm:justify-between gap-3 mb-4">
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/90 border border-rose-200 shadow-xs text-rose-700 text-xs font-bold">
           <Sparkles className="w-3.5 h-3.5 text-rose-500" />
@@ -131,21 +163,32 @@ export const IntroVideoOverlay: React.FC<IntroVideoOverlayProps> = ({ disabled =
       </div>
 
       {/* Centered Responsive Intro Video Frame */}
-      <div className="relative z-10 w-full max-w-4xl rounded-3xl overflow-hidden shadow-2xl border-2 border-white/90 bg-[#f9eef1] aspect-video">
+      <div className="relative z-10 w-full max-w-4xl rounded-3xl overflow-hidden shadow-2xl border-2 border-white/90 bg-[#f9eef1] aspect-video flex items-center justify-center">
+        {isBuffering && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#f9eef1] z-0 pointer-events-none">
+            <img
+              src="/logo.jpg"
+              alt="Naarir Shopno"
+              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-rose-400 shadow-lg animate-pulse"
+            />
+          </div>
+        )}
+
         <video
           ref={videoRef}
           src={INTRO_VIDEO_SRC}
-          autoPlay
           playsInline
           preload="auto"
-          onEnded={dismissIntro}
-          onError={dismissIntro}
+          onPlaying={handlePlaying}
+          onCanPlay={() => setIsBuffering(false)}
+          onEnded={finishIntro}
+          onError={handleVideoError}
           onTimeUpdate={handleTimeUpdate}
-          className="w-full h-full object-contain"
+          className="relative z-10 w-full h-full object-contain"
         />
 
         {/* Bottom Progress Indicator */}
-        <div className="absolute bottom-0 inset-x-0 h-1.5 bg-rose-100/80">
+        <div className="absolute bottom-0 inset-x-0 h-1.5 bg-rose-100/80 z-20">
           <div
             className="h-full bg-gradient-to-r from-rose-500 via-pink-500 to-amber-400 transition-[width] duration-150 ease-linear"
             style={{ width: `${progress}%` }}

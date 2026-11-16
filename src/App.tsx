@@ -143,10 +143,19 @@ const NavigationHandler: React.FC = () => {
 const AppLayout: React.FC = () => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const [introDone, setIntroDone] = React.useState<boolean>(() => isAdminRoute);
+
+  if (!introDone && !isAdminRoute) {
+    return (
+      <div className="min-h-screen overflow-x-clip flex flex-col font-['Hind_Siliguri',sans-serif] bg-[#fdf2f5]">
+        <NavigationHandler />
+        <IntroVideoOverlay onComplete={() => setIntroDone(true)} />
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen overflow-x-clip flex flex-col font-['Hind_Siliguri',sans-serif] selection:bg-rose-600 selection:text-white relative ${isAdminRoute ? 'bg-slate-900 text-slate-100' : 'full-page-slow-color text-slate-800'}`}>
-      <IntroVideoOverlay disabled={isAdminRoute} />
       <ScrollToTop />
       <NavigationHandler />
 
