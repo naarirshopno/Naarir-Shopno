@@ -30,6 +30,9 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.get('/api/health', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 

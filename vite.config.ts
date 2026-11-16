@@ -20,6 +20,10 @@ export default defineConfig(() => {
           'hero-banner.jpg',
           'watermarked_hero_banner.jpg',
           'footer-bg.jpg',
+          'audio/woman-online-bn.mp3',
+          'audio/woman-offline-bn.mp3',
+          'audio/woman-online-en.mp3',
+          'audio/woman-offline-en.mp3',
         ],
         manifest: {
           id: '/',
@@ -62,6 +66,10 @@ export default defineConfig(() => {
           navigateFallback: '/index.html',
           navigateFallbackDenylist: [/^\/api\//],
           runtimeCaching: [
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+              handler: 'NetworkOnly',
+            },
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'CacheFirst',
