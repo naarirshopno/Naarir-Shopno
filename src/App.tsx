@@ -8,6 +8,7 @@ import { FacebookModal } from './components/FacebookModal';
 import { CustomerChatDrawer } from './components/CustomerChatDrawer';
 import { FloatingActions } from './components/FloatingActions';
 import { BackgroundMusicPlayer } from './components/BackgroundMusicPlayer';
+import { IntroVideoOverlay } from './components/IntroVideoOverlay';
 import { Footer } from './components/Footer';
 import { OrderSuccessModal } from './components/OrderSuccessModal';
 
@@ -145,6 +146,7 @@ const AppLayout: React.FC = () => {
 
   return (
     <div className={`min-h-screen overflow-x-clip flex flex-col font-['Hind_Siliguri',sans-serif] selection:bg-rose-600 selection:text-white relative ${isAdminRoute ? 'bg-slate-900 text-slate-100' : 'full-page-slow-color text-slate-800'}`}>
+      <IntroVideoOverlay disabled={isAdminRoute} />
       <ScrollToTop />
       <NavigationHandler />
 
