@@ -4,6 +4,7 @@ import { useShop } from '../context/ShopContext';
 import { CategoryType } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/initialData';
 import { useLanguage } from '../context/LanguageContext';
+import { PWAInstallButton } from './PWAInstallButton';
 import { 
   Phone, 
   Search, 
@@ -117,22 +118,22 @@ const LiveClockBadge: React.FC<{ isMobile?: boolean }> = React.memo(({ isMobile 
     <div 
       onClick={() => setUseBengaliDigits(!useBengaliDigits)}
       title={liveTitle}
-      className="hidden sm:inline-flex group items-center gap-1.5 lg:gap-2 px-2.5 py-0.5 sm:py-1 rounded-full text-slate-700 hover:text-slate-900 transition-colors cursor-pointer select-none whitespace-nowrap max-w-full overflow-hidden"
+      className="hidden sm:inline-flex flex-wrap group items-center justify-center gap-x-1.5 lg:gap-x-2 gap-y-0.5 px-2.5 py-0.5 sm:py-1 rounded-full text-slate-700 hover:text-slate-900 transition-colors cursor-pointer select-none max-w-full"
     >
       <div className="flex items-center gap-1.5 shrink-0">
         <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs inline-block"></span>
-        <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider hidden lg:inline">
+        <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider hidden lg:inline">
           {useBengaliDigits ? 'লাইভ' : t('nav.live')}
         </span>
       </div>
       <span className="text-rose-300 hidden lg:inline shrink-0">|</span>
-      <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-semibold text-rose-800 font-['Hind_Siliguri'] shrink-0">
+      <div className="flex items-center gap-1 text-[11px] font-semibold text-rose-800 font-['Hind_Siliguri'] shrink-0 whitespace-nowrap">
         <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-600 shrink-0" />
         <span className="hidden xl:inline">{dayName}, </span>
         <span>{dateStr}</span>
       </div>
       <span className="text-rose-300 shrink-0">|</span>
-      <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-bold text-slate-800 font-mono tracking-tight shrink-0">
+      <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-800 font-mono tracking-tight shrink-0 whitespace-nowrap">
         <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-600 shrink-0" />
         <span className="tabular-nums">{timeStr}</span>
       </div>
@@ -549,7 +550,7 @@ export const Header: React.FC = () => {
           </Link>
 
           {/* Center Area: Live Date & Time + Search Bar */}
-          <div className="hidden sm:flex flex-1 max-w-xl mx-2 sm:mx-4 flex-col items-center justify-center gap-1.5 py-0.5 min-w-0 overflow-hidden">
+          <div className="hidden sm:flex flex-1 max-w-2xl mx-1.5 lg:mx-3 flex-col items-center justify-center gap-1.5 py-0.5 min-w-0">
             {/* Live Date & Time Display Badge (Desktop & Tablet) */}
             <LiveClockBadge />
 
@@ -615,6 +616,9 @@ export const Header: React.FC = () => {
             </button>
 
 
+
+            {/* PWA Install App Button (Desktop) */}
+            <PWAInstallButton variant="header" />
 
             {/* Track Order Direct Button (Desktop) */}
             <button
@@ -878,6 +882,8 @@ export const Header: React.FC = () => {
 
           {/* Quick Menu Links */}
           <div className="pt-2 border-t border-rose-100 flex flex-col gap-2">
+            <PWAInstallButton variant="drawer" onActionDone={() => setMobileMenuOpen(false)} />
+
             <button
               id="btn-mobile-drawer-profile"
               onClick={() => {

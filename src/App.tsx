@@ -9,6 +9,7 @@ import { CustomerChatDrawer } from './components/CustomerChatDrawer';
 import { FloatingActions } from './components/FloatingActions';
 import { BackgroundMusicPlayer } from './components/BackgroundMusicPlayer';
 import { IntroVideoOverlay } from './components/IntroVideoOverlay';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { Footer } from './components/Footer';
 import { OrderSuccessModal } from './components/OrderSuccessModal';
 
@@ -197,8 +198,9 @@ const AppLayout: React.FC = () => {
         </>
       )}
 
-      {/* 5. Order Success Confirmation Modal */}
+      {/* 5. Order Success Confirmation Modal & Offline Status Indicator */}
       <OrderSuccessModal />
+      <OfflineIndicator />
     </div>
   );
 };
