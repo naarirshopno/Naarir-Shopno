@@ -35,15 +35,38 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
 
   const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80';
 
-  const [activeImg, setActiveImg] = useState<string>(
-    (product.images && product.images.length > 0 && product.images[0]) || FALLBACK_IMAGE
-  );
+  const productImages = React.useMemo(() => {
+    const raw = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
+    const unique = Array.from(new Set(raw));
+    return unique.length > 0 ? unique : [FALLBACK_IMAGE];
+  }, [product.images]);
+
+  const [activeImgIndex, setActiveImgIndex] = useState<number>(0);
 
   useEffect(() => {
-    if (product.images && product.images.length > 0) {
-      setActiveImg(product.images[0]);
-    }
-  }, [product]);
+    setActiveImgIndex(0);
+  }, [product.id]);
+
+  // Auto-cycle product images smoothly with staggered timing across cards
+  useEffect(() => {
+    if (productImages.length <= 1) return;
+
+    const staggerDelay = index !== undefined ? (index % 4) * 550 : 0;
+    let intervalId: number | undefined;
+
+    const startTimer = window.setTimeout(() => {
+      intervalId = window.setInterval(() => {
+        setActiveImgIndex((prev) => (prev + 1) % productImages.length);
+      }, 2400);
+    }, staggerDelay);
+
+    return () => {
+      window.clearTimeout(startTimer);
+      if (intervalId !== undefined) {
+        window.clearInterval(intervalId);
+      }
+    };
+  }, [productImages.length, index]);
 
   // Local state for wishlist status of this item
   const [isSaved, setIsSaved] = useState<boolean>(() => isInWishlist(product.id));
@@ -224,19 +247,42 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
         </div>
       )}
 
-      {/* Image Container with 1st Thumb Model Video */}
+      {/* Image Container with Smooth Auto-Changing Cross-Fade */}
       <div className="relative aspect-[3/4] overflow-hidden bg-rose-50/50 cursor-pointer">
-        <img
-          src={activeImg || (product.images && product.images.length > 0 && product.images[0]) || FALLBACK_IMAGE}
-          alt={translateProductName(product)}
-          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700 ease-out"
-          loading="lazy"
-          onError={(e) => {
-            e.currentTarget.src = FALLBACK_IMAGE;
-          }}
-        />
+        {productImages.map((imgUrl, idx) => {
+          const isCurrent = idx === activeImgIndex;
+          const isNext = idx === (activeImgIndex + 1) % productImages.length;
+          return (
+            <img
+              key={`${product.id}-img-${idx}`}
+              src={imgUrl}
+              alt={idx === 0 ? translateProductName(product) : `${translateProductName(product)} - ${idx + 1}`}
+              className={`absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-all duration-700 ease-in-out ${
+                isCurrent ? 'opacity-100 z-[1]' : 'opacity-0 z-0 pointer-events-none'
+              }`}
+              loading={isCurrent || isNext ? 'eager' : 'lazy'}
+              onError={(e) => {
+                e.currentTarget.src = FALLBACK_IMAGE;
+              }}
+            />
+          );
+        })}
 
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors" />
+        {/* Subtle multi-photo progress dots */}
+        {productImages.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/25 backdrop-blur-[2px] pointer-events-none">
+            {productImages.map((_, idx) => (
+              <span
+                key={idx}
+                className={`h-1 rounded-full transition-all duration-500 ${
+                  idx === activeImgIndex ? 'w-3 bg-white' : 'w-1 bg-white/55'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+
+        <div className="absolute inset-0 z-[2] bg-black/0 group-hover:bg-black/15 transition-colors" />
 
         {/* Out of Stock Image Center Overlay */}
         {isOutOfStock && (
